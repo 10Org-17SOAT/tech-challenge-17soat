@@ -1,7 +1,7 @@
 ---
 name: Nova Feature
 about: Descreva a funcionalidade a ser criada
-title: "[NOVO] "
+title: "[FEAT] "
 labels: enhancement
 assignees: ''
 type: Feature
