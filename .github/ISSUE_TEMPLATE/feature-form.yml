@@ -1,5 +1,5 @@
-name: Nova Feature - Formulario
-description: Formulario para criacao de nova feature no sistema.
+name: Nova Feature - Formulário
+description: Formulário para criação de nova feature no sistema.
 title: "[Feature]: "
 labels:
   - feature
@@ -14,12 +14,14 @@ body:
   - type: markdown
     attributes:
       value: |
+        ## Nova Feature
+        Utilize este formulário para solicitar a criação de uma nova funcionalidade.
 
   - type: input
-    id: Quem identificou a melhoria?
+    id: quem-identificou-a-melhoria
     attributes:
       label: Seu nome
-      description: Q
+      description: Informe seu nome.
       placeholder: "ex. Fulano de Tal."
     validations:
       required: false
@@ -27,10 +29,10 @@ body:
   - type: textarea
     id: what-happened
     attributes:
-      label: Descreva a funcionalidade.
-      description: Conte como espera que a funcionalidade aconteca.
-      placeholder: Conte como espera que a funcionalidade aconteca.
-      value: "Descreva.."
+      label: Descreva a funcionalidade
+      description: Conte como espera que a funcionalidade aconteça.
+      placeholder: Conte como espera que a funcionalidade aconteça.
+      value: "Descreva..."
     validations:
       required: true
 
@@ -54,7 +56,7 @@ body:
   - type: dropdown
     id: team
     attributes:
-      label: Quem voce gostaria que realizasse essa atividade?
+      label: Quem você gostaria que realizasse essa atividade?
       multiple: true
       options:
         - Antonio
@@ -62,6 +64,7 @@ body:
         - Lucas
         - Marcio
         - Pablo
+
   - type: textarea
     id: logs
     attributes:
@@ -71,11 +74,12 @@ body:
         automaticamente como código, portanto não é necessário utilizar crases.
       render: shell
 
-  - type: upload
+  - type: textarea
     id: screenshots
     attributes:
       label: Enviar capturas de tela
       description: >-
-        Se aplicável, adicione capturas de tela para ajudar a explicar o problema.
+        Se aplicável, adicione capturas de tela para ajudar a explicar
+        a funcionalidade.
     validations:
       required: false
