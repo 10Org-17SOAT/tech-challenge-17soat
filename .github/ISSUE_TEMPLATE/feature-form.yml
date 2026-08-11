@@ -1,5 +1,5 @@
-name: Relatório de Bug
-description: Envie um relatório de bug.
+name: Nova Feature - Formulario
+description: Formulario para criacao de nova feature no sistema.
 title: "[Feature]: "
 labels:
   - feature
@@ -8,30 +8,29 @@ projects:
   - tech-challenge-17soat
 assignees:
   - tech-challenge-17soat
-type: bug
+type: feat
 
 body:
   - type: markdown
     attributes:
       value: |
-        Obrigado por reservar um tempo para preencher este relatório de bug!
 
   - type: input
-    id: contact
+    id: Quem identificou a melhoria?
     attributes:
-      label: Dados de contato
-      description: Como podemos entrar em contato com você caso precisemos de mais informações?
-      placeholder: "ex. [email@example.com](mailto:email@example.com)"
+      label: Seu nome
+      description: Q
+      placeholder: "ex. Fulano de Tal."
     validations:
       required: false
 
   - type: textarea
     id: what-happened
     attributes:
-      label: O que aconteceu?
-      description: Conte também o que você esperava que acontecesse.
-      placeholder: Conte-nos o que você está vendo!
-      value: "Ocorreu um bug!"
+      label: Descreva a funcionalidade.
+      description: Conte como espera que a funcionalidade aconteca.
+      placeholder: Conte como espera que a funcionalidade aconteca.
+      value: "Descreva.."
     validations:
       required: true
 
@@ -41,42 +40,36 @@ body:
       label: Versão
       description: Qual versão do nosso software você está utilizando?
       options:
-        - "1.0.2 (Padrão)"
-        - "1.0.3 (Edge)"
+        - "Selecione"
+        - "1.0.0"
+        - "1.0.1"
+        - "1.0.2"
+        - "1.0.3"
+        - "1.0.4"
+        - "1.0.5"
       default: 0
     validations:
       required: true
 
   - type: dropdown
-    id: browsers
+    id: team
     attributes:
-      label: Em quais navegadores você está observando o problema?
+      label: Quem voce gostaria que realizasse essa atividade?
       multiple: true
       options:
-        - Firefox
-        - Chrome
-        - Safari
-        - Microsoft Edge
-
+        - Antonio
+        - Joao
+        - Lucas
+        - Marcio
+        - Pablo
   - type: textarea
     id: logs
     attributes:
-      label: Saída de log relevante
+      label: Encontrou algum problema?
       description: >-
         Copie e cole qualquer saída de log relevante. Ela será formatada
         automaticamente como código, portanto não é necessário utilizar crases.
       render: shell
-
-  - type: checkboxes
-    id: terms
-    attributes:
-      label: Código de Conduta
-      description: >-
-        Ao enviar esta issue, você concorda em seguir o
-        [Código de Conduta](https://example.com) deste projeto.
-      options:
-        - label: Concordo em seguir o Código de Conduta deste projeto
-          required: true
 
   - type: upload
     id: screenshots
