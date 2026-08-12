@@ -36,7 +36,82 @@ Solução completa para **gerenciamento de veículos, serviços, pagamentos e on
 - **PostgreSQL** >= 13.x
 - **Docker** e **Docker Compose** (opcional)
 
-### 📦 Instalação
+### � Docker - Subindo o Banco de Dados
+
+#### Opção 1: Usando Docker Compose (Recomendado)
+
+```bash
+# 1️⃣ Iniciar o PostgreSQL com Docker Compose
+docker-compose up -d
+
+# 📊 Verificar se o container está rodando
+docker-compose ps
+
+# ✅ Saída esperada:
+# NAME                   IMAGE              STATUS
+# tech-challenge-postgres  postgres:16-alpine  Up X seconds
+```
+
+#### Opção 2: Variáveis de Ambiente Customizadas
+
+```bash
+# Iniciar com configurações customizadas
+DB_USER=seu_usuario \
+DB_PASSWORD=sua_senha \
+DB_NAME=seu_banco \
+DB_PORT=5432 \
+docker-compose up -d
+```
+
+#### Gerenciando o Container
+
+```bash
+# 🔄 Reiniciar o banco de dados
+docker-compose restart
+
+# 🛑 Parar o banco de dados
+docker-compose stop
+
+# ❌ Remover container e volumes
+docker-compose down -v
+
+# 📋 Ver logs do PostgreSQL
+docker-compose logs -f postgres
+
+# 🔍 Acessar o container PostgreSQL
+docker-compose exec postgres psql -U postgres -d tech_challenge
+```
+
+#### Verificando Conectividade
+
+```bash
+# ✅ Testar conexão com o banco
+docker-compose exec postgres pg_isready -U postgres -d tech_challenge
+
+# 📊 Ver informações do container
+docker inspect tech-challenge-postgres
+```
+
+#### Variáveis de Ambiente do Docker
+
+O `docker-compose.yml` usa as seguintes variáveis (definidas no `.env`):
+
+```env
+# Banco de Dados
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=tech_challenge
+DB_PORT=5432
+
+# String de conexão completa (gerada automaticamente)
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/tech_challenge
+```
+
+> **💡 Dica:** Altere as credenciais no arquivo `.env` antes de iniciar em produção!
+
+---
+
+### 📦 Intalação
 
 ```bash
 # 1️⃣ Clonar o repositório
@@ -297,6 +372,6 @@ Para dúvidas ou problemas:
 ---
 
 <div align="center">
-  <p><strong>Desenvolvido com ❤️ para o Tech Challenge</strong></p>
-  <p>Última atualização: 2025</p>
+  <p><strong>Desenvolvido para o Tech Challenge</strong></p>
+  <p>Última atualização: 08/2026</p>
 </div>
