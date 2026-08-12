@@ -19,7 +19,11 @@ export class DrizzleVehicleRepository implements IVehicleRepository {
     const primitives = vehicle.toPrimitives();
 
     // Use direct query to avoid typed schema issues
-    const existingVehicle = await (this.db as any).select().from(vehiclesTable).where(eq(vehiclesTable.id, primitives.id)).limit(1);
+    const existingVehicle = await (this.db as any)
+      .select()
+      .from(vehiclesTable)
+      .where(eq(vehiclesTable.id, primitives.id))
+      .limit(1);
 
     if (existingVehicle && existingVehicle.length > 0) {
       // Update

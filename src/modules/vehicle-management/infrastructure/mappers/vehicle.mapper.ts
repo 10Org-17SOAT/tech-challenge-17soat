@@ -20,7 +20,9 @@ export interface VehiclePersistenceDTO {
 
 @Injectable()
 export class VehicleMapper {
-  static toPersistence(vehicle: Vehicle): Omit<VehiclePersistenceDTO, 'createdAt' | 'updatedAt'> {
+  static toPersistence(
+    vehicle: Vehicle,
+  ): Omit<VehiclePersistenceDTO, 'createdAt' | 'updatedAt'> {
     const primitives = vehicle.toPrimitives();
     return {
       id: primitives.id,
