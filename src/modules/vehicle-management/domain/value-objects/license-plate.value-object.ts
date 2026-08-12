@@ -1,9 +1,11 @@
+import { InvalidLicensePlateException } from "../exceptions/vehicle.exceptions";
+
 export class LicensePlate {
   private readonly value: string;
 
   constructor(value: string) {
     if (!value || value.trim().length === 0) {
-      throw new Error('License plate cannot be empty');
+      throw new InvalidLicensePlateException('License plate cannot be empty');
     }
 
     const normalizedValue = this.normalize(value);

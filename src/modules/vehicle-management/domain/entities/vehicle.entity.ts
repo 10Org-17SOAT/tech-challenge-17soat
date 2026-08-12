@@ -164,10 +164,9 @@ export class Vehicle {
       }
 
       this.updatedAt = new Date();
-    } catch (error) {
+    } catch (error: any) {
       throw new VehicleException(
-        `Error updating vehicle: ${(error as any).message}`,
-      );
+        `Error updating vehicle: ${error.message}`);
     }
   }
 
@@ -175,9 +174,9 @@ export class Vehicle {
     try {
       this.odometer = this.odometer.increment(kilometers);
       this.updatedAt = new Date();
-    } catch (error) {
+    } catch (error: any) {
       throw new VehicleException(
-        `Error incrementing odometer: ${(error as any).message}`,
+        `Error incrementing odometer: ${error.message}`,
       );
     }
   }
@@ -212,7 +211,7 @@ export class Vehicle {
     this.deletedAt = new Date();
     this.updatedAt = new Date();
 
-    this.updateStatus("INACTIVE");
+    this.updateStatus('INACTIVE');
   }
 
   isDeleted(): boolean {
