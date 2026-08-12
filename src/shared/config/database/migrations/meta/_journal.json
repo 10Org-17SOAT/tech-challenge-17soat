@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1786557169542,
+      "tag": "0000_vehicles",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786557170000,
+      "tag": "0001_add_deleted_at_to_vehicles",
+      "breakpoints": true
+    }
+  ]
+}
