@@ -120,7 +120,7 @@ describe('Vehicle Management module', () => {
       vehicle.activate();
       expect(vehicle.getStatus().getValue()).toBe(VehicleStatusEnum.ACTIVE);
 
-      vehicle.deactivate();
+      vehicle.updateStatus('INACTIVE');
       expect(vehicle.getStatus().getValue()).toBe(VehicleStatusEnum.INACTIVE);
 
       vehicle.sendToMaintenance();
@@ -441,14 +441,14 @@ describe('Vehicle Management module', () => {
       const vehicle = vehicleFactory({ status: 'ACTIVE' });
       const repository: jest.Mocked<Partial<IVehicleRepository>> = {
         findById: jest.fn().mockResolvedValue(vehicle),
-        save: jest.fn().mockResolvedValue(undefined),
+        delete: jest.fn().mockResolvedValue(undefined),
       };
 
       const useCase = new DeleteVehicleUseCase(repository as any);
       await useCase.execute(vehicle.getId().getValue());
 
       expect(vehicle.getStatus().getValue()).toBe(VehicleStatusEnum.INACTIVE);
-      expect(repository.save).toHaveBeenCalledWith(vehicle);
+      expect(repository.delete).toHaveBeenCalledWith(vehicle);
     });
 
     it('should reject when vehicle is not found', async () => {
@@ -911,7 +911,8 @@ describe('Vehicle Management module', () => {
 
       const repository = new DrizzleVehicleRepository(db);
       const count = await repository.findAllCount();
-      await repository.delete(new VehicleId(vehicle.getId().getValue()));
+      vehicle.delete();
+      await repository.delete(vehicle);
 
       expect(count).toBe(2);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
