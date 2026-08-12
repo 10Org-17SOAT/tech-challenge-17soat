@@ -1,0 +1,42 @@
+export class VehicleResponseDto {
+  id: string;
+  licensePlate: string;
+  model: string;
+  year: number;
+  manufacturer: string;
+  description: string | null;
+  color: string;
+  fuelType: string;
+  odometer: number;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+
+  constructor(data: {
+    id: string;
+    licensePlate: string;
+    model: string;
+    year: number;
+    manufacturer: string;
+    description: string | null;
+    color: string;
+    fuelType: string;
+    odometer: number;
+    status: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }) {
+    this.id = data.id;
+    this.licensePlate = data.licensePlate;
+    this.model = data.model;
+    this.year = data.year;
+    this.manufacturer = data.manufacturer;
+    this.description = data.description;
+    this.color = data.color;
+    this.fuelType = data.fuelType;
+    this.odometer = data.odometer;
+    this.status = data.status;
+    this.createdAt = data.createdAt;
+    this.updatedAt = data.updatedAt;
+  }
+}
