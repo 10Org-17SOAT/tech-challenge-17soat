@@ -1,9 +1,4 @@
-export enum FuelTypeEnum {
-  GASOLINE = 'GASOLINE',
-  ETHANOL = 'ETHANOL',
-  DIESEL = 'DIESEL',
-  HYBRID = 'HYBRID',
-}
+import { FuelTypeEnum } from "../../application/enum/fueltype.enum";
 
 export class FuelType {
   private readonly value: FuelTypeEnum;
