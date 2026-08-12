@@ -25,6 +25,7 @@ export interface CreateVehicleProps {
   status?: string;
   createdAt?: Date;
   updatedAt?: Date;
+  deletedAt?: Date | null;
 }
 
 export interface UpdateVehicleProps {
@@ -49,6 +50,7 @@ export class Vehicle {
   private status: VehicleStatus;
   private readonly createdAt: Date;
   private updatedAt: Date;
+  private deletedAt: Date | null;
 
   constructor(props: CreateVehicleProps) {
     this.id = new VehicleId(props.id);
@@ -61,6 +63,7 @@ export class Vehicle {
     this.status = new VehicleStatus(props.status || 'ACTIVE');
     this.createdAt = props.createdAt || new Date();
     this.updatedAt = props.updatedAt || new Date();
+    this.deletedAt = props.deletedAt || null;
   }
 
   static create(props: CreateVehicleProps): Vehicle {
@@ -107,6 +110,10 @@ export class Vehicle {
     return this.updatedAt;
   }
 
+  getDeletedAt(): Date | null {
+    return this.deletedAt;
+  }
+
   updateStatus(newStatus: string | VehicleStatus): void {
     try {
       const statusValue =
@@ -120,10 +127,6 @@ export class Vehicle {
 
   activate(): void {
     this.updateStatus('ACTIVE');
-  }
-
-  deactivate(): void {
-    this.updateStatus('INACTIVE');
   }
 
   sendToMaintenance(): void {
@@ -197,6 +200,22 @@ export class Vehicle {
       status: this.status.getValue(),
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
+      deletedAt: this.deletedAt,
     };
+  }
+
+  delete(): void {
+    if (this.deletedAt !== null) {
+      throw new VehicleException('Vehicle is already deleted');
+    }
+
+    this.deletedAt = new Date();
+    this.updatedAt = new Date();
+
+    this.updateStatus("INACTIVE");
+  }
+
+  isDeleted(): boolean {
+    return this.deletedAt !== null;
   }
 }

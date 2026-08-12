@@ -8,5 +8,5 @@ export interface IVehicleRepository {
   findByLicensePlate(plate: LicensePlate): Promise<Vehicle | null>;
   findAll(limit: number, offset: number): Promise<Vehicle[]>;
   findAllCount(): Promise<number>;
-  delete(id: VehicleId): Promise<void>;
+  delete(vehicle: Vehicle): Promise<void>;
 }

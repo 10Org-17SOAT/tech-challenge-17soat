@@ -15,6 +15,7 @@ export interface VehiclePersistenceDTO {
   status: string;
   createdAt: Date;
   updatedAt: Date;
+  deletedAt: Date | null;
 }
 
 @Injectable()
@@ -32,6 +33,7 @@ export class VehicleMapper {
       fuelType: primitives.fuelType,
       odometer: primitives.odometer,
       status: primitives.status,
+      deletedAt: primitives.deletedAt,
     };
   }
 
@@ -49,6 +51,7 @@ export class VehicleMapper {
       status: raw.status,
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,
+      deletedAt: raw.deletedAt,
     });
   }
 
@@ -67,6 +70,7 @@ export class VehicleMapper {
       status: primitives.status,
       createdAt: primitives.createdAt,
       updatedAt: primitives.updatedAt,
+      deletedAt: primitives.deletedAt,
     });
   }
 }

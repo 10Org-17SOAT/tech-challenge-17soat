@@ -6,6 +6,7 @@ import { VehicleId, LicensePlate } from '../../domain/value-objects';
 import { DATABASE_CONNECTION, type DrizzleDatabase } from '../../../../shared/config/database';
 import { vehiclesTable } from '../persistence/vehicle.schema';
 import { VehicleMapper } from '../mappers/vehicle.mapper';
+import { VehicleException } from '../../domain/exceptions/vehicle.exceptions';
 
 @Injectable()
 export class DrizzleVehicleRepository implements IVehicleRepository {
@@ -78,6 +79,7 @@ export class DrizzleVehicleRepository implements IVehicleRepository {
       status: row.status,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
+      deletedAt: row.deletedAt,
     });
   }
 
@@ -106,6 +108,7 @@ export class DrizzleVehicleRepository implements IVehicleRepository {
       status: row.status,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
+      deletedAt: row.deletedAt,
     });
   }
 
@@ -130,6 +133,7 @@ export class DrizzleVehicleRepository implements IVehicleRepository {
         status: row.status,
         createdAt: row.createdAt,
         updatedAt: row.updatedAt,
+        deletedAt: row.deletedAt,
       }),
     );
   }
@@ -142,11 +146,23 @@ export class DrizzleVehicleRepository implements IVehicleRepository {
     return result[0]?.count || 0;
   }
 
-  async delete(id: VehicleId): Promise<void> {
-    await (this.db as any)
+  async delete(vehicle: Vehicle): Promise<void> {
+    const deletedAt = vehicle.getDeletedAt();
+
+    if (!deletedAt) {
+      throw new VehicleException(
+        'Vehicle must be marked as deleted before persisting the deletion',
+      );
+    }
+
+    await this.db
       .update(vehiclesTable)
-      .set({ status: 'INACTIVE' })
-      .where(eq(vehiclesTable.id, id.getValue()));
+      .set({
+        deletedAt,
+        status: vehicle.getStatus().getValue(),
+        updatedAt: vehicle.getUpdatedAt(),
+      })
+      .where(eq(vehiclesTable.id, vehicle.getId().getValue()));
   }
 }
 

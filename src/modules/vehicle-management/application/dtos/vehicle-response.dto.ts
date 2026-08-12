@@ -11,6 +11,7 @@ export class VehicleResponseDto {
   status: string;
   createdAt: Date;
   updatedAt: Date;
+  deletedAt: Date | null;
 
   constructor(data: {
     id: string;
@@ -25,6 +26,7 @@ export class VehicleResponseDto {
     status: string;
     createdAt: Date;
     updatedAt: Date;
+    deletedAt?: Date | null;
   }) {
     this.id = data.id;
     this.licensePlate = data.licensePlate;
@@ -38,5 +40,6 @@ export class VehicleResponseDto {
     this.status = data.status;
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
+    this.deletedAt = data.deletedAt || null;
   }
 }

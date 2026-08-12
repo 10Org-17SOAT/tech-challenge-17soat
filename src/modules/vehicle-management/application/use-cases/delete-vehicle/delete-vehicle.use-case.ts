@@ -19,10 +19,12 @@ export class DeleteVehicleUseCase {
       throw new VehicleNotFoundException(id);
     }
 
-    // Soft delete: mark as INACTIVE
-    vehicle.deactivate();
+    if(vehicle.isDeleted()) {
+      throw new VehicleNotFoundException(id);
+    }
 
+    vehicle.delete();
     // Save updated vehicle
-    await this.vehicleRepository.save(vehicle);
+    await this.vehicleRepository.delete(vehicle);
   }
 }

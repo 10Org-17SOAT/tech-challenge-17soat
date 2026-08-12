@@ -77,7 +77,7 @@ export class VehicleController {
     }
   }
 
-  @Get(':id')
+  @Get(':vehicleId')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get vehicle by ID' })
   @ApiResponse({
@@ -86,7 +86,7 @@ export class VehicleController {
     type: VehicleResponseDto,
   })
   @ApiResponse({ status: 404, description: 'Vehicle not found' })
-  async findById(@Param('id') id: string): Promise<VehicleResponseDto> {
+  async findById(@Param('vehicleId') id: string): Promise<VehicleResponseDto> {
     try {
       const vehicle = await this.findVehicleByIdUseCase.execute(id);
       if (!vehicle) {
@@ -149,7 +149,7 @@ export class VehicleController {
     }
   }
 
-  @Patch(':id')
+  @Patch(':vehicleId')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update vehicle' })
   @ApiResponse({
@@ -160,7 +160,7 @@ export class VehicleController {
   @ApiResponse({ status: 404, description: 'Vehicle not found' })
   @ApiResponse({ status: 400, description: 'Invalid input' })
   async update(
-    @Param('id') id: string,
+    @Param('vehicleId') id: string,
     @Body() updateVehicleDto: UpdateVehicleDto,
   ): Promise<VehicleResponseDto> {
     try {
@@ -193,12 +193,12 @@ export class VehicleController {
     }
   }
 
-  @Delete(':id')
+  @Delete(':vehicleId')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete vehicle (soft delete)' })
   @ApiResponse({ status: 204, description: 'Vehicle deleted successfully' })
   @ApiResponse({ status: 404, description: 'Vehicle not found' })
-  async delete(@Param('id') id: string): Promise<void> {
+  async delete(@Param('vehicleId') id: string): Promise<void> {
     try {
       await this.deleteVehicleUseCase.execute(id);
     } catch (error) {
