@@ -1,5 +1,5 @@
 import { ConfigService } from '@nestjs/config';
-import { drizzle } from 'drizzle-orm/node-postgres';
+import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { Env } from '../env/env.schema';
 import * as schema from './schema';
@@ -15,7 +15,7 @@ export function createDrizzleConnection(
     database: configService.get('DB_NAME', { infer: true }),
   });
 
-  return drizzle(pool, { schema });
+  return drizzle(pool, { schema }) as NodePgDatabase<any>;
 }
 
-export type DrizzleDatabase = ReturnType<typeof createDrizzleConnection>;
+export type DrizzleDatabase = NodePgDatabase<any>;
