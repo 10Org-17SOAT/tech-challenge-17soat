@@ -1,0 +1,214 @@
+import {
+  Controller,
+  Post,
+  Get,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  HttpCode,
+  HttpStatus,
+  BadRequestException,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { CreateVehicleUseCase } from '../../application/use-cases/create-vehicle/create-vehicle.use-case';
+import { FindVehicleByIdUseCase } from '../../application/use-cases/find-vehicle-by-id/find-vehicle-by-id.use-case';
+import { ListVehiclesUseCase } from '../../application/use-cases/list-vehicles/list-vehicles.use-case';
+import { UpdateVehicleUseCase } from '../../application/use-cases/update-vehicle/update-vehicle.use-case';
+import { DeleteVehicleUseCase } from '../../application/use-cases/delete-vehicle/delete-vehicle.use-case';
+import { VehicleResponseDto } from '../../application/dtos/vehicle-response.dto';
+import { VehicleMapper } from '../../infrastructure/mappers/vehicle.mapper';
+import {
+  DuplicateLicensePlateException,
+  VehicleNotFoundException,
+  VehicleException,
+} from '../../domain/exceptions/vehicle.exceptions';
+import { CreateVehicleDto, UpdateVehicleDto, ListVehiclesQueryDto } from './vehicle.dto';
+
+@ApiTags('Vehicles')
+@Controller('vehicles')
+export class VehicleController {
+  constructor(
+    private readonly createVehicleUseCase: CreateVehicleUseCase,
+    private readonly findVehicleByIdUseCase: FindVehicleByIdUseCase,
+    private readonly listVehiclesUseCase: ListVehiclesUseCase,
+    private readonly updateVehicleUseCase: UpdateVehicleUseCase,
+    private readonly deleteVehicleUseCase: DeleteVehicleUseCase,
+  ) {}
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create a new vehicle' })
+  @ApiResponse({
+    status: 201,
+    description: 'Vehicle created successfully',
+    type: VehicleResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'Invalid input' })
+  @ApiResponse({ status: 409, description: 'License plate already exists' })
+  async create(@Body() createVehicleDto: CreateVehicleDto): Promise<VehicleResponseDto> {
+    try {
+      const result = await this.createVehicleUseCase.execute(createVehicleDto);
+      return new VehicleResponseDto({
+        id: result.id,
+        licensePlate: result.licensePlate,
+        model: result.model,
+        year: result.year,
+        manufacturer: result.manufacturer,
+        description: result.description,
+        color: result.color,
+        fuelType: result.fuelType,
+        odometer: result.odometer,
+        status: result.status,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    } catch (error) {
+      if (error instanceof DuplicateLicensePlateException) {
+        throw new ConflictException(error.message);
+      }
+      if (error instanceof VehicleException) {
+        throw new BadRequestException(error.message);
+      }
+      throw error;
+    }
+  }
+
+  @Get(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get vehicle by ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Vehicle found',
+    type: VehicleResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Vehicle not found' })
+  async findById(@Param('id') id: string): Promise<VehicleResponseDto> {
+    try {
+      const vehicle = await this.findVehicleByIdUseCase.execute(id);
+      if (!vehicle) {
+        throw new NotFoundException('Vehicle not found');
+      }
+      return VehicleMapper.toResponse(vehicle);
+    } catch (error) {
+      if (error instanceof VehicleNotFoundException) {
+        throw new NotFoundException(error.message);
+      }
+      if (error instanceof VehicleException) {
+        throw new BadRequestException(error.message);
+      }
+      throw error;
+    }
+  }
+
+  @Get()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'List all vehicles with pagination' })
+  @ApiResponse({
+    status: 200,
+    description: 'Vehicles listed successfully',
+  })
+  async findAll(@Query() query: ListVehiclesQueryDto) {
+    try {
+      const page = query.page || 1;
+      const limit = query.limit || 10;
+
+      const result = await this.listVehiclesUseCase.execute({
+        page: Math.max(1, page),
+        limit: Math.max(1, Math.min(100, limit)),
+      });
+
+      return {
+        data: result.data.map(
+          (item) =>
+            new VehicleResponseDto({
+              id: item.id,
+              licensePlate: item.licensePlate,
+              model: item.model,
+              year: item.year,
+              manufacturer: item.manufacturer,
+              description: item.description,
+              color: item.color,
+              fuelType: item.fuelType,
+              odometer: item.odometer,
+              status: item.status,
+              createdAt: item.createdAt,
+              updatedAt: item.updatedAt,
+            }),
+        ),
+        pagination: result.pagination,
+      };
+    } catch (error) {
+      if (error instanceof VehicleException) {
+        throw new BadRequestException(error.message);
+      }
+      throw error;
+    }
+  }
+
+  @Patch(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update vehicle' })
+  @ApiResponse({
+    status: 200,
+    description: 'Vehicle updated successfully',
+    type: VehicleResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Vehicle not found' })
+  @ApiResponse({ status: 400, description: 'Invalid input' })
+  async update(
+    @Param('id') id: string,
+    @Body() updateVehicleDto: UpdateVehicleDto,
+  ): Promise<VehicleResponseDto> {
+    try {
+      const result = await this.updateVehicleUseCase.execute({
+        id,
+        ...updateVehicleDto,
+      });
+      return new VehicleResponseDto({
+        id: result.id,
+        licensePlate: result.licensePlate,
+        model: result.model,
+        year: result.year,
+        manufacturer: result.manufacturer,
+        description: result.description,
+        color: result.color,
+        fuelType: result.fuelType,
+        odometer: result.odometer,
+        status: result.status,
+        createdAt: result.createdAt,
+        updatedAt: result.updatedAt,
+      });
+    } catch (error) {
+      if (error instanceof VehicleNotFoundException) {
+        throw new NotFoundException(error.message);
+      }
+      if (error instanceof VehicleException) {
+        throw new BadRequestException(error.message);
+      }
+      throw error;
+    }
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete vehicle (soft delete)' })
+  @ApiResponse({ status: 204, description: 'Vehicle deleted successfully' })
+  @ApiResponse({ status: 404, description: 'Vehicle not found' })
+  async delete(@Param('id') id: string): Promise<void> {
+    try {
+      await this.deleteVehicleUseCase.execute(id);
+    } catch (error) {
+      if (error instanceof VehicleNotFoundException) {
+        throw new NotFoundException(error.message);
+      }
+      if (error instanceof VehicleException) {
+        throw new BadRequestException(error.message);
+      }
+      throw error;
+    }
+  }
+}
