@@ -4,6 +4,8 @@ import { AppModule } from './app.module';
 import { Env } from './shared/config/env/env.schema';
 import { setupSwagger } from './shared/config/swagger/swagger.config';
 
+const _LOCALPORT = 3000;
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   setupSwagger(app);
@@ -11,6 +13,8 @@ async function bootstrap() {
   const configService = app.get(ConfigService<Env, true>);
   const port = configService.get('PORT', { infer: true });
 
-  await app.listen(port);
+  await app.listen(port, () => {
+    console.log(`Server is running on http://localhost:${port ?? _LOCALPORT }/docs`)
+  });
 }
 bootstrap();
