@@ -14,7 +14,6 @@ export interface ListVehiclesOutput {
     color: string;
     fuelType: string;
     odometer: number;
-    status: string;
     createdAt: Date;
     updatedAt: Date;
   }>;

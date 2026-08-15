@@ -15,6 +15,20 @@
       "when": 1786557170000,
       "tag": "0001_add_deleted_at_to_vehicles",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786817235809,
+      "tag": "0002_hard_scourge",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1786817473948,
+      "tag": "0003_small_greymalkin",
+      "breakpoints": true
     }
   ]
 }

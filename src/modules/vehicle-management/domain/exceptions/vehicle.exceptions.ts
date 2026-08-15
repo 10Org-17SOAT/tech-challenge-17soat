@@ -30,15 +30,6 @@ export class VehicleNotFoundException extends VehicleException {
   }
 }
 
-export class InvalidVehicleStatusException extends VehicleException {
-  constructor(status: string) {
-    super(
-      `Invalid vehicle status: "${status}". Expected: ACTIVE, INACTIVE, or MAINTENANCE.`,
-    );
-    this.name = 'InvalidVehicleStatusException';
-  }
-}
-
 export class InvalidVehicleModelException extends VehicleException {
   constructor(message: string) {
     super(`Invalid vehicle model: ${message}`);

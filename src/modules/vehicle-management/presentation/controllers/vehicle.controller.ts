@@ -62,7 +62,6 @@ export class VehicleController {
         color: result.color,
         fuelType: result.fuelType,
         odometer: result.odometer,
-        status: result.status,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -134,7 +133,6 @@ export class VehicleController {
               color: item.color,
               fuelType: item.fuelType,
               odometer: item.odometer,
-              status: item.status,
               createdAt: item.createdAt,
               updatedAt: item.updatedAt,
             }),
@@ -178,7 +176,6 @@ export class VehicleController {
         color: result.color,
         fuelType: result.fuelType,
         odometer: result.odometer,
-        status: result.status,
         createdAt: result.createdAt,
         updatedAt: result.updatedAt,
       });

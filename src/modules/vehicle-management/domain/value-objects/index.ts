@@ -4,4 +4,3 @@ export { VehicleModel } from './vehicle-model.value-object';
 export { VehicleColor } from './vehicle-color.value-object';
 export { FuelType } from './fuel-type.value-object';
 export { Odometer } from './odometer.value-object';
-export { VehicleStatus, VehicleStatusEnum } from './vehicle-status.value-object';

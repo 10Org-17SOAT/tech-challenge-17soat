@@ -33,7 +33,6 @@ export class CreateVehicleUseCase {
       color: input.color,
       fuelType: input.fuelType,
       odometer: input.odometer,
-      status: 'ACTIVE',
     });
 
     // Save vehicle
@@ -51,7 +50,6 @@ export class CreateVehicleUseCase {
       color: primitives.color,
       fuelType: primitives.fuelType,
       odometer: primitives.odometer,
-      status: primitives.status,
     };
   }
 }

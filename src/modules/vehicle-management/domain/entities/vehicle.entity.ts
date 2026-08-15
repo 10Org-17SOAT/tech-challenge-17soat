@@ -5,11 +5,9 @@ import {
   VehicleColor,
   FuelType,
   Odometer,
-  VehicleStatus,
 } from '../value-objects';
 import {
   VehicleException,
-  InvalidVehicleStatusException,
 } from '../exceptions/vehicle.exceptions';
 
 export interface CreateVehicleProps {
@@ -22,7 +20,6 @@ export interface CreateVehicleProps {
   color: string;
   fuelType: string;
   odometer: number;
-  status?: string;
   createdAt?: Date;
   updatedAt?: Date;
   deletedAt?: Date | null;
@@ -36,7 +33,6 @@ export interface UpdateVehicleProps {
   color?: string;
   fuelType?: string;
   odometer?: number;
-  status?: string;
 }
 
 export class Vehicle {
@@ -47,7 +43,6 @@ export class Vehicle {
   private color: VehicleColor;
   private fuelType: FuelType;
   private odometer: Odometer;
-  private status: VehicleStatus;
   private readonly createdAt: Date;
   private updatedAt: Date;
   private deletedAt: Date | null;
@@ -60,7 +55,6 @@ export class Vehicle {
     this.color = new VehicleColor(props.color);
     this.fuelType = new FuelType(props.fuelType);
     this.odometer = new Odometer(props.odometer);
-    this.status = new VehicleStatus(props.status || 'ACTIVE');
     this.createdAt = props.createdAt || new Date();
     this.updatedAt = props.updatedAt || new Date();
     this.deletedAt = props.deletedAt || null;
@@ -98,10 +92,6 @@ export class Vehicle {
     return this.odometer;
   }
 
-  getStatus(): VehicleStatus {
-    return this.status;
-  }
-
   getCreatedAt(): Date {
     return this.createdAt;
   }
@@ -112,25 +102,6 @@ export class Vehicle {
 
   getDeletedAt(): Date | null {
     return this.deletedAt;
-  }
-
-  updateStatus(newStatus: string | VehicleStatus): void {
-    try {
-      const statusValue =
-        typeof newStatus === 'string' ? newStatus : newStatus.getValue();
-      this.status = new VehicleStatus(statusValue);
-      this.updatedAt = new Date();
-    } catch (error) {
-      throw new InvalidVehicleStatusException((newStatus as any).toString());
-    }
-  }
-
-  activate(): void {
-    this.updateStatus('ACTIVE');
-  }
-
-  sendToMaintenance(): void {
-    this.updateStatus('MAINTENANCE');
   }
 
   updateVehicleInfo(props: UpdateVehicleProps): void {
@@ -159,14 +130,12 @@ export class Vehicle {
         this.odometer = new Odometer(props.odometer);
       }
 
-      if (props.status) {
-        this.status = new VehicleStatus(props.status);
-      }
-
       this.updatedAt = new Date();
-    } catch (error: any) {
-      throw new VehicleException(
-        `Error updating vehicle: ${error.message}`);
+    } catch (error) {
+      if(error instanceof VehicleException) {
+        throw new VehicleException(
+          `Error updating vehicle: ${error.message}`);
+        }
     }
   }
 
@@ -174,10 +143,12 @@ export class Vehicle {
     try {
       this.odometer = this.odometer.increment(kilometers);
       this.updatedAt = new Date();
-    } catch (error: any) {
-      throw new VehicleException(
-        `Error incrementing odometer: ${error.message}`,
-      );
+    } catch (error) {
+      if(error instanceof VehicleException) {
+        throw new VehicleException(
+          `Error incrementing odometer: ${error.message}`,
+        );
+      }
     }
   }
 
@@ -196,7 +167,6 @@ export class Vehicle {
       color: this.color.getValue(),
       fuelType: this.fuelType.getValue(),
       odometer: this.odometer.getValue(),
-      status: this.status.getValue(),
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
       deletedAt: this.deletedAt,
@@ -210,8 +180,6 @@ export class Vehicle {
 
     this.deletedAt = new Date();
     this.updatedAt = new Date();
-
-    this.updateStatus('INACTIVE');
   }
 
   isDeleted(): boolean {

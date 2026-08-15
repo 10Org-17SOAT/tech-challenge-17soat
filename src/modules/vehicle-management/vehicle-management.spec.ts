@@ -13,8 +13,6 @@ import {
   VehicleColor,
   FuelType,
   Odometer,
-  VehicleStatus,
-  VehicleStatusEnum,
 } from './domain/value-objects';
 import {
   DuplicateLicensePlateException,
@@ -22,7 +20,6 @@ import {
   InvalidLicensePlateException,
   InvalidOdometerException,
   InvalidVehicleModelException,
-  InvalidVehicleStatusException,
   VehicleException,
   VehicleNotFoundException,
 } from './domain/exceptions/vehicle.exceptions';
@@ -52,7 +49,6 @@ describe('Vehicle Management module', () => {
       color: 'Prata',
       fuelType: 'HYBRID',
       odometer: 15000,
-      status: 'ACTIVE',
       createdAt: new Date('2024-01-01T00:00:00.000Z'),
       updatedAt: new Date('2024-01-01T00:00:00.000Z'),
       ...overrides,
@@ -69,10 +65,8 @@ describe('Vehicle Management module', () => {
       expect(vehicle.getColor()).toBeInstanceOf(VehicleColor);
       expect(vehicle.getFuelType()).toBeInstanceOf(FuelType);
       expect(vehicle.getOdometer()).toBeInstanceOf(Odometer);
-      expect(vehicle.getStatus()).toBeInstanceOf(VehicleStatus);
       expect(vehicle.getCreatedAt()).toBeInstanceOf(Date);
       expect(vehicle.getUpdatedAt()).toBeInstanceOf(Date);
-      expect(vehicle.getStatus().getValue()).toBe(VehicleStatusEnum.ACTIVE);
       expect(vehicle.toPrimitives()).toMatchObject({
         id: '123e4567-e89b-12d3-a456-426614174000',
         licensePlate: 'ABC-1234',
@@ -83,53 +77,10 @@ describe('Vehicle Management module', () => {
         color: 'Prata',
         fuelType: 'HYBRID',
         odometer: 15000,
-        status: 'ACTIVE',
       });
     });
 
-    it('should update the status and mark updatedAt', () => {
-      const vehicle = vehicleFactory();
-      const before = vehicle.getUpdatedAt();
-
-      vehicle.updateStatus('MAINTENANCE');
-
-      expect(vehicle.getStatus().getValue()).toBe(
-        VehicleStatusEnum.MAINTENANCE,
-      );
-      expect(vehicle.getUpdatedAt().getTime()).toBeGreaterThan(
-        before.getTime(),
-      );
-    });
-
-    it('should cover invalid status path in updateStatus and updateVehicleInfo catch blocks', () => {
-      const vehicle = vehicleFactory();
-
-      expect(() => vehicle.updateStatus('INVALID' as any)).toThrow(
-        InvalidVehicleStatusException,
-      );
-      expect(() =>
-        vehicle.updateVehicleInfo({
-          color: '   ',
-        }),
-      ).toThrow(VehicleException);
-    });
-
-    it('should activate, deactivate and send to maintenance', () => {
-      const vehicle = vehicleFactory({ status: 'INACTIVE' });
-
-      vehicle.activate();
-      expect(vehicle.getStatus().getValue()).toBe(VehicleStatusEnum.ACTIVE);
-
-      vehicle.updateStatus('INACTIVE');
-      expect(vehicle.getStatus().getValue()).toBe(VehicleStatusEnum.INACTIVE);
-
-      vehicle.sendToMaintenance();
-      expect(vehicle.getStatus().getValue()).toBe(
-        VehicleStatusEnum.MAINTENANCE,
-      );
-    });
-
-    it('should update vehicle data and throw on invalid status', () => {
+    it('should update vehicle data', () => {
       const vehicle = vehicleFactory();
       vehicle.updateVehicleInfo({
         model: 'Corolla',
@@ -139,7 +90,6 @@ describe('Vehicle Management module', () => {
         color: 'Preto',
         fuelType: 'DIESEL',
         odometer: 2000,
-        status: 'INACTIVE',
       });
 
       const primitives = vehicle.toPrimitives();
@@ -150,22 +100,6 @@ describe('Vehicle Management module', () => {
       expect(primitives.color).toBe('Preto');
       expect(primitives.fuelType).toBe('DIESEL');
       expect(primitives.odometer).toBe(2000);
-      expect(primitives.status).toBe('INACTIVE');
-
-      expect(() =>
-        vehicle.updateVehicleInfo({
-          status: 'INVALID' as any,
-        }),
-      ).toThrow(VehicleException);
-    });
-
-    it('should increment odometer and throw for negative values', () => {
-      const vehicle = vehicleFactory({ odometer: 1000 });
-
-      vehicle.incrementOdometer(250);
-      expect(vehicle.getOdometer().getValue()).toBe(1250);
-
-      expect(() => vehicle.incrementOdometer(-1)).toThrow(VehicleException);
     });
 
     it('should expose equality and primitive shape', () => {
@@ -239,29 +173,19 @@ describe('Vehicle Management module', () => {
       );
     });
 
-    it('should validate odometer and status', () => {
+    it('should validate odometer', () => {
       const odometerA = new Odometer(5000);
       const odometerB = new Odometer(5000);
       const odometerC = new Odometer(6000);
-      const statusA = new VehicleStatus('ACTIVE');
-      const statusB = new VehicleStatus('ACTIVE');
-      const statusC = new VehicleStatus('INACTIVE');
 
       expect(() => new Odometer(5000)).not.toThrow();
       expect(() => new Odometer(-1)).toThrow('Odometer cannot be negative');
       expect(() => new Odometer(10.5 as any)).toThrow(
         'Odometer must be an integer number',
       );
-      expect(() => new VehicleStatus('ACTIVE')).not.toThrow();
-      expect(() => new VehicleStatus('UNKNOWN' as any)).toThrow(
-        'Invalid vehicle status. Must be one of',
-      );
       expect(odometerA.equals(odometerB)).toBe(true);
       expect(odometerA.equals(odometerC)).toBe(false);
-      expect(statusA.equals(statusB)).toBe(true);
-      expect(statusA.equals(statusC)).toBe(false);
       expect(odometerA.toString()).toContain('5000');
-      expect(statusA.toString()).toBe('ACTIVE');
     });
   });
 
@@ -276,9 +200,6 @@ describe('Vehicle Management module', () => {
       expect(new VehicleNotFoundException('id-1').message).toContain('id-1');
       expect(new VehicleNotFoundException().message).toContain(
         'Vehicle was not found',
-      );
-      expect(new InvalidVehicleStatusException('INVALID').message).toContain(
-        'INVALID',
       );
       expect(new InvalidFuelTypeException('UNKNOWN').message).toContain(
         'UNKNOWN',
@@ -312,7 +233,6 @@ describe('Vehicle Management module', () => {
       });
 
       expect(result.licensePlate).toBe('ABC-1234');
-      expect(result.status).toBe('ACTIVE');
       expect(repository.findByLicensePlate).toHaveBeenCalledTimes(1);
       expect(repository.save).toHaveBeenCalledTimes(1);
     });
@@ -412,11 +332,9 @@ describe('Vehicle Management module', () => {
         color: 'Azul',
         fuelType: 'GASOLINE',
         odometer: 18000,
-        status: 'INACTIVE',
       });
 
       expect(result.model).toBe('Fit');
-      expect(result.status).toBe('INACTIVE');
       expect(repository.save).toHaveBeenCalledTimes(1);
     });
 
@@ -438,7 +356,7 @@ describe('Vehicle Management module', () => {
 
   describe('DeleteVehicleUseCase', () => {
     it('should disable an existing vehicle', async () => {
-      const vehicle = vehicleFactory({ status: 'ACTIVE' });
+      const vehicle = vehicleFactory();
       const repository: jest.Mocked<Partial<IVehicleRepository>> = {
         findById: jest.fn().mockResolvedValue(vehicle),
         delete: jest.fn().mockResolvedValue(undefined),
@@ -447,7 +365,6 @@ describe('Vehicle Management module', () => {
       const useCase = new DeleteVehicleUseCase(repository as any);
       await useCase.execute(vehicle.getId().getValue());
 
-      expect(vehicle.getStatus().getValue()).toBe(VehicleStatusEnum.INACTIVE);
       expect(repository.delete).toHaveBeenCalledWith(vehicle);
     });
 
@@ -490,7 +407,6 @@ describe('Vehicle Management module', () => {
 
       expect(dto).toBeInstanceOf(VehicleResponseDto);
       expect(dto.licensePlate).toBe('ABC-1234');
-      expect(dto.status).toBe('ACTIVE');
     });
   });
 
@@ -510,7 +426,7 @@ describe('Vehicle Management module', () => {
     );
 
     beforeEach(() => {
-      jest.clearAllMocks();
+      jest.resetAllMocks();
     });
 
     it('should create a vehicle successfully', async () => {
@@ -524,7 +440,6 @@ describe('Vehicle Management module', () => {
         color: 'Prata',
         fuelType: 'HYBRID',
         odometer: 15000,
-        status: 'ACTIVE',
       });
 
       const result = await controller.create({
@@ -578,9 +493,9 @@ describe('Vehicle Management module', () => {
       ).rejects.toThrow('generic error');
     });
 
-    it('should convert domain exceptions into BadRequestException on create', async () => {
+    it('should convert VehicleException into BadRequestException on create', async () => {
       createVehicleUseCase.execute.mockRejectedValue(
-        new InvalidVehicleStatusException('BAD'),
+        new VehicleException('invalid vehicle'),
       );
 
       await expect(
@@ -636,7 +551,6 @@ describe('Vehicle Management module', () => {
             color: 'Prata',
             fuelType: 'HYBRID',
             odometer: 15000,
-            status: 'ACTIVE',
             createdAt: new Date('2024-01-01'),
             updatedAt: new Date('2024-01-02'),
           },
@@ -672,7 +586,6 @@ describe('Vehicle Management module', () => {
         color: 'Azul',
         fuelType: 'GASOLINE',
         odometer: 20000,
-        status: 'INACTIVE',
         createdAt: new Date('2024-01-01'),
         updatedAt: new Date('2024-01-03'),
       });
@@ -808,7 +721,6 @@ describe('Vehicle Management module', () => {
                     color: vehicle.getColor().getValue(),
                     fuelType: vehicle.getFuelType().getValue(),
                     odometer: vehicle.getOdometer().getValue(),
-                    status: vehicle.getStatus().getValue(),
                     createdAt: vehicle.getCreatedAt(),
                     updatedAt: vehicle.getUpdatedAt(),
                   },
@@ -853,7 +765,6 @@ describe('Vehicle Management module', () => {
                     color: vehicle.getColor().getValue(),
                     fuelType: vehicle.getFuelType().getValue(),
                     odometer: vehicle.getOdometer().getValue(),
-                    status: vehicle.getStatus().getValue(),
                     createdAt: vehicle.getCreatedAt(),
                     updatedAt: vehicle.getUpdatedAt(),
                   },
@@ -872,7 +783,6 @@ describe('Vehicle Management module', () => {
                 color: vehicle.getColor().getValue(),
                 fuelType: vehicle.getFuelType().getValue(),
                 odometer: vehicle.getOdometer().getValue(),
-                status: vehicle.getStatus().getValue(),
                 createdAt: vehicle.getCreatedAt(),
                 updatedAt: vehicle.getUpdatedAt(),
               },
@@ -891,7 +801,7 @@ describe('Vehicle Management module', () => {
       expect(all).toHaveLength(1);
     });
 
-    it('should count vehicles and delete by setting status inactive', async () => {
+    it('should count vehicles and delete by setting inactive', async () => {
       const vehicle = vehicleFactory();
       const where = jest.fn().mockResolvedValue(undefined);
       const set = jest.fn().mockReturnValue({ where });

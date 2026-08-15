@@ -7,7 +7,6 @@ export interface UpdateVehicleInput {
   color?: string;
   fuelType?: string;
   odometer?: number;
-  status?: string;
 }
 
 export interface UpdateVehicleOutput {
@@ -20,7 +19,6 @@ export interface UpdateVehicleOutput {
   color: string;
   fuelType: string;
   odometer: number;
-  status: string;
   createdAt: Date;
   updatedAt: Date;
 }

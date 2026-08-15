@@ -5,7 +5,7 @@ import { Vehicle } from '../../domain/entities/vehicle.entity';
 import { VehicleId, LicensePlate } from '../../domain/value-objects';
 import { DATABASE_CONNECTION, type DrizzleDatabase } from '../../../../shared/config/database';
 import { vehiclesTable } from '../persistence/vehicle.schema';
-import { VehicleMapper } from '../mappers/vehicle.mapper';
+import { VehicleMapper, VehiclePersistenceDTO } from '../mappers/vehicle.mapper';
 import { VehicleException } from '../../domain/exceptions/vehicle.exceptions';
 
 @Injectable()
@@ -19,7 +19,7 @@ export class DrizzleVehicleRepository implements IVehicleRepository {
     const primitives = vehicle.toPrimitives();
 
     // Use direct query to avoid typed schema issues
-    const existingVehicle = await (this.db as any)
+    const existingVehicle = await (this.db)
       .select()
       .from(vehiclesTable)
       .where(eq(vehiclesTable.id, primitives.id))
@@ -27,7 +27,7 @@ export class DrizzleVehicleRepository implements IVehicleRepository {
 
     if (existingVehicle && existingVehicle.length > 0) {
       // Update
-      await (this.db as any)
+      await (this.db)
         .update(vehiclesTable)
         .set({
           model: primitives.model,
@@ -37,13 +37,12 @@ export class DrizzleVehicleRepository implements IVehicleRepository {
           color: primitives.color,
           fuelType: primitives.fuelType,
           odometer: primitives.odometer,
-          status: primitives.status,
           updatedAt: new Date(),
         })
         .where(eq(vehiclesTable.id, primitives.id));
     } else {
       // Insert
-      await (this.db as any).insert(vehiclesTable).values({
+      await (this.db).insert(vehiclesTable).values({
         id: primitives.id,
         licensePlate: primitives.licensePlate,
         model: primitives.model,
@@ -53,13 +52,12 @@ export class DrizzleVehicleRepository implements IVehicleRepository {
         color: primitives.color,
         fuelType: primitives.fuelType,
         odometer: primitives.odometer,
-        status: primitives.status,
       });
     }
   }
 
   async findById(id: VehicleId): Promise<Vehicle | null> {
-    const rows = await (this.db as any)
+    const rows = await (this.db)
       .select()
       .from(vehiclesTable)
       .where(eq(vehiclesTable.id, id.getValue()))
@@ -70,25 +68,11 @@ export class DrizzleVehicleRepository implements IVehicleRepository {
     }
 
     const row = rows[0];
-    return VehicleMapper.toDomain({
-      id: row.id,
-      licensePlate: row.licensePlate,
-      model: row.model,
-      year: row.year,
-      manufacturer: row.manufacturer,
-      description: row.description,
-      color: row.color,
-      fuelType: row.fuelType,
-      odometer: row.odometer,
-      status: row.status,
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
-      deletedAt: row.deletedAt,
-    });
+    return VehicleMapper.toDomain(row as VehiclePersistenceDTO);
   }
 
   async findByLicensePlate(plate: LicensePlate): Promise<Vehicle | null> {
-    const rows = await (this.db as any)
+    const rows = await (this.db)
       .select()
       .from(vehiclesTable)
       .where(eq(vehiclesTable.licensePlate, plate.getValue()))
@@ -99,51 +83,23 @@ export class DrizzleVehicleRepository implements IVehicleRepository {
     }
 
     const row = rows[0];
-    return VehicleMapper.toDomain({
-      id: row.id,
-      licensePlate: row.licensePlate,
-      model: row.model,
-      year: row.year,
-      manufacturer: row.manufacturer,
-      description: row.description,
-      color: row.color,
-      fuelType: row.fuelType,
-      odometer: row.odometer,
-      status: row.status,
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
-      deletedAt: row.deletedAt,
-    });
+    return VehicleMapper.toDomain(row as VehiclePersistenceDTO);
   }
 
   async findAll(limit: number, offset: number): Promise<Vehicle[]> {
-    const rows = await (this.db as any)
+    const rows = await (this.db)
       .select()
       .from(vehiclesTable)
       .limit(limit)
       .offset(offset);
 
-    return rows.map((row: any) =>
-      VehicleMapper.toDomain({
-        id: row.id,
-        licensePlate: row.licensePlate,
-        model: row.model,
-        year: row.year,
-        manufacturer: row.manufacturer,
-        description: row.description,
-        color: row.color,
-        fuelType: row.fuelType,
-        odometer: row.odometer,
-        status: row.status,
-        createdAt: row.createdAt,
-        updatedAt: row.updatedAt,
-        deletedAt: row.deletedAt,
-      }),
+    return rows.map((row) =>
+      VehicleMapper.toDomain(row as VehiclePersistenceDTO),
     );
   }
 
   async findAllCount(): Promise<number> {
-    const result = await (this.db as any)
+    const result = await (this.db)
       .select({ count: count() })
       .from(vehiclesTable);
     
@@ -163,7 +119,6 @@ export class DrizzleVehicleRepository implements IVehicleRepository {
       .update(vehiclesTable)
       .set({
         deletedAt,
-        status: vehicle.getStatus().getValue(),
         updatedAt: vehicle.getUpdatedAt(),
       })
       .where(eq(vehiclesTable.id, vehicle.getId().getValue()));

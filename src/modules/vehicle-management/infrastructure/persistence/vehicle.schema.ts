@@ -20,7 +20,6 @@ export const vehiclesTable = pgTable(
     color: varchar('color', { length: 50 }).notNull(),
     fuelType: varchar('fuel_type', { length: 20 }).notNull(), // GASOLINE, ETHANOL, DIESEL, HYBRID
     odometer: integer('odometer').notNull().default(0),
-    status: varchar('status', { length: 20 }).notNull().default('ACTIVE'), // ACTIVE, INACTIVE, MAINTENANCE
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at')
       .notNull()
@@ -30,7 +29,6 @@ export const vehiclesTable = pgTable(
   },
   (table) => ({
     licensePlateIdx: index('idx_license_plate').on(table.licensePlate),
-    statusIdx: index('idx_status').on(table.status),
     fuelTypeIdx: index('idx_fuel_type').on(table.fuelType),
   }),
 );

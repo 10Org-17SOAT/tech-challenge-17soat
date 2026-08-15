@@ -48,8 +48,6 @@ export class UpdateVehicleDto {
   @ApiPropertyOptional({ description: 'Odometer reading' })
   odometer?: number;
 
-  @ApiPropertyOptional({ description: 'Status of the vehicle' })
-  status?: string;
 }
 
 export class ListVehiclesQueryDto {

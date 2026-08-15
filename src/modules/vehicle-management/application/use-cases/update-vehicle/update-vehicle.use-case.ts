@@ -29,7 +29,6 @@ export class UpdateVehicleUseCase {
       color: input.color,
       fuelType: input.fuelType,
       odometer: input.odometer,
-      status: input.status,
     });
 
     // Save updated vehicle
@@ -47,7 +46,6 @@ export class UpdateVehicleUseCase {
       color: primitives.color,
       fuelType: primitives.fuelType,
       odometer: primitives.odometer,
-      status: primitives.status,
       createdAt: primitives.createdAt,
       updatedAt: primitives.updatedAt,
     };

@@ -8,7 +8,6 @@ export class VehicleResponseDto {
   color: string;
   fuelType: string;
   odometer: number;
-  status: string;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
@@ -23,7 +22,6 @@ export class VehicleResponseDto {
     color: string;
     fuelType: string;
     odometer: number;
-    status: string;
     createdAt: Date;
     updatedAt: Date;
     deletedAt?: Date | null;
@@ -37,7 +35,6 @@ export class VehicleResponseDto {
     this.color = data.color;
     this.fuelType = data.fuelType;
     this.odometer = data.odometer;
-    this.status = data.status;
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
     this.deletedAt = data.deletedAt || null;

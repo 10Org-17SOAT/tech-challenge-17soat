@@ -12,7 +12,6 @@ export interface VehiclePersistenceDTO {
   color: string;
   fuelType: string;
   odometer: number;
-  status: string;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
@@ -34,7 +33,6 @@ export class VehicleMapper {
       color: primitives.color,
       fuelType: primitives.fuelType,
       odometer: primitives.odometer,
-      status: primitives.status,
       deletedAt: primitives.deletedAt,
     };
   }
@@ -50,7 +48,6 @@ export class VehicleMapper {
       color: raw.color,
       fuelType: raw.fuelType,
       odometer: raw.odometer,
-      status: raw.status,
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,
       deletedAt: raw.deletedAt,
@@ -69,7 +66,6 @@ export class VehicleMapper {
       color: primitives.color,
       fuelType: primitives.fuelType,
       odometer: primitives.odometer,
-      status: primitives.status,
       createdAt: primitives.createdAt,
       updatedAt: primitives.updatedAt,
       deletedAt: primitives.deletedAt,

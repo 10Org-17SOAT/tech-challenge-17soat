@@ -19,5 +19,4 @@ export interface CreateVehicleOutput {
   color: string;
   fuelType: string;
   odometer: number;
-  status: string;
 }

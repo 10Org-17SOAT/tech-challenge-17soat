@@ -4,9 +4,11 @@ import { Pool } from 'pg';
 import { Env } from '../env/env.schema';
 import * as schema from './schema';
 
+export type DrizzleDatabase = NodePgDatabase<typeof schema>;
+
 export function createDrizzleConnection(
   configService: ConfigService<Env, true>,
-) {
+): DrizzleDatabase {
   const pool = new Pool({
     host: configService.get('DB_HOST', { infer: true }),
     port: configService.get('DB_PORT', { infer: true }),
@@ -15,7 +17,5 @@ export function createDrizzleConnection(
     database: configService.get('DB_NAME', { infer: true }),
   });
 
-  return drizzle(pool, { schema }) as NodePgDatabase<any>;
+  return drizzle(pool, { schema });
 }
-
-export type DrizzleDatabase = NodePgDatabase<any>;

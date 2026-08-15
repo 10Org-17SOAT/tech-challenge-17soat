@@ -111,7 +111,7 @@ describe('Vehicle Management (integração HTTP)', () => {
     await app.close();
   });
 
-  it('executa o fluxo completo de criação, consulta, atualização, listagem e exclusão', async () => {
+  it('executes the complete workflow of creating, querying, updating, listing, and deleting.', async () => {
     const created = await request(app.getHttpServer())
       .post('/vehicles')
       .send(payload)
@@ -120,7 +120,6 @@ describe('Vehicle Management (integração HTTP)', () => {
     expect(created.body).toMatchObject({
       licensePlate: payload.licensePlate,
       model: payload.model,
-      status: 'ACTIVE',
     });
 
     const id = created.body.id as string;
@@ -164,11 +163,6 @@ describe('Vehicle Management (integração HTTP)', () => {
           odometer: 20000,
         });
       });
-
-    await request(app.getHttpServer())
-      .patch(`/vehicles/${id}`)
-      .send({ status: 'INVALID' })
-      .expect(400);
 
     await request(app.getHttpServer()).delete(`/vehicles/${id}`).expect(204);
     await request(app.getHttpServer()).get(`/vehicles/${id}`).expect(404);
