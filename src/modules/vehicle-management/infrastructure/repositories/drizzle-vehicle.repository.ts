@@ -22,7 +22,7 @@ export class DrizzleVehicleRepository implements IVehicleRepository {
     const existingVehicle = await (this.db)
       .select()
       .from(vehiclesTable)
-      .where(eq(vehiclesTable.id, primitives.id))
+      .where(eq(vehiclesTable.vehicle_id, primitives.vehicle_id))
       .limit(1);
 
     if (existingVehicle && existingVehicle.length > 0) {
@@ -39,11 +39,11 @@ export class DrizzleVehicleRepository implements IVehicleRepository {
           odometer: primitives.odometer,
           updatedAt: new Date(),
         })
-        .where(eq(vehiclesTable.id, primitives.id));
+        .where(eq(vehiclesTable.vehicle_id, primitives.vehicle_id));
     } else {
       // Insert
       await (this.db).insert(vehiclesTable).values({
-        id: primitives.id,
+        vehicle_id: primitives.vehicle_id,
         licensePlate: primitives.licensePlate,
         model: primitives.model,
         year: primitives.year,
@@ -60,7 +60,7 @@ export class DrizzleVehicleRepository implements IVehicleRepository {
     const rows = await (this.db)
       .select()
       .from(vehiclesTable)
-      .where(eq(vehiclesTable.id, id.getValue()))
+      .where(eq(vehiclesTable.vehicle_id, id.getValue()))
       .limit(1);
 
     if (!rows || rows.length === 0) {
@@ -121,7 +121,7 @@ export class DrizzleVehicleRepository implements IVehicleRepository {
         deletedAt,
         updatedAt: vehicle.getUpdatedAt(),
       })
-      .where(eq(vehiclesTable.id, vehicle.getId().getValue()));
+      .where(eq(vehiclesTable.vehicle_id, vehicle.getId().getValue()));
   }
 }
 

@@ -13,11 +13,11 @@ export class UpdateVehicleUseCase {
 
   async execute(input: UpdateVehicleInput): Promise<UpdateVehicleOutput> {
     // Fetch vehicle
-    const vehicleId = new VehicleId(input.id);
+    const vehicleId = new VehicleId(input.vehicle_id);
     const vehicle = await this.vehicleRepository.findById(vehicleId);
 
     if (!vehicle) {
-      throw new VehicleNotFoundException(input.id);
+      throw new VehicleNotFoundException(input.vehicle_id);
     }
 
     // Update vehicle info
@@ -37,7 +37,7 @@ export class UpdateVehicleUseCase {
     // Return output
     const primitives = vehicle.toPrimitives();
     return {
-      id: primitives.id,
+      vehicle_id: primitives.vehicle_id,
       licensePlate: primitives.licensePlate,
       model: primitives.model,
       year: primitives.year,

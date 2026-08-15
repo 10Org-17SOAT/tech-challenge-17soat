@@ -10,7 +10,7 @@ export interface CreateVehicleInput {
 }
 
 export interface CreateVehicleOutput {
-  id: string;
+  vehicle_id: string;
   licensePlate: string;
   model: string;
   year: number;

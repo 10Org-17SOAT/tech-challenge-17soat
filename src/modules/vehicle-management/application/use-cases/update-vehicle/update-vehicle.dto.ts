@@ -1,5 +1,5 @@
 export interface UpdateVehicleInput {
-  id: string;
+  vehicle_id: string;
   model?: string;
   year?: number;
   manufacturer?: string;
@@ -10,7 +10,7 @@ export interface UpdateVehicleInput {
 }
 
 export interface UpdateVehicleOutput {
-  id: string;
+  vehicle_id: string;
   licensePlate: string;
   model: string;
   year: number;

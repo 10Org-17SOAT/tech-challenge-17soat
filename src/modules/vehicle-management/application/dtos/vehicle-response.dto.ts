@@ -1,5 +1,5 @@
 export class VehicleResponseDto {
-  id: string;
+  vehicle_id: string;
   licensePlate: string;
   model: string;
   year: number;
@@ -13,7 +13,7 @@ export class VehicleResponseDto {
   deletedAt: Date | null;
 
   constructor(data: {
-    id: string;
+    vehicle_id: string;
     licensePlate: string;
     model: string;
     year: number;
@@ -26,7 +26,7 @@ export class VehicleResponseDto {
     updatedAt: Date;
     deletedAt?: Date | null;
   }) {
-    this.id = data.id;
+    this.vehicle_id = data.vehicle_id;
     this.licensePlate = data.licensePlate;
     this.model = data.model;
     this.year = data.year;

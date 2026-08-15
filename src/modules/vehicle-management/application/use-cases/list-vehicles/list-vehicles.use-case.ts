@@ -24,7 +24,7 @@ export class ListVehiclesUseCase {
     const data = vehicles.map((vehicle) => {
       const primitives = vehicle.toPrimitives();
       return {
-        id: primitives.id,
+        vehicle_id: primitives.vehicle_id,
         licensePlate: primitives.licensePlate,
         model: primitives.model,
         year: primitives.year,

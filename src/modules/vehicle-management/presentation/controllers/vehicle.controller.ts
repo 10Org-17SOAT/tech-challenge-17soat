@@ -53,7 +53,7 @@ export class VehicleController {
     try {
       const result = await this.createVehicleUseCase.execute(createVehicleDto);
       return new VehicleResponseDto({
-        id: result.id,
+        vehicle_id: result.vehicle_id,
         licensePlate: result.licensePlate,
         model: result.model,
         year: result.year,
@@ -124,7 +124,7 @@ export class VehicleController {
         data: result.data.map(
           (item) =>
             new VehicleResponseDto({
-              id: item.id,
+              vehicle_id: item.vehicle_id,
               licensePlate: item.licensePlate,
               model: item.model,
               year: item.year,
@@ -158,16 +158,16 @@ export class VehicleController {
   @ApiResponse({ status: 404, description: 'Vehicle not found' })
   @ApiResponse({ status: 400, description: 'Invalid input' })
   async update(
-    @Param('vehicleId') id: string,
+    @Param('vehicleId') vehicle_id: string,
     @Body() updateVehicleDto: UpdateVehicleDto,
   ): Promise<VehicleResponseDto> {
     try {
       const result = await this.updateVehicleUseCase.execute({
-        id,
+        vehicle_id,
         ...updateVehicleDto,
       });
       return new VehicleResponseDto({
-        id: result.id,
+        vehicle_id: result.vehicle_id,
         licensePlate: result.licensePlate,
         model: result.model,
         year: result.year,

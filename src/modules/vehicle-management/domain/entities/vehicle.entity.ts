@@ -11,7 +11,7 @@ import {
 } from '../exceptions/vehicle.exceptions';
 
 export interface CreateVehicleProps {
-  id?: string;
+  vehicle_id?: string;
   licensePlate: string;
   model: string;
   year: number;
@@ -36,7 +36,7 @@ export interface UpdateVehicleProps {
 }
 
 export class Vehicle {
-  private readonly id: VehicleId;
+  private readonly vehicle_id: VehicleId;
   private licensePlate: LicensePlate;
   private vehicleModel: VehicleModel;
   private description: string | null;
@@ -48,7 +48,7 @@ export class Vehicle {
   private deletedAt: Date | null;
 
   constructor(props: CreateVehicleProps) {
-    this.id = new VehicleId(props.id);
+    this.vehicle_id = new VehicleId(props.vehicle_id);
     this.licensePlate = new LicensePlate(props.licensePlate);
     this.vehicleModel = new VehicleModel(props.model, props.manufacturer, props.year);
     this.description = props.description || null;
@@ -65,7 +65,7 @@ export class Vehicle {
   }
 
   getId(): VehicleId {
-    return this.id;
+    return this.vehicle_id;
   }
 
   getLicensePlate(): LicensePlate {
@@ -153,12 +153,12 @@ export class Vehicle {
   }
 
   equals(other: Vehicle): boolean {
-    return this.id.equals(other.getId());
+    return this.vehicle_id.equals(other.getId());
   }
 
   toPrimitives() {
     return {
-      id: this.id.getValue(),
+      vehicle_id: this.vehicle_id.getValue(),
       licensePlate: this.licensePlate.getValue(),
       model: this.vehicleModel.getModel(),
       year: this.vehicleModel.getYear(),

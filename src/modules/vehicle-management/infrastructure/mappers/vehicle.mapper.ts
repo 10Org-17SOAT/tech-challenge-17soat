@@ -3,7 +3,7 @@ import { Vehicle } from '../../domain/entities/vehicle.entity';
 import { VehicleResponseDto } from '../../application/dtos/vehicle-response.dto';
 
 export interface VehiclePersistenceDTO {
-  id: string;
+  vehicle_id: string;
   licensePlate: string;
   model: string;
   year: number;
@@ -24,7 +24,7 @@ export class VehicleMapper {
   ): Omit<VehiclePersistenceDTO, 'createdAt' | 'updatedAt'> {
     const primitives = vehicle.toPrimitives();
     return {
-      id: primitives.id,
+      vehicle_id: primitives.vehicle_id,
       licensePlate: primitives.licensePlate,
       model: primitives.model,
       year: primitives.year,
@@ -39,7 +39,7 @@ export class VehicleMapper {
 
   static toDomain(raw: VehiclePersistenceDTO): Vehicle {
     return new Vehicle({
-      id: raw.id,
+      vehicle_id: raw.vehicle_id,
       licensePlate: raw.licensePlate,
       model: raw.model,
       year: raw.year,
@@ -57,7 +57,7 @@ export class VehicleMapper {
   static toResponse(vehicle: Vehicle): VehicleResponseDto {
     const primitives = vehicle.toPrimitives();
     return new VehicleResponseDto({
-      id: primitives.id,
+      vehicle_id: primitives.vehicle_id,
       licensePlate: primitives.licensePlate,
       model: primitives.model,
       year: primitives.year,
