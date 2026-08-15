@@ -11,7 +11,7 @@ import {
 export const vehiclesTable = pgTable(
   'vehicles',
   {
-    id: uuid('id').primaryKey().defaultRandom(),
+    vehicle_id: uuid('vehicle_id').primaryKey().defaultRandom(),
     licensePlate: varchar('license_plate', { length: 20 }).unique().notNull(),
     model: varchar('model', { length: 100 }).notNull(),
     year: integer('year').notNull(),

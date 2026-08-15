@@ -26,7 +26,7 @@ import {
   VehicleNotFoundException,
   VehicleException,
 } from '../../domain/exceptions/vehicle.exceptions';
-import { CreateVehicleDto, UpdateVehicleDto, ListVehiclesQueryDto } from './vehicle.dto';
+import { CreateVehicleDto, ListVehiclesQueryDto, UpdateVehicleDto } from '../../infrastructure/schemas/vehicle.schema';
 
 @ApiTags('Vehicles')
 @Controller('vehicles')

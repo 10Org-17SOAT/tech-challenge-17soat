@@ -29,6 +29,13 @@
       "when": 1786817473948,
       "tag": "0003_small_greymalkin",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1786817899435,
+      "tag": "0004_stiff_psynapse",
+      "breakpoints": true
     }
   ]
 }

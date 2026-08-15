@@ -40,6 +40,7 @@ export class CreateVehicleUseCase {
 
     // Return output
     const primitives = vehicle.toPrimitives();
+
     return {
       id: primitives.id,
       licensePlate: primitives.licensePlate,
