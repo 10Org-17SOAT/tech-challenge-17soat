@@ -79,7 +79,7 @@ export class DrizzleSupplyRepository implements SupplyRepository {
         .onConflictDoUpdate({ target: supplies.id, set: row });
     } catch (error) {
       if (isUniqueViolation(error)) {
-        throw new SupplyNameAlreadyExistsError(supply.name);
+        throw new SupplyNameAlreadyExistsError(supply.name, { cause: error });
       }
       throw error;
     }
