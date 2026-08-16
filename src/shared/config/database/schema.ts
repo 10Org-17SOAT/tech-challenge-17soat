@@ -1,2 +1,2 @@
-// Agregador para o drizzle-kit: cada módulo é dono das próprias tabelas.
+// Aggregator for drizzle-kit: each module owns its own tables.
 export * from '../../../modules/stock/infrastructure/persistence/schema';

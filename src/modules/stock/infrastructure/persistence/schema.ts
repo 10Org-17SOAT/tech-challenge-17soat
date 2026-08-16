@@ -22,7 +22,7 @@ export const supplies = pgTable(
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
   },
   (table) => [
-    // Unicidade de nome vale só entre supplies ativos (soft delete libera o nome)
+    // Name uniqueness applies only to active supplies (soft delete frees the name)
     uniqueIndex('supplies_name_active_unique')
       .on(table.name)
       .where(sql`${table.deletedAt} is null`),
