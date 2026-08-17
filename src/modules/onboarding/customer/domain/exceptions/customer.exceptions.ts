@@ -27,3 +27,10 @@ export class InvalidEmailException extends CustomerException {
     this.name = 'InvalidEmailException';
   }
 }
+
+export class InvalidAddressException extends CustomerException {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidAddressException';
+  }
+}
