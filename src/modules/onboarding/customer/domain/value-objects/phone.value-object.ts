@@ -1,6 +1,6 @@
 import { InvalidPhoneException } from '../exceptions/customer.exceptions';
 
-interface PhoneProps {
+export interface PhoneProps {
   countryCode: string;
   areaCode?: string | null;
   number: string;
