@@ -26,7 +26,7 @@ describe('Customer entity', () => {
     it('creates a valid PF customer', () => {
       const customer = Customer.create({
         personType: PersonType.CPF,
-        document: new Document('12345678901'),
+        document: new Document('52998224725'),
         name: 'João Silva',
         email: new Email('joao@example.com'),
         phone: validPhone,
@@ -35,7 +35,7 @@ describe('Customer entity', () => {
 
       expect(customer.getPersonType()).toBe(PersonType.CPF);
       expect(customer.getName()).toBe('João Silva');
-      expect(customer.getDocument().getValue()).toBe('12345678901');
+      expect(customer.getDocument().getValue()).toBe('52998224725');
       expect(customer.getEmail().getValue()).toBe('joao@example.com');
       expect(customer.getId()).toBeDefined();
       expect(customer.getCreatedAt()).toBeInstanceOf(Date);
@@ -45,7 +45,7 @@ describe('Customer entity', () => {
       expect(() =>
         Customer.create({
           personType: PersonType.CPF,
-          document: new Document('12345678901'),
+          document: new Document('52998224725'),
           email: new Email('joao@example.com'),
           phone: validPhone,
           address: validAddress,
@@ -57,7 +57,7 @@ describe('Customer entity', () => {
       expect(() =>
         Customer.create({
           personType: PersonType.CPF,
-          document: new Document('12345678901'),
+          document: new Document('52998224725'),
           name: 'João Silva',
           corporateName: 'Empresa LTDA',
           email: new Email('joao@example.com'),
@@ -71,7 +71,7 @@ describe('Customer entity', () => {
       expect(() =>
         Customer.create({
           personType: PersonType.CPF,
-          document: new Document('12345678901'),
+          document: new Document('52998224725'),
           name: 'João Silva',
           tradeName: 'Empresa',
           email: new Email('joao@example.com'),
@@ -148,7 +148,7 @@ describe('Customer entity', () => {
       const customer = Customer.restore({
         id: '123e4567-e89b-12d3-a456-426614174000',
         personType: PersonType.CPF,
-        document: new Document('12345678901'),
+        document: new Document('52998224725'),
         name: 'João Silva',
         email: new Email('joao@example.com'),
         phone: validPhone,
@@ -169,7 +169,7 @@ describe('Customer entity', () => {
     it('soft delete sets deletedAt', () => {
       const customer = Customer.create({
         personType: PersonType.CPF,
-        document: new Document('12345678901'),
+        document: new Document('52998224725'),
         name: 'João Silva',
         email: new Email('joao@example.com'),
         phone: validPhone,
@@ -190,7 +190,7 @@ describe('Customer entity', () => {
       const first = Customer.restore({
         id,
         personType: PersonType.CPF,
-        document: new Document('12345678901'),
+        document: new Document('52998224725'),
         name: 'João Silva',
         email: new Email('joao@example.com'),
         phone: validPhone,
@@ -203,7 +203,7 @@ describe('Customer entity', () => {
       const second = Customer.restore({
         id,
         personType: PersonType.CPF,
-        document: new Document('12345678901'),
+        document: new Document('52998224725'),
         name: 'João Silva',
         email: new Email('joao@example.com'),
         phone: validPhone,
@@ -222,7 +222,7 @@ describe('Customer entity', () => {
       const first = Customer.restore({
         id: '123e4567-e89b-12d3-a456-426614174000',
         personType: PersonType.CPF,
-        document: new Document('12345678901'),
+        document: new Document('52998224725'),
         name: 'João Silva',
         email: new Email('joao@example.com'),
         phone: validPhone,
@@ -235,7 +235,7 @@ describe('Customer entity', () => {
       const second = Customer.restore({
         id: '123e4567-e89b-12d3-a456-426614174001',
         personType: PersonType.CPF,
-        document: new Document('12345678901'),
+        document: new Document('52998224725'),
         name: 'João Silva',
         email: new Email('joao@example.com'),
         phone: validPhone,
@@ -253,7 +253,7 @@ describe('Customer entity', () => {
       const customer = Customer.restore({
         id: '123e4567-e89b-12d3-a456-426614174000',
         personType: PersonType.CPF,
-        document: new Document('12345678901'),
+        document: new Document('52998224725'),
         name: 'João Silva',
         email: new Email('joao@example.com'),
         phone: validPhone,
@@ -268,7 +268,7 @@ describe('Customer entity', () => {
       expect(primitives).toEqual({
         id: '123e4567-e89b-12d3-a456-426614174000',
         personType: PersonType.CPF,
-        document: '12345678901',
+        document: '52998224725',
         name: 'João Silva',
         corporateName: null,
         tradeName: null,
