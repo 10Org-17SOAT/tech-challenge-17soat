@@ -66,7 +66,6 @@ export class DrizzleSupplyRepository implements SupplyRepository {
       name: supply.name,
       description: supply.description,
       priceInCents: supply.priceInCents,
-      quantity: supply.quantity,
       createdAt: supply.createdAt,
       updatedAt: supply.updatedAt,
       deletedAt: supply.deletedAt,

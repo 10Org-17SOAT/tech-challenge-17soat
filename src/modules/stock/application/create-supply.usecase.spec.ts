@@ -17,7 +17,6 @@ describe('CreateSupplyUseCase', () => {
       priceInCents: 4990,
     });
 
-    expect(supply.quantity).toBe(0);
     await expect(repository.findById(supply.id)).resolves.toBe(supply);
   });
 

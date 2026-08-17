@@ -6,7 +6,6 @@ export interface SupplyProps {
   name: string;
   description: string | null;
   priceInCents: number;
-  quantity: number;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
@@ -28,7 +27,6 @@ export class Supply {
       name: Supply.validateName(props.name),
       description: props.description ?? null,
       priceInCents: Supply.validatePrice(props.priceInCents),
-      quantity: 0,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
@@ -92,10 +90,6 @@ export class Supply {
 
   get priceInCents(): number {
     return this.props.priceInCents;
-  }
-
-  get quantity(): number {
-    return this.props.quantity;
   }
 
   get createdAt(): Date {

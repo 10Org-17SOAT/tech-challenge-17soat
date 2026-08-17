@@ -31,7 +31,6 @@ export const supplyResponseSchema = z.object({
   name: z.string(),
   description: z.string().nullable(),
   priceInCents: z.number().int(),
-  quantity: z.number().int(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 });
@@ -64,7 +63,6 @@ export function toSupplyResponse(supply: Supply): SupplyResponseDto {
     name: supply.name,
     description: supply.description,
     priceInCents: supply.priceInCents,
-    quantity: supply.quantity,
     createdAt: supply.createdAt.toISOString(),
     updatedAt: supply.updatedAt.toISOString(),
   };

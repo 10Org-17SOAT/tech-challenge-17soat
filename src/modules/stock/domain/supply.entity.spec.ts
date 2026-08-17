@@ -2,7 +2,7 @@ import { InvalidSupplyError } from './errors/invalid-supply.error';
 import { Supply } from './supply.entity';
 
 describe('Supply', () => {
-  it('creates a supply with generated UUID, quantity 0 and timestamps', () => {
+  it('creates a supply with generated UUID and timestamps', () => {
     const supply = Supply.create({
       name: 'Óleo 5W30',
       description: 'Óleo sintético',
@@ -15,7 +15,6 @@ describe('Supply', () => {
     expect(supply.name).toBe('Óleo 5W30');
     expect(supply.description).toBe('Óleo sintético');
     expect(supply.priceInCents).toBe(4990);
-    expect(supply.quantity).toBe(0);
     expect(supply.createdAt).toBeInstanceOf(Date);
     expect(supply.updatedAt).toBeInstanceOf(Date);
     expect(supply.deletedAt).toBeNull();
