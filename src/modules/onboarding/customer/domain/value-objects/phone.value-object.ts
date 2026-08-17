@@ -2,7 +2,7 @@ import { InvalidPhoneException } from '../exceptions/customer.exceptions';
 
 interface PhoneProps {
   countryCode: string;
-  areaCode: string | null;
+  areaCode?: string | null;
   number: string;
 }
 
@@ -10,7 +10,7 @@ const MIN_PHONE_LENGTH = 7;
 
 export class Phone {
   private readonly countryCode: string;
-  private readonly areaCode: string | null;
+  private readonly areaCode?: string | null;
   private readonly number: string;
 
   constructor(phone: PhoneProps) {
@@ -34,7 +34,7 @@ export class Phone {
   }
 
   getAreaCode(): string | null {
-    return this.areaCode;
+    return this.areaCode ?? null;
   }
 
   getNumber(): string {
@@ -81,7 +81,7 @@ export class Phone {
     }
 
     if (phone.countryCode === '55') {
-      if (phone.areaCode === null) {
+      if (!phone.areaCode) {
         throw new InvalidPhoneException(
           'Area code is required for this country',
         );
