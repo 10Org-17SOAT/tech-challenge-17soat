@@ -13,3 +13,10 @@ export class InvalidDocumentException extends CustomerException {
     this.name = 'InvalidDocumentException';
   }
 }
+
+export class InvalidPhoneException extends CustomerException {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidDocumentException';
+  }
+}
