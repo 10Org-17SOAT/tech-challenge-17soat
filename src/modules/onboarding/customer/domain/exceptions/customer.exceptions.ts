@@ -5,6 +5,13 @@ export class CustomerException extends Error {
   }
 }
 
+export class InvalidCustomerException extends CustomerException {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidCustomerException';
+  }
+}
+
 export class InvalidDocumentException extends CustomerException {
   constructor(document: string) {
     super(
