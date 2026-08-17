@@ -108,6 +108,17 @@ describe('Phone value object', () => {
           }),
       ).toThrow(InvalidPhoneException);
     });
+
+    it('rejects non-numeric area code', () => {
+      expect(
+        () =>
+          new Phone({
+            countryCode: '55',
+            areaCode: 'abc',
+            number: '999999999',
+          }),
+      ).toThrow(InvalidPhoneException);
+    });
   });
 
   describe('behavior', () => {
