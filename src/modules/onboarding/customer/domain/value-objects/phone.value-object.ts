@@ -10,7 +10,7 @@ const MIN_PHONE_LENGTH = 7;
 
 export class Phone {
   private readonly countryCode: string;
-  private readonly areaCode?: string | null;
+  private readonly areaCode: string | null;
   private readonly number: string;
 
   constructor(phone: PhoneProps) {
@@ -19,7 +19,7 @@ export class Phone {
     this.validate(normalizedPhone);
 
     this.countryCode = normalizedPhone.countryCode;
-    this.areaCode = normalizedPhone.areaCode;
+    this.areaCode = normalizedPhone.areaCode ?? null;
     this.number = normalizedPhone.number;
   }
 
