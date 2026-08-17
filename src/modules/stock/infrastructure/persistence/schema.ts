@@ -12,11 +12,10 @@ import {
 export const supplies = pgTable(
   'supplies',
   {
-    id: uuid('id').primaryKey(),
+    id: uuid('supply_id').primaryKey(),
     name: varchar('name', { length: 255 }).notNull(),
     description: text('description'),
     priceInCents: integer('price_in_cents').notNull(),
-    quantity: integer('quantity').notNull().default(0),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),

@@ -40,7 +40,6 @@ describe('Supplies (e2e)', () => {
     name: string;
     description: string | null;
     priceInCents: number;
-    quantity: number;
     createdAt: string;
     updatedAt: string;
   }
@@ -62,12 +61,12 @@ describe('Supplies (e2e)', () => {
   };
 
   describe('POST /supplies', () => {
-    it('creates a supply with quantity 0 and returns 201', async () => {
+    it('creates a supply and returns 201', async () => {
       const body = supplyBody(
         await http().post('/supplies').send(validSupply).expect(201),
       );
 
-      expect(body).toMatchObject({ ...validSupply, quantity: 0 });
+      expect(body).toMatchObject(validSupply);
       expect(body.id).toMatch(/^[0-9a-f-]{36}$/i);
       expect(body.createdAt).toBeDefined();
     });
@@ -88,14 +87,14 @@ describe('Supplies (e2e)', () => {
       await http().post('/supplies').send({ name: 'Filtro' }).expect(400);
     });
 
-    it('does not accept quantity in the payload', async () => {
+    it('ignores unknown fields in the payload', async () => {
       const body = supplyBody(
         await http()
           .post('/supplies')
           .send({ ...validSupply, quantity: 99 })
           .expect(201),
       );
-      expect(body.quantity).toBe(0);
+      expect(body).not.toHaveProperty('quantity');
     });
 
     it('returns 409 for a duplicated active name', async () => {
@@ -139,7 +138,7 @@ describe('Supplies (e2e)', () => {
       const body = supplyBody(
         await http().get(`/supplies/${created.id}`).expect(200),
       );
-      expect(body).toMatchObject({ ...validSupply, quantity: 0 });
+      expect(body).toMatchObject(validSupply);
     });
 
     it('returns 404 for an unknown id and 400 for a malformed uuid', async () => {
@@ -189,7 +188,7 @@ describe('Supplies (e2e)', () => {
         .expect(409);
     });
 
-    it('rejects invalid fields and quantity changes', async () => {
+    it('rejects invalid fields and ignores unknown ones', async () => {
       const created = supplyBody(
         await http().post('/supplies').send(validSupply),
       );
@@ -205,7 +204,7 @@ describe('Supplies (e2e)', () => {
           .send({ quantity: 50 })
           .expect(200),
       );
-      expect(body.quantity).toBe(0);
+      expect(body).not.toHaveProperty('quantity');
     });
   });
 
@@ -224,7 +223,7 @@ describe('Supplies (e2e)', () => {
       expect(list.total).toBe(0);
 
       const { rows } = await pool.query<{ deleted_at: Date | null }>(
-        'SELECT deleted_at FROM supplies WHERE id = $1',
+        'SELECT deleted_at FROM supplies WHERE supply_id = $1',
         [id],
       );
       expect(rows[0].deleted_at).not.toBeNull();
