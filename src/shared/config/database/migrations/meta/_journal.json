@@ -8,6 +8,13 @@
       "when": 1786672421114,
       "tag": "20260814015341_known_stingray",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786982324959,
+      "tag": "20260817155844_bitter_terrax",
+      "breakpoints": true
     }
   ]
 }
