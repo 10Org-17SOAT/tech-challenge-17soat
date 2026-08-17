@@ -3,6 +3,7 @@ import { CustomerRepository } from '../../domain/repository/customer.repository'
 import { PersonType } from '../../domain/value-objects/person-type.enum';
 import { CreateCustomerInput } from '../dto/customer.dto';
 import { InvalidDocumentException } from '../../domain/exceptions/customer.exceptions';
+import { Customer } from '../../domain/customer.entity';
 
 describe('CreateCustomerUseCase', () => {
   let useCase: CreateCustomerUseCase;
@@ -54,7 +55,7 @@ describe('CreateCustomerUseCase', () => {
 
   describe('PF customer', () => {
     it('creates a PF customer and returns response DTO', async () => {
-      repository.save.mockImplementation(async (customer) => customer);
+      repository.save.mockImplementation((customer: Customer) => customer);
 
       const result = await useCase.execute(validPFInput);
 
@@ -62,6 +63,7 @@ describe('CreateCustomerUseCase', () => {
       expect(result.name).toBe('João Silva');
       expect(result.document).toBe('52998224725');
       expect(result.id).toBeDefined();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(repository.save).toHaveBeenCalledTimes(1);
     });
 
@@ -74,7 +76,7 @@ describe('CreateCustomerUseCase', () => {
 
   describe('PJ customer', () => {
     it('creates a PJ customer and returns response DTO', async () => {
-      repository.save.mockImplementation(async (customer) => customer);
+      repository.save.mockImplementation((customer: Customer) => customer);
 
       const result = await useCase.execute(validPJInput);
 

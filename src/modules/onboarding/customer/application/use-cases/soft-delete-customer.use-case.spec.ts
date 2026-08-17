@@ -53,12 +53,13 @@ describe('SoftDeleteCustomerUseCase', () => {
     });
 
     repository.findById.mockResolvedValue(customer);
-    repository.save.mockImplementation(async (c) => c);
+    repository.save.mockImplementation((c: Customer) => c);
 
     await useCase.execute({
       id: '123e4567-e89b-12d3-a456-426614174000',
     });
 
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(repository.save).toHaveBeenCalledTimes(1);
     expect(customer.getDeletedAt()).toBeInstanceOf(Date);
   });

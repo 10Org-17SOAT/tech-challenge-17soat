@@ -54,7 +54,7 @@ describe('UpdateCustomerUseCase', () => {
     });
 
     repository.findById.mockResolvedValue(customer);
-    repository.save.mockImplementation(async (c) => c);
+    repository.save.mockImplementation((c: Customer) => c);
 
     const updateDTO: UpdateCustomerInput = {
       email: 'novo@example.com',
@@ -66,6 +66,7 @@ describe('UpdateCustomerUseCase', () => {
     });
 
     expect(result.email).toBe('novo@example.com');
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(repository.save).toHaveBeenCalledTimes(1);
   });
 

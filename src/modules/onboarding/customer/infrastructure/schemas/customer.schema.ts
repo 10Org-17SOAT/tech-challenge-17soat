@@ -3,43 +3,19 @@ import { z } from 'zod';
 
 const PhoneSchema = z
   .object({
-    countryCode: z
-      .string()
-      .trim()
-      .min(1, 'Country code is required'),
-    areaCode: z
-      .string()
-      .trim()
-      .optional(),
-    number: z
-      .string()
-      .trim()
-      .min(1, 'Phone number is required'),
+    countryCode: z.string().trim().min(1, 'Country code is required'),
+    areaCode: z.string().trim().optional(),
+    number: z.string().trim().min(1, 'Phone number is required'),
   })
   .strict();
 
 const AddressSchema = z
   .object({
-    street: z
-      .string()
-      .trim()
-      .min(1, 'Street is required'),
-    number: z
-      .string()
-      .trim()
-      .min(1, 'Number is required'),
-    complement: z
-      .string()
-      .trim()
-      .optional(),
-    neighborhood: z
-      .string()
-      .trim()
-      .min(1, 'Neighborhood is required'),
-    city: z
-      .string()
-      .trim()
-      .min(1, 'City is required'),
+    street: z.string().trim().min(1, 'Street is required'),
+    number: z.string().trim().min(1, 'Number is required'),
+    complement: z.string().trim().optional(),
+    neighborhood: z.string().trim().min(1, 'Neighborhood is required'),
+    city: z.string().trim().min(1, 'City is required'),
     state: z
       .string()
       .trim()
@@ -57,26 +33,11 @@ const AddressSchema = z
 export const CreateCustomerSchema = z
   .object({
     personType: z.enum(['CPF', 'CNPJ']),
-    document: z
-      .string()
-      .trim()
-      .min(1, 'Document is required'),
-    name: z
-      .string()
-      .trim()
-      .optional(),
-    corporateName: z
-      .string()
-      .trim()
-      .optional(),
-    tradeName: z
-      .string()
-      .trim()
-      .optional(),
-    email: z
-      .string()
-      .trim()
-      .email('Invalid email format'),
+    document: z.string().trim().min(1, 'Document is required'),
+    name: z.string().trim().optional(),
+    corporateName: z.string().trim().optional(),
+    tradeName: z.string().trim().optional(),
+    email: z.string().trim().email('Invalid email format'),
     phone: PhoneSchema,
     address: AddressSchema,
   })
@@ -131,66 +92,29 @@ export const CreateCustomerSchema = z
     }
   });
 
-export class CreateCustomerDto extends createZodDto(
-  CreateCustomerSchema,
-) {}
+export class CreateCustomerDto extends createZodDto(CreateCustomerSchema) {}
 
 export const UpdateCustomerSchema = z
   .object({
-    name: z
-      .string()
-      .trim()
-      .optional(),
-    corporateName: z
-      .string()
-      .trim()
-      .optional(),
-    tradeName: z
-      .string()
-      .trim()
-      .optional(),
-    email: z
-      .string()
-      .trim()
-      .email('Invalid email format')
-      .optional(),
+    name: z.string().trim().optional(),
+    corporateName: z.string().trim().optional(),
+    tradeName: z.string().trim().optional(),
+    email: z.string().trim().email('Invalid email format').optional(),
     phone: PhoneSchema.optional(),
     address: AddressSchema.optional(),
   })
   .strict();
 
-export class UpdateCustomerDto extends createZodDto(
-  UpdateCustomerSchema,
-) {}
+export class UpdateCustomerDto extends createZodDto(UpdateCustomerSchema) {}
 
 export const ListCustomersQuerySchema = z
   .object({
-    page: z.coerce
-      .number()
-      .int()
-      .positive()
-      .default(1),
-    limit: z.coerce
-      .number()
-      .int()
-      .positive()
-      .max(100)
-      .default(10),
-    personType: z
-      .enum(['CPF', 'CNPJ'])
-      .optional(),
-    name: z
-      .string()
-      .trim()
-      .optional(),
-    document: z
-      .string()
-      .trim()
-      .optional(),
-    email: z
-      .string()
-      .trim()
-      .optional(),
+    page: z.coerce.number().int().positive().default(1),
+    limit: z.coerce.number().int().positive().max(100).default(10),
+    personType: z.enum(['CPF', 'CNPJ']).optional(),
+    name: z.string().trim().optional(),
+    document: z.string().trim().optional(),
+    email: z.string().trim().optional(),
   })
   .strict();
 

@@ -1,4 +1,7 @@
-import { CustomerRepository, FindAllParams } from '../../domain/repository/customer.repository';
+import {
+  CustomerRepository,
+  FindAllParams,
+} from '../../domain/repository/customer.repository';
 import { CustomerResponseDTO } from '../dto/customer.dto';
 
 export class FindAllCustomersUseCase {
