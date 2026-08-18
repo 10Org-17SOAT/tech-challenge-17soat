@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import { InvalidSupplyError } from './errors/invalid-supply.error';
+import { Price } from './value-objects/price.vo';
+import { SupplyName } from './value-objects/supply-name.vo';
 
 export interface SupplyProps {
   id: string;
@@ -17,41 +18,42 @@ export interface CreateSupplyProps {
   priceInCents: number;
 }
 
+interface InternalProps {
+  id: string;
+  name: SupplyName;
+  description: string | null;
+  price: Price;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
+}
+
 export class Supply {
-  private constructor(private readonly props: SupplyProps) {}
+  private constructor(private readonly props: InternalProps) {}
 
   static create(props: CreateSupplyProps): Supply {
     const now = new Date();
     return new Supply({
       id: randomUUID(),
-      name: Supply.validateName(props.name),
+      name: SupplyName.create(props.name),
       description: props.description ?? null,
-      priceInCents: Supply.validatePrice(props.priceInCents),
+      price: Price.create(props.priceInCents),
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
     });
   }
 
-  private static validateName(name: string): string {
-    const trimmed = name.trim();
-    if (trimmed.length === 0) {
-      throw new InvalidSupplyError('Supply name must not be empty');
-    }
-    return trimmed;
-  }
-
-  private static validatePrice(priceInCents: number): number {
-    if (!Number.isInteger(priceInCents) || priceInCents < 0) {
-      throw new InvalidSupplyError(
-        'Supply price must be a non-negative integer amount of cents',
-      );
-    }
-    return priceInCents;
-  }
-
   static restore(props: SupplyProps): Supply {
-    return new Supply({ ...props });
+    return new Supply({
+      id: props.id,
+      name: SupplyName.create(props.name),
+      description: props.description,
+      price: Price.create(props.priceInCents),
+      createdAt: props.createdAt,
+      updatedAt: props.updatedAt,
+      deletedAt: props.deletedAt,
+    });
   }
 
   update(changes: {
@@ -60,13 +62,13 @@ export class Supply {
     priceInCents?: number;
   }): void {
     if (changes.name !== undefined) {
-      this.props.name = Supply.validateName(changes.name);
+      this.props.name = SupplyName.create(changes.name);
     }
     if (changes.description !== undefined) {
       this.props.description = changes.description;
     }
     if (changes.priceInCents !== undefined) {
-      this.props.priceInCents = Supply.validatePrice(changes.priceInCents);
+      this.props.price = Price.create(changes.priceInCents);
     }
     this.props.updatedAt = new Date();
   }
@@ -81,7 +83,7 @@ export class Supply {
   }
 
   get name(): string {
-    return this.props.name;
+    return this.props.name.value;
   }
 
   get description(): string | null {
@@ -89,7 +91,7 @@ export class Supply {
   }
 
   get priceInCents(): number {
-    return this.props.priceInCents;
+    return this.props.price.inCents;
   }
 
   get createdAt(): Date {
