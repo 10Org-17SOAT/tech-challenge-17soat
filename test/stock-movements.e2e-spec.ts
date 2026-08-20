@@ -45,6 +45,29 @@ describe('StockMovement persistence (e2e)', () => {
 
   afterAll(() => app.close());
 
+  // Postgres SQLSTATE codes — asserting on them keeps these tests from passing
+  // on an unrelated error (a typo would satisfy a bare `.toThrow()`).
+  const FOREIGN_KEY_VIOLATION = '23503';
+  const CHECK_VIOLATION = '23514';
+
+  // Drizzle wraps driver errors, so the SQLSTATE lives somewhere down the
+  // `cause` chain — same reason DrizzleSupplyRepository recurses to detect
+  // unique violations.
+  const sqlStateOf = (error: unknown): unknown => {
+    if (typeof error !== 'object' || error === null) return undefined;
+    const candidate = error as { code?: unknown; cause?: unknown };
+    return candidate.code ?? sqlStateOf(candidate.cause);
+  };
+
+  const codeOf = async (operation: Promise<unknown>): Promise<unknown> => {
+    try {
+      await operation;
+      throw new Error('expected the operation to be rejected, but it resolved');
+    } catch (error) {
+      return sqlStateOf(error);
+    }
+  };
+
   let sequence = 0;
   const createSupply = async (): Promise<string> => {
     const supply = Supply.create({
@@ -64,36 +87,42 @@ describe('StockMovement persistence (e2e)', () => {
   it('rejects a movement whose supply id does not exist', async () => {
     const orphan = StockMovement.in(randomUUID(), 5);
 
-    await expect(repository.save(orphan)).rejects.toThrow();
+    await expect(codeOf(repository.save(orphan))).resolves.toBe(
+      FOREIGN_KEY_VIOLATION,
+    );
   });
 
   it('rejects a non-positive quantity at the database level', async () => {
     const supplyId = await createSupply();
 
     await expect(
-      db.insert(stockMovements).values({
-        id: randomUUID(),
-        supplyId,
-        type: 'IN',
-        quantity: 0,
-        serviceOrderReference: null,
-        createdAt: new Date(),
-      }),
-    ).rejects.toThrow();
+      codeOf(
+        db.insert(stockMovements).values({
+          id: randomUUID(),
+          supplyId,
+          type: 'IN',
+          quantity: 0,
+          serviceOrderReference: null,
+          createdAt: new Date(),
+        }),
+      ),
+    ).resolves.toBe(CHECK_VIOLATION);
   });
 
   it('rejects an unknown movement type at the database level', async () => {
     const supplyId = await createSupply();
 
     await expect(
-      db.insert(stockMovements).values({
-        id: randomUUID(),
-        supplyId,
-        type: 'TRANSFER',
-        quantity: 1,
-        serviceOrderReference: null,
-        createdAt: new Date(),
-      }),
-    ).rejects.toThrow();
+      codeOf(
+        db.insert(stockMovements).values({
+          id: randomUUID(),
+          supplyId,
+          type: 'TRANSFER',
+          quantity: 1,
+          serviceOrderReference: null,
+          createdAt: new Date(),
+        }),
+      ),
+    ).resolves.toBe(CHECK_VIOLATION);
   });
 });
