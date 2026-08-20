@@ -10,15 +10,6 @@ export const MovementType = {
 
 export type MovementType = (typeof MovementType)[keyof typeof MovementType];
 
-export interface StockMovementProps {
-  id: string;
-  supplyId: string;
-  type: MovementType;
-  quantity: number;
-  serviceOrderReference: string | null;
-  createdAt: Date;
-}
-
 interface InternalProps {
   id: string;
   supplyId: string;
@@ -64,17 +55,6 @@ export class StockMovement {
       quantity,
       serviceOrderReference,
     );
-  }
-
-  static restore(props: StockMovementProps): StockMovement {
-    return new StockMovement({
-      id: props.id,
-      supplyId: props.supplyId,
-      type: props.type,
-      quantity: Quantity.create(props.quantity),
-      serviceOrderReference: props.serviceOrderReference,
-      createdAt: props.createdAt,
-    });
   }
 
   private static open(

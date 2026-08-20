@@ -48,21 +48,4 @@ describe('StockMovement', () => {
       InvalidStockMovementError,
     );
   });
-
-  it('restores a movement without re-generating its identity', () => {
-    const id = randomUUID();
-    const createdAt = new Date('2026-01-01T00:00:00.000Z');
-    const movement = StockMovement.restore({
-      id,
-      supplyId,
-      type: MovementType.In,
-      quantity: 7,
-      serviceOrderReference: null,
-      createdAt,
-    });
-
-    expect(movement.id).toBe(id);
-    expect(movement.createdAt).toBe(createdAt);
-    expect(movement.quantity).toBe(7);
-  });
 });
