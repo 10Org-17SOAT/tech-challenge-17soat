@@ -1,12 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, eq, isNull } from 'drizzle-orm';
+import { and, count, eq, ilike, isNull } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../../../../shared/config/database/database.constants';
 import type { DrizzleDatabase } from '../../../../shared/config/database/drizzle.provider';
 import { SupplyNameAlreadyExistsError } from '../../domain/errors/supply-name-already-exists.error';
 import { Supply } from '../../domain/supply.entity';
-import {
+import type {
+  ListSuppliesFilter,
   PaginatedSupplies,
-  Pagination,
   SupplyRepository,
 } from '../../domain/supply.repository';
 import { supplies } from './schema';
@@ -43,19 +43,26 @@ export class DrizzleSupplyRepository implements SupplyRepository {
     return rows[0] ? toEntity(rows[0]) : null;
   }
 
-  async findMany({ page, limit }: Pagination): Promise<PaginatedSupplies> {
+  async findMany({
+    page,
+    limit,
+    name,
+  }: ListSuppliesFilter): Promise<PaginatedSupplies> {
+    // The same predicate feeds both queries so `total` matches the filtered page.
+    const where = and(
+      isNull(supplies.deletedAt),
+      name ? ilike(supplies.name, `%${name}%`) : undefined,
+    );
+
     const [rows, [{ total }]] = await Promise.all([
       this.db
         .select()
         .from(supplies)
-        .where(isNull(supplies.deletedAt))
+        .where(where)
         .orderBy(supplies.createdAt, supplies.id)
         .limit(limit)
         .offset((page - 1) * limit),
-      this.db
-        .select({ total: count() })
-        .from(supplies)
-        .where(isNull(supplies.deletedAt)),
+      this.db.select({ total: count() }).from(supplies).where(where),
     ]);
     return { items: rows.map(toEntity), total };
   }
