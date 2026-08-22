@@ -20,6 +20,5 @@ import { DatabaseModule } from '../../../shared/config/database/database.module'
     UpdateServiceUseCase,
     DeleteServiceUseCase,
   ],
-  exports: [SERVICE_REPOSITORY],
 })
 export class ServicesModule {}
