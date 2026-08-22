@@ -38,6 +38,7 @@ export const supplyResponseSchema = z.object({
 export class SupplyResponseDto extends createZodDto(supplyResponseSchema) {}
 
 export const listSuppliesQuerySchema = z.object({
+  name: z.string().trim().min(1).max(255).optional(),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),
 });
