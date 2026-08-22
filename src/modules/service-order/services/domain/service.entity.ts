@@ -1,8 +1,20 @@
 import { randomUUID } from 'node:crypto';
 import { InvalidServiceError } from './errors/invalid-service.error';
-import { serviceCategoryEnum } from '../infrastructure/persistence/schema';
 
-export type ServiceCategory = (typeof serviceCategoryEnum.enumValues)[number];
+export const SERVICE_CATEGORIES = [
+  'mechanical',
+  'electrical',
+  'bodywork',
+  'painting',
+  'tire',
+  'glass',
+  'upholstery',
+  'air_conditioning',
+  'inspection',
+  'other',
+] as const;
+
+export type ServiceCategory = (typeof SERVICE_CATEGORIES)[number];
 
 export interface ServiceProps {
   id: string;

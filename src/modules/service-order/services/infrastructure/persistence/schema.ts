@@ -10,19 +10,12 @@ import {
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
+import { SERVICE_CATEGORIES } from '../../domain/service.entity';
 
-export const serviceCategoryEnum = pgEnum('service_category', [
-  'mechanical',
-  'electrical',
-  'bodywork',
-  'painting',
-  'tire',
-  'glass',
-  'upholstery',
-  'air_conditioning',
-  'inspection',
-  'other',
-]);
+export const serviceCategoryEnum = pgEnum(
+  'service_category',
+  SERVICE_CATEGORIES,
+);
 
 export const services = pgTable(
   'services',
