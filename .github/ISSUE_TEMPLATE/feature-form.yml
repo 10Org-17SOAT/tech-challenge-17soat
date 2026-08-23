@@ -1,0 +1,85 @@
+name: Nova Feature - Formulário
+description: Formulário para criação de nova feature no sistema.
+title: "[Feature]: "
+labels:
+  - feature
+  - triage
+projects:
+  - tech-challenge-17soat
+assignees:
+  - tech-challenge-17soat
+type: feat
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Nova Feature
+        Utilize este formulário para solicitar a criação de uma nova funcionalidade.
+
+  - type: input
+    id: quem-identificou-a-melhoria
+    attributes:
+      label: Seu nome
+      description: Informe seu nome.
+      placeholder: "ex. Fulano de Tal."
+    validations:
+      required: false
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: Descreva a funcionalidade
+      description: Conte como espera que a funcionalidade aconteça.
+      placeholder: Conte como espera que a funcionalidade aconteça.
+      value: "Descreva..."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: version
+    attributes:
+      label: Versão
+      description: Qual versão do nosso software você está utilizando?
+      options:
+        - "Selecione"
+        - "1.0.0"
+        - "1.0.1"
+        - "1.0.2"
+        - "1.0.3"
+        - "1.0.4"
+        - "1.0.5"
+      default: 0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: team
+    attributes:
+      label: Quem você gostaria que realizasse essa atividade?
+      multiple: true
+      options:
+        - Antonio
+        - Joao
+        - Lucas
+        - Marcio
+        - Pablo
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Encontrou algum problema?
+      description: >-
+        Copie e cole qualquer saída de log relevante. Ela será formatada
+        automaticamente como código, portanto não é necessário utilizar crases.
+      render: shell
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Enviar capturas de tela
+      description: >-
+        Se aplicável, adicione capturas de tela para ajudar a explicar
+        a funcionalidade.
+    validations:
+      required: false

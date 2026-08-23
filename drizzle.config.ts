@@ -5,6 +5,9 @@ export default defineConfig({
   schema: './src/shared/config/database/schema.ts',
   out: './src/shared/config/database/migrations',
   dialect: 'postgresql',
+  migrations: {
+    prefix: 'timestamp',
+  },
   dbCredentials: {
     host: process.env.DB_HOST ?? 'localhost',
     port: Number(process.env.DB_PORT ?? 5432),

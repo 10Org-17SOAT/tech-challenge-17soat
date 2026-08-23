@@ -19,22 +19,36 @@
     {
       "idx": 2,
       "version": "7",
+      "when": 1786672421114,
+      "tag": "20260814015341_known_stingray",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
       "when": 1786817235809,
       "tag": "0002_hard_scourge",
       "breakpoints": true
     },
     {
-      "idx": 3,
+      "idx": 4,
       "version": "7",
       "when": 1786817473948,
       "tag": "0003_small_greymalkin",
       "breakpoints": true
     },
     {
-      "idx": 4,
+      "idx": 5,
       "version": "7",
       "when": 1786817899435,
       "tag": "0004_stiff_psynapse",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1786982324959,
+      "tag": "20260817155844_bitter_terrax",
       "breakpoints": true
     }
   ]

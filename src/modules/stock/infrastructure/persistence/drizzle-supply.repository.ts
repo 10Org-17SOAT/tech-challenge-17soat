@@ -1,0 +1,94 @@
+import { Inject, Injectable } from '@nestjs/common';
+import { and, count, eq, isNull } from 'drizzle-orm';
+import { DATABASE_CONNECTION } from '../../../../shared/config/database/database.constants';
+import type { DrizzleDatabase } from '../../../../shared/config/database/drizzle.provider';
+import { SupplyNameAlreadyExistsError } from '../../domain/errors/supply-name-already-exists.error';
+import { Supply } from '../../domain/supply.entity';
+import {
+  PaginatedSupplies,
+  Pagination,
+  SupplyRepository,
+} from '../../domain/supply.repository';
+import { supplies } from './schema';
+
+const PG_UNIQUE_VIOLATION = '23505';
+
+type SupplyRow = typeof supplies.$inferSelect;
+
+function toEntity(row: SupplyRow): Supply {
+  return Supply.restore(row);
+}
+
+@Injectable()
+export class DrizzleSupplyRepository implements SupplyRepository {
+  constructor(
+    @Inject(DATABASE_CONNECTION) private readonly db: DrizzleDatabase,
+  ) {}
+
+  async findById(id: string): Promise<Supply | null> {
+    const rows = await this.db
+      .select()
+      .from(supplies)
+      .where(and(eq(supplies.id, id), isNull(supplies.deletedAt)))
+      .limit(1);
+    return rows[0] ? toEntity(rows[0]) : null;
+  }
+
+  async findByName(name: string): Promise<Supply | null> {
+    const rows = await this.db
+      .select()
+      .from(supplies)
+      .where(and(eq(supplies.name, name), isNull(supplies.deletedAt)))
+      .limit(1);
+    return rows[0] ? toEntity(rows[0]) : null;
+  }
+
+  async findMany({ page, limit }: Pagination): Promise<PaginatedSupplies> {
+    const [rows, [{ total }]] = await Promise.all([
+      this.db
+        .select()
+        .from(supplies)
+        .where(isNull(supplies.deletedAt))
+        .orderBy(supplies.createdAt, supplies.id)
+        .limit(limit)
+        .offset((page - 1) * limit),
+      this.db
+        .select({ total: count() })
+        .from(supplies)
+        .where(isNull(supplies.deletedAt)),
+    ]);
+    return { items: rows.map(toEntity), total };
+  }
+
+  async save(supply: Supply): Promise<void> {
+    const row: SupplyRow = {
+      id: supply.id,
+      name: supply.name,
+      description: supply.description,
+      priceInCents: supply.priceInCents,
+      createdAt: supply.createdAt,
+      updatedAt: supply.updatedAt,
+      deletedAt: supply.deletedAt,
+    };
+
+    try {
+      await this.db
+        .insert(supplies)
+        .values(row)
+        .onConflictDoUpdate({ target: supplies.id, set: row });
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        throw new SupplyNameAlreadyExistsError(supply.name, { cause: error });
+      }
+      throw error;
+    }
+  }
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const candidate = error as { code?: unknown; cause?: unknown };
+  return (
+    candidate.code === PG_UNIQUE_VIOLATION || isUniqueViolation(candidate.cause)
+  );
+}

@@ -1,10 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_PIPE } from '@nestjs/core';
+import { ZodValidationPipe } from 'nestjs-zod';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { StockModule } from './modules/stock/stock.module';
+import { VehicleManagementModule } from './modules/vehicle-management/vehicle-management.module';
 import { DatabaseModule } from './shared/config/database/database.module';
 import { validateEnv } from './shared/config/env/env.validation';
-import { VehicleManagementModule } from './modules/vehicle-management/vehicle-management.module';
 
 @Module({
   imports: [
@@ -14,9 +17,10 @@ import { VehicleManagementModule } from './modules/vehicle-management/vehicle-ma
       validate: validateEnv,
     }),
     DatabaseModule,
+    StockModule,
     VehicleManagementModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, { provide: APP_PIPE, useClass: ZodValidationPipe }],
 })
 export class AppModule {}
