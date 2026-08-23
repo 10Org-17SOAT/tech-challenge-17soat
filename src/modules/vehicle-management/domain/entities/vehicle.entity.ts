@@ -6,9 +6,7 @@ import {
   FuelType,
   Odometer,
 } from '../value-objects';
-import {
-  VehicleException,
-} from '../exceptions/vehicle.exceptions';
+import { VehicleException } from '../exceptions/vehicle.exceptions';
 
 export interface CreateVehicleProps {
   vehicle_id?: string;
@@ -50,7 +48,11 @@ export class Vehicle {
   constructor(props: CreateVehicleProps) {
     this.vehicle_id = new VehicleId(props.vehicle_id);
     this.licensePlate = new LicensePlate(props.licensePlate);
-    this.vehicleModel = new VehicleModel(props.model, props.manufacturer, props.year);
+    this.vehicleModel = new VehicleModel(
+      props.model,
+      props.manufacturer,
+      props.year,
+    );
     this.description = props.description || null;
     this.color = new VehicleColor(props.color);
     this.fuelType = new FuelType(props.fuelType);
@@ -104,52 +106,39 @@ export class Vehicle {
     return this.deletedAt;
   }
 
+  // The value objects raise the domain exceptions themselves, so no try/catch
+  // here: a failed validation must propagate and reach the controller as a 400.
   updateVehicleInfo(props: UpdateVehicleProps): void {
-    try {
-      if (props.model || props.manufacturer || props.year) {
-        this.vehicleModel = new VehicleModel(
-          props.model || this.vehicleModel.getModel(),
-          props.manufacturer || this.vehicleModel.getManufacturer(),
-          props.year || this.vehicleModel.getYear(),
-        );
-      }
-
-      if (props.description !== undefined) {
-        this.description = props.description || null;
-      }
-
-      if (props.color) {
-        this.color = new VehicleColor(props.color);
-      }
-
-      if (props.fuelType) {
-        this.fuelType = new FuelType(props.fuelType);
-      }
-
-      if (props.odometer !== undefined) {
-        this.odometer = new Odometer(props.odometer);
-      }
-
-      this.updatedAt = new Date();
-    } catch (error) {
-      if(error instanceof VehicleException) {
-        throw new VehicleException(
-          `Error updating vehicle: ${error.message}`);
-        }
+    if (props.model || props.manufacturer || props.year) {
+      this.vehicleModel = new VehicleModel(
+        props.model || this.vehicleModel.getModel(),
+        props.manufacturer || this.vehicleModel.getManufacturer(),
+        props.year || this.vehicleModel.getYear(),
+      );
     }
+
+    if (props.description !== undefined) {
+      this.description = props.description || null;
+    }
+
+    if (props.color) {
+      this.color = new VehicleColor(props.color);
+    }
+
+    if (props.fuelType) {
+      this.fuelType = new FuelType(props.fuelType);
+    }
+
+    if (props.odometer !== undefined) {
+      this.odometer = new Odometer(props.odometer);
+    }
+
+    this.updatedAt = new Date();
   }
 
   incrementOdometer(kilometers: number): void {
-    try {
-      this.odometer = this.odometer.increment(kilometers);
-      this.updatedAt = new Date();
-    } catch (error) {
-      if(error instanceof VehicleException) {
-        throw new VehicleException(
-          `Error incrementing odometer: ${error.message}`,
-        );
-      }
-    }
+    this.odometer = this.odometer.increment(kilometers);
+    this.updatedAt = new Date();
   }
 
   equals(other: Vehicle): boolean {
