@@ -1,11 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { eq, count } from 'drizzle-orm';
+import { and, count, eq, isNull } from 'drizzle-orm';
 import type { IVehicleRepository } from '../../domain/repositories/vehicle.repository';
 import { Vehicle } from '../../domain/entities/vehicle.entity';
 import { VehicleId, LicensePlate } from '../../domain/value-objects';
-import { DATABASE_CONNECTION, type DrizzleDatabase } from '../../../../shared/config/database';
+import {
+  DATABASE_CONNECTION,
+  type DrizzleDatabase,
+} from '../../../../shared/config/database';
 import { vehiclesTable } from '../persistence/vehicle.schema';
-import { VehicleMapper, VehiclePersistenceDTO } from '../mappers/vehicle.mapper';
+import { VehicleMapper } from '../mappers/vehicle.mapper';
 import { VehicleException } from '../../domain/exceptions/vehicle.exceptions';
 
 @Injectable()
@@ -19,7 +22,7 @@ export class DrizzleVehicleRepository implements IVehicleRepository {
     const primitives = vehicle.toPrimitives();
 
     // Use direct query to avoid typed schema issues
-    const existingVehicle = await (this.db)
+    const existingVehicle = await this.db
       .select()
       .from(vehiclesTable)
       .where(eq(vehiclesTable.vehicle_id, primitives.vehicle_id))
@@ -27,7 +30,7 @@ export class DrizzleVehicleRepository implements IVehicleRepository {
 
     if (existingVehicle && existingVehicle.length > 0) {
       // Update
-      await (this.db)
+      await this.db
         .update(vehiclesTable)
         .set({
           model: primitives.model,
@@ -42,7 +45,7 @@ export class DrizzleVehicleRepository implements IVehicleRepository {
         .where(eq(vehiclesTable.vehicle_id, primitives.vehicle_id));
     } else {
       // Insert
-      await (this.db).insert(vehiclesTable).values({
+      await this.db.insert(vehiclesTable).values({
         vehicle_id: primitives.vehicle_id,
         licensePlate: primitives.licensePlate,
         model: primitives.model,
@@ -57,10 +60,15 @@ export class DrizzleVehicleRepository implements IVehicleRepository {
   }
 
   async findById(id: VehicleId): Promise<Vehicle | null> {
-    const rows = await (this.db)
+    const rows = await this.db
       .select()
       .from(vehiclesTable)
-      .where(eq(vehiclesTable.vehicle_id, id.getValue()))
+      .where(
+        and(
+          eq(vehiclesTable.vehicle_id, id.getValue()),
+          isNull(vehiclesTable.deletedAt),
+        ),
+      )
       .limit(1);
 
     if (!rows || rows.length === 0) {
@@ -68,11 +76,11 @@ export class DrizzleVehicleRepository implements IVehicleRepository {
     }
 
     const row = rows[0];
-    return VehicleMapper.toDomain(row as VehiclePersistenceDTO);
+    return VehicleMapper.toDomain(row);
   }
 
   async findByLicensePlate(plate: LicensePlate): Promise<Vehicle | null> {
-    const rows = await (this.db)
+    const rows = await this.db
       .select()
       .from(vehiclesTable)
       .where(eq(vehiclesTable.licensePlate, plate.getValue()))
@@ -83,26 +91,26 @@ export class DrizzleVehicleRepository implements IVehicleRepository {
     }
 
     const row = rows[0];
-    return VehicleMapper.toDomain(row as VehiclePersistenceDTO);
+    return VehicleMapper.toDomain(row);
   }
 
   async findAll(limit: number, offset: number): Promise<Vehicle[]> {
-    const rows = await (this.db)
+    const rows = await this.db
       .select()
       .from(vehiclesTable)
+      .where(isNull(vehiclesTable.deletedAt))
       .limit(limit)
       .offset(offset);
 
-    return rows.map((row) =>
-      VehicleMapper.toDomain(row as VehiclePersistenceDTO),
-    );
+    return rows.map((row) => VehicleMapper.toDomain(row));
   }
 
   async findAllCount(): Promise<number> {
-    const result = await (this.db)
+    const result = await this.db
       .select({ count: count() })
-      .from(vehiclesTable);
-    
+      .from(vehiclesTable)
+      .where(isNull(vehiclesTable.deletedAt));
+
     return result[0]?.count || 0;
   }
 
@@ -124,4 +132,3 @@ export class DrizzleVehicleRepository implements IVehicleRepository {
       .where(eq(vehiclesTable.vehicle_id, vehicle.getId().getValue()));
   }
 }
-
