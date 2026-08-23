@@ -1,15 +1,16 @@
-import { FuelTypeEnum } from "../../application/enum/fueltype.enum";
+import { FuelTypeEnum } from '../enums/fuel-type.enum';
+import { InvalidFuelTypeException } from '../exceptions/vehicle.exceptions';
 
 export class FuelType {
   private readonly value: FuelTypeEnum;
 
   constructor(value: FuelTypeEnum | string) {
-    const normalizedValue = (value as string).toUpperCase();
+    const normalizedValue = value.toUpperCase();
 
-    if (!Object.values(FuelTypeEnum).includes(normalizedValue as FuelTypeEnum)) {
-      throw new Error(
-        `Invalid fuel type. Must be one of: ${Object.values(FuelTypeEnum).join(', ')}`,
-      );
+    if (
+      !Object.values(FuelTypeEnum).includes(normalizedValue as FuelTypeEnum)
+    ) {
+      throw new InvalidFuelTypeException(String(value));
     }
 
     this.value = normalizedValue as FuelTypeEnum;
