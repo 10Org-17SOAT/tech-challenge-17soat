@@ -1,3 +1,5 @@
+import { InvalidVehicleModelException } from '../exceptions/vehicle.exceptions';
+
 export class VehicleModel {
   private readonly model: string;
   private readonly manufacturer: string;
@@ -5,16 +7,16 @@ export class VehicleModel {
 
   constructor(model: string, manufacturer: string, year: number) {
     if (!model || model.trim().length === 0) {
-      throw new Error('Model cannot be empty');
+      throw new InvalidVehicleModelException('model cannot be empty');
     }
 
     if (!manufacturer || manufacturer.trim().length === 0) {
-      throw new Error('Manufacturer cannot be empty');
+      throw new InvalidVehicleModelException('manufacturer cannot be empty');
     }
 
     if (year < 1900 || year > new Date().getFullYear() + 1) {
-      throw new Error(
-        `Year must be between 1900 and ${new Date().getFullYear() + 1}`,
+      throw new InvalidVehicleModelException(
+        `year must be between 1900 and ${new Date().getFullYear() + 1}`,
       );
     }
 

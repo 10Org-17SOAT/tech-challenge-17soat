@@ -7,7 +7,9 @@ export class VehicleException extends Error {
 
 export class InvalidLicensePlateException extends VehicleException {
   constructor(plate: string) {
-    super(`Invalid license plate: "${plate}". Expected format: AAA-0000 or AAA0B00`);
+    super(
+      `Invalid license plate: "${plate}". Expected format: AAA-0000 or AAA0B00`,
+    );
     this.name = 'InvalidLicensePlateException';
   }
 }
@@ -47,8 +49,15 @@ export class InvalidFuelTypeException extends VehicleException {
 }
 
 export class InvalidOdometerException extends VehicleException {
-  constructor(odometer: number) {
-    super(`Invalid odometer value: ${odometer}. Must be a non-negative integer.`);
+  constructor(odometer: number, reason = 'Must be a non-negative integer.') {
+    super(`Invalid odometer value: ${odometer}. ${reason}`);
     this.name = 'InvalidOdometerException';
+  }
+}
+
+export class InvalidVehicleColorException extends VehicleException {
+  constructor(message: string) {
+    super(`Invalid vehicle color: ${message}`);
+    this.name = 'InvalidVehicleColorException';
   }
 }

@@ -1,13 +1,17 @@
+import { InvalidVehicleColorException } from '../exceptions/vehicle.exceptions';
+
 export class VehicleColor {
   private readonly value: string;
 
   constructor(value: string) {
     if (!value || value.trim().length === 0) {
-      throw new Error('Color cannot be empty');
+      throw new InvalidVehicleColorException('color cannot be empty');
     }
 
     if (value.trim().length > 50) {
-      throw new Error('Color must not exceed 50 characters');
+      throw new InvalidVehicleColorException(
+        'color must not exceed 50 characters',
+      );
     }
 
     this.value = value.trim();

@@ -1,19 +1,17 @@
-import { InvalidLicensePlateException } from "../exceptions/vehicle.exceptions";
+import { InvalidLicensePlateException } from '../exceptions/vehicle.exceptions';
 
 export class LicensePlate {
   private readonly value: string;
 
   constructor(value: string) {
     if (!value || value.trim().length === 0) {
-      throw new InvalidLicensePlateException('License plate cannot be empty');
+      throw new InvalidLicensePlateException(value);
     }
 
     const normalizedValue = this.normalize(value);
 
     if (!this.isValidBrazilianPlate(normalizedValue)) {
-      throw new Error(
-        'Invalid Brazilian license plate format. Expected: AAA-0000 or AAA0B00 (Mercosul)',
-      );
+      throw new InvalidLicensePlateException(normalizedValue);
     }
 
     this.value = normalizedValue;
