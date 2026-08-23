@@ -1,11 +1,10 @@
 /// <reference types="jest" />
 
+import type { ArgumentsHost } from '@nestjs/common';
 import {
-  BadRequestException,
-  ConflictException,
-  NotFoundException,
-} from '@nestjs/common';
-import { Vehicle } from './domain/entities/vehicle.entity';
+  Vehicle,
+  type CreateVehicleProps,
+} from './domain/entities/vehicle.entity';
 import {
   VehicleId,
   LicensePlate,
@@ -19,6 +18,7 @@ import {
   InvalidFuelTypeException,
   InvalidLicensePlateException,
   InvalidOdometerException,
+  InvalidVehicleColorException,
   InvalidVehicleModelException,
   VehicleException,
   VehicleNotFoundException,
@@ -32,15 +32,19 @@ import { VehicleMapper } from './infrastructure/mappers/vehicle.mapper';
 import { VehicleResponseDto } from './application/dtos/vehicle-response.dto';
 import type { IVehicleRepository } from './domain/repositories/vehicle.repository';
 import { VehicleController } from './presentation/controllers/vehicle.controller';
-import { ListVehiclesQueryDto } from './presentation/controllers/vehicle.dto';
+import {
+  ListVehiclesQueryDto,
+  ListVehiclesQuerySchema,
+} from './presentation/dtos/vehicle.dtos';
+import { VehicleErrorsFilter } from './presentation/filters/vehicle-errors.filter';
 import { VehicleManagementModule } from './vehicle-management.module';
 import { DrizzleVehicleRepository } from './infrastructure/repositories/drizzle-vehicle.repository';
 import { vehiclesTable } from './infrastructure/persistence/vehicle.schema';
 
 describe('Vehicle Management module', () => {
-  const vehicleFactory = (overrides: Partial<any> = {}) =>
+  const vehicleFactory = (overrides: Partial<CreateVehicleProps> = {}) =>
     Vehicle.create({
-      id: '123e4567-e89b-12d3-a456-426614174000',
+      vehicle_id: '123e4567-e89b-12d3-a456-426614174000',
       licensePlate: 'ABC-1234',
       model: 'Civic',
       year: 2024,
@@ -68,7 +72,7 @@ describe('Vehicle Management module', () => {
       expect(vehicle.getCreatedAt()).toBeInstanceOf(Date);
       expect(vehicle.getUpdatedAt()).toBeInstanceOf(Date);
       expect(vehicle.toPrimitives()).toMatchObject({
-        id: '123e4567-e89b-12d3-a456-426614174000',
+        vehicle_id: '123e4567-e89b-12d3-a456-426614174000',
         licensePlate: 'ABC-1234',
         model: 'Civic',
         year: 2024,
@@ -106,7 +110,7 @@ describe('Vehicle Management module', () => {
       const first = vehicleFactory();
       const second = vehicleFactory();
       const other = vehicleFactory({
-        id: '11111111-1111-4111-8111-111111111111',
+        vehicle_id: '11111111-1111-4111-8111-111111111111',
       });
 
       expect(first.equals(second)).toBe(true);
@@ -124,11 +128,9 @@ describe('Vehicle Management module', () => {
 
       expect(() => new LicensePlate('ABC-1234')).not.toThrow();
       expect(() => new LicensePlate('ABC1D23')).not.toThrow();
-      expect(() => new LicensePlate('')).toThrow(
-        'License plate cannot be empty',
-      );
+      expect(() => new LicensePlate('')).toThrow(InvalidLicensePlateException);
       expect(() => new LicensePlate('AB-123')).toThrow(
-        'Invalid Brazilian license plate format',
+        InvalidLicensePlateException,
       );
       expect(plateA.equals(plateB)).toBe(true);
       expect(plateA.equals(plateC)).toBe(false);
@@ -151,13 +153,13 @@ describe('Vehicle Management module', () => {
 
       expect(() => new VehicleModel('Civic', 'Honda', 2024)).not.toThrow();
       expect(() => new VehicleModel('', 'Honda', 2024)).toThrow(
-        'Model cannot be empty',
+        InvalidVehicleModelException,
       );
       expect(() => new VehicleModel('Civic', '', 2024)).toThrow(
-        'Manufacturer cannot be empty',
+        InvalidVehicleModelException,
       );
       expect(() => new VehicleModel('Civic', 'Honda', 1800)).toThrow(
-        'Year must be between',
+        InvalidVehicleModelException,
       );
       expect(modelA.equals(modelB)).toBe(true);
       expect(modelA.equals(modelC)).toBe(false);
@@ -166,11 +168,9 @@ describe('Vehicle Management module', () => {
 
     it('should validate color and fuel type', () => {
       expect(() => new VehicleColor('Prata')).not.toThrow();
-      expect(() => new VehicleColor('')).toThrow('Color cannot be empty');
+      expect(() => new VehicleColor('')).toThrow(InvalidVehicleColorException);
       expect(() => new FuelType('GASOLINE')).not.toThrow();
-      expect(() => new FuelType('UNKNOWN' as any)).toThrow(
-        'Invalid fuel type. Must be one of',
-      );
+      expect(() => new FuelType('UNKNOWN')).toThrow(InvalidFuelTypeException);
     });
 
     it('should validate odometer', () => {
@@ -179,10 +179,8 @@ describe('Vehicle Management module', () => {
       const odometerC = new Odometer(6000);
 
       expect(() => new Odometer(5000)).not.toThrow();
-      expect(() => new Odometer(-1)).toThrow('Odometer cannot be negative');
-      expect(() => new Odometer(10.5 as any)).toThrow(
-        'Odometer must be an integer number',
-      );
+      expect(() => new Odometer(-1)).toThrow(InvalidOdometerException);
+      expect(() => new Odometer(10.5)).toThrow(InvalidOdometerException);
       expect(odometerA.equals(odometerB)).toBe(true);
       expect(odometerA.equals(odometerC)).toBe(false);
       expect(odometerA.toString()).toContain('5000');
@@ -292,7 +290,7 @@ describe('Vehicle Management module', () => {
       const vehicles = [
         vehicleFactory(),
         vehicleFactory({
-          id: '22222222-2222-4222-8222-222222222222',
+          vehicle_id: '22222222-2222-4222-8222-222222222222',
           licensePlate: 'DEF-5678',
         }),
       ];
@@ -324,7 +322,7 @@ describe('Vehicle Management module', () => {
 
       const useCase = new UpdateVehicleUseCase(repository as any);
       const result = await useCase.execute({
-        id: vehicle.getId().getValue(),
+        vehicle_id: vehicle.getId().getValue(),
         model: 'Fit',
         year: 2022,
         manufacturer: 'Honda',
@@ -347,7 +345,7 @@ describe('Vehicle Management module', () => {
 
       await expect(
         useCase.execute({
-          id: '123e4567-e89b-12d3-a456-426614174999',
+          vehicle_id: '123e4567-e89b-12d3-a456-426614174999',
           model: 'Fit',
         }),
       ).rejects.toBeInstanceOf(VehicleNotFoundException);
@@ -387,7 +385,7 @@ describe('Vehicle Management module', () => {
 
       const persistence = VehicleMapper.toPersistence(vehicle);
       expect(persistence).toMatchObject({
-        id: vehicle.getId().getValue(),
+        vehicle_id: vehicle.getId().getValue(),
         licensePlate: 'ABC-1234',
         model: 'Civic',
       });
@@ -431,7 +429,7 @@ describe('Vehicle Management module', () => {
 
     it('should create a vehicle successfully', async () => {
       createVehicleUseCase.execute.mockResolvedValue({
-        id: '11111111-1111-4111-8111-111111111111',
+        vehicle_id: '11111111-1111-4111-8111-111111111111',
         licensePlate: 'ABC-1234',
         model: 'Civic',
         year: 2024,
@@ -457,7 +455,7 @@ describe('Vehicle Management module', () => {
       expect(result.licensePlate).toBe('ABC-1234');
     });
 
-    it('should convert duplicate plate into ConflictException', async () => {
+    it('should propagate a duplicate plate to the exception filter', async () => {
       createVehicleUseCase.execute.mockRejectedValue(
         new DuplicateLicensePlateException('ABC-1234'),
       );
@@ -472,7 +470,7 @@ describe('Vehicle Management module', () => {
           fuelType: 'HYBRID',
           odometer: 15000,
         }),
-      ).rejects.toBeInstanceOf(ConflictException);
+      ).rejects.toBeInstanceOf(DuplicateLicensePlateException);
     });
 
     it('should rethrow generic errors on create', async () => {
@@ -493,7 +491,7 @@ describe('Vehicle Management module', () => {
       ).rejects.toThrow('generic error');
     });
 
-    it('should convert VehicleException into BadRequestException on create', async () => {
+    it('should propagate a domain exception on create', async () => {
       createVehicleUseCase.execute.mockRejectedValue(
         new VehicleException('invalid vehicle'),
       );
@@ -508,7 +506,7 @@ describe('Vehicle Management module', () => {
           fuelType: 'HYBRID',
           odometer: 15000,
         }),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      ).rejects.toBeInstanceOf(VehicleException);
     });
 
     it('should find by id successfully', async () => {
@@ -519,16 +517,16 @@ describe('Vehicle Management module', () => {
       );
 
       expect(result).toBeInstanceOf(VehicleResponseDto);
-      expect(result.id).toBe('123e4567-e89b-12d3-a456-426614174000');
+      expect(result.vehicle_id).toBe('123e4567-e89b-12d3-a456-426614174000');
     });
 
-    it('should return NotFoundException when vehicle is missing', async () => {
+    it('should propagate a missing vehicle to the exception filter', async () => {
       findVehicleByIdUseCase.execute.mockRejectedValue(
         new VehicleNotFoundException('missing-id'),
       );
 
       await expect(controller.findById('missing-id')).rejects.toBeInstanceOf(
-        NotFoundException,
+        VehicleNotFoundException,
       );
     });
 
@@ -542,7 +540,7 @@ describe('Vehicle Management module', () => {
       listVehiclesUseCase.execute.mockResolvedValue({
         data: [
           {
-            id: '123e4567-e89b-12d3-a456-426614174000',
+            vehicle_id: '123e4567-e89b-12d3-a456-426614174000',
             licensePlate: 'ABC-1234',
             model: 'Civic',
             year: 2024,
@@ -565,19 +563,19 @@ describe('Vehicle Management module', () => {
       expect(result.pagination.page).toBe(1);
     });
 
-    it('should convert VehicleException in findAll to BadRequestException', async () => {
+    it('should propagate a domain exception on findAll', async () => {
       listVehiclesUseCase.execute.mockRejectedValue(
         new VehicleException('invalid list'),
       );
 
       await expect(
         controller.findAll({ page: 1, limit: 10 }),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      ).rejects.toBeInstanceOf(VehicleException);
     });
 
     it('should update a vehicle successfully', async () => {
       updateVehicleUseCase.execute.mockResolvedValue({
-        id: '123e4567-e89b-12d3-a456-426614174000',
+        vehicle_id: '123e4567-e89b-12d3-a456-426614174000',
         licensePlate: 'ABC-1234',
         model: 'Fit',
         year: 2022,
@@ -599,24 +597,24 @@ describe('Vehicle Management module', () => {
       expect(result.model).toBe('Fit');
     });
 
-    it('should convert update not-found into NotFoundException', async () => {
+    it('should propagate a missing vehicle on update', async () => {
       updateVehicleUseCase.execute.mockRejectedValue(
         new VehicleNotFoundException('missing-id'),
       );
 
       await expect(
         controller.update('missing-id', { model: 'Fit' }),
-      ).rejects.toBeInstanceOf(NotFoundException);
+      ).rejects.toBeInstanceOf(VehicleNotFoundException);
     });
 
-    it('should convert VehicleException in update to BadRequestException', async () => {
+    it('should propagate a domain exception on update', async () => {
       updateVehicleUseCase.execute.mockRejectedValue(
         new VehicleException('invalid update'),
       );
 
       await expect(
         controller.update('id-1', { model: 'Fit' }),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      ).rejects.toBeInstanceOf(VehicleException);
     });
 
     it('should delete a vehicle successfully', async () => {
@@ -627,23 +625,23 @@ describe('Vehicle Management module', () => {
       ).resolves.toBeUndefined();
     });
 
-    it('should convert delete not-found into NotFoundException', async () => {
+    it('should propagate a missing vehicle on delete', async () => {
       deleteVehicleUseCase.execute.mockRejectedValue(
         new VehicleNotFoundException('missing-id'),
       );
 
       await expect(controller.delete('missing-id')).rejects.toBeInstanceOf(
-        NotFoundException,
+        VehicleNotFoundException,
       );
     });
 
-    it('should convert VehicleException in delete to BadRequestException', async () => {
+    it('should propagate a domain exception on delete', async () => {
       deleteVehicleUseCase.execute.mockRejectedValue(
         new VehicleException('invalid delete'),
       );
 
       await expect(controller.delete('id-1')).rejects.toBeInstanceOf(
-        BadRequestException,
+        VehicleException,
       );
     });
   });
@@ -682,7 +680,7 @@ describe('Vehicle Management module', () => {
 
     it('should insert a new vehicle when not found', async () => {
       const vehicle = vehicleFactory({
-        id: '33333333-3333-4333-8333-333333333333',
+        vehicle_id: '33333333-3333-4333-8333-333333333333',
       });
       const values = jest.fn().mockResolvedValue(undefined);
       const db = {
@@ -704,27 +702,27 @@ describe('Vehicle Management module', () => {
 
     it('should return a vehicle by id or null', async () => {
       const vehicle = vehicleFactory();
+      const rowOf = (v: Vehicle) => ({
+        vehicle_id: v.getId().getValue(),
+        licensePlate: v.getLicensePlate().getValue(),
+        model: v.getVehicleModel().getModel(),
+        year: v.getVehicleModel().getYear(),
+        manufacturer: v.getVehicleModel().getManufacturer(),
+        description: v.getDescription(),
+        color: v.getColor().getValue(),
+        fuelType: v.getFuelType().getValue(),
+        odometer: v.getOdometer().getValue(),
+        createdAt: v.getCreatedAt(),
+        updatedAt: v.getUpdatedAt(),
+        deletedAt: null,
+      });
       const db = {
         select: jest.fn().mockReturnValue({
           from: jest.fn().mockReturnValue({
             where: jest.fn().mockReturnValue({
               limit: jest
                 .fn()
-                .mockResolvedValueOnce([
-                  {
-                    id: vehicle.getId().getValue(),
-                    licensePlate: vehicle.getLicensePlate().getValue(),
-                    model: vehicle.getVehicleModel().getModel(),
-                    year: vehicle.getVehicleModel().getYear(),
-                    manufacturer: vehicle.getVehicleModel().getManufacturer(),
-                    description: vehicle.getDescription(),
-                    color: vehicle.getColor().getValue(),
-                    fuelType: vehicle.getFuelType().getValue(),
-                    odometer: vehicle.getOdometer().getValue(),
-                    createdAt: vehicle.getCreatedAt(),
-                    updatedAt: vehicle.getUpdatedAt(),
-                  },
-                ])
+                .mockResolvedValueOnce([rowOf(vehicle)])
                 .mockResolvedValueOnce([]),
             }),
           }),
@@ -745,48 +743,38 @@ describe('Vehicle Management module', () => {
 
     it('should find by license plate and list all vehicles', async () => {
       const vehicle = vehicleFactory({
-        id: '55555555-5555-4555-8555-555555555555',
+        vehicle_id: '55555555-5555-4555-8555-555555555555',
         licensePlate: 'DEF-5678',
       });
+      const rowOf = (v: Vehicle) => ({
+        vehicle_id: v.getId().getValue(),
+        licensePlate: v.getLicensePlate().getValue(),
+        model: v.getVehicleModel().getModel(),
+        year: v.getVehicleModel().getYear(),
+        manufacturer: v.getVehicleModel().getManufacturer(),
+        description: v.getDescription(),
+        color: v.getColor().getValue(),
+        fuelType: v.getFuelType().getValue(),
+        odometer: v.getOdometer().getValue(),
+        createdAt: v.getCreatedAt(),
+        updatedAt: v.getUpdatedAt(),
+        deletedAt: null,
+      });
+
+      // Both reads filter out soft deleted rows, so the chain is
+      // select().from().where() — findByLicensePlate stops at .limit(),
+      // findAll goes one step further into .offset().
       const db = {
         select: jest.fn().mockReturnValue({
           from: jest.fn().mockReturnValue({
             where: jest.fn().mockReturnValue({
               limit: jest
                 .fn()
-                .mockResolvedValueOnce([
-                  {
-                    id: vehicle.getId().getValue(),
-                    licensePlate: vehicle.getLicensePlate().getValue(),
-                    model: vehicle.getVehicleModel().getModel(),
-                    year: vehicle.getVehicleModel().getYear(),
-                    manufacturer: vehicle.getVehicleModel().getManufacturer(),
-                    description: vehicle.getDescription(),
-                    color: vehicle.getColor().getValue(),
-                    fuelType: vehicle.getFuelType().getValue(),
-                    odometer: vehicle.getOdometer().getValue(),
-                    createdAt: vehicle.getCreatedAt(),
-                    updatedAt: vehicle.getUpdatedAt(),
-                  },
-                ])
-                .mockResolvedValueOnce([]),
+                .mockReturnValueOnce(Promise.resolve([rowOf(vehicle)]))
+                .mockReturnValueOnce({
+                  offset: jest.fn().mockResolvedValue([rowOf(vehicle)]),
+                }),
             }),
-            limit: jest.fn().mockReturnThis(),
-            offset: jest.fn().mockResolvedValue([
-              {
-                id: vehicle.getId().getValue(),
-                licensePlate: vehicle.getLicensePlate().getValue(),
-                model: vehicle.getVehicleModel().getModel(),
-                year: vehicle.getVehicleModel().getYear(),
-                manufacturer: vehicle.getVehicleModel().getManufacturer(),
-                description: vehicle.getDescription(),
-                color: vehicle.getColor().getValue(),
-                fuelType: vehicle.getFuelType().getValue(),
-                odometer: vehicle.getOdometer().getValue(),
-                createdAt: vehicle.getCreatedAt(),
-                updatedAt: vehicle.getUpdatedAt(),
-              },
-            ]),
           }),
         }),
       };
@@ -816,7 +804,9 @@ describe('Vehicle Management module', () => {
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       (db.select as jest.Mock).mockReturnValueOnce({
-        from: jest.fn().mockReturnValue([{ count: 2 }]),
+        from: jest.fn().mockReturnValue({
+          where: jest.fn().mockReturnValue([{ count: 2 }]),
+        }),
       });
 
       const repository = new DrizzleVehicleRepository(db);
@@ -830,13 +820,56 @@ describe('Vehicle Management module', () => {
     });
   });
 
-  it('should expose the table schema metadata', () => {
-    expect(vehiclesTable).toBeDefined();
-    expect(vehiclesTable).toHaveProperty('id');
+  describe('VehicleErrorsFilter', () => {
+    const runFilter = (error: VehicleException) => {
+      const json = jest.fn();
+      const status = jest.fn().mockReturnValue({ json });
+      const host = {
+        switchToHttp: () => ({ getResponse: () => ({ status }) }),
+      } as unknown as ArgumentsHost;
+
+      new VehicleErrorsFilter().catch(error, host);
+
+      return { status, json };
+    };
+
+    it('should map a missing vehicle to 404', () => {
+      const { status } = runFilter(new VehicleNotFoundException('missing-id'));
+
+      expect(status).toHaveBeenCalledWith(404);
+    });
+
+    it('should map a duplicate license plate to 409', () => {
+      const { status } = runFilter(
+        new DuplicateLicensePlateException('ABC-1234'),
+      );
+
+      expect(status).toHaveBeenCalledWith(409);
+    });
+
+    it('should map any other domain exception to 400', () => {
+      const { status } = runFilter(new InvalidFuelTypeException('banana'));
+
+      expect(status).toHaveBeenCalledWith(400);
+    });
+
+    it('should carry the domain message into the response body', () => {
+      const error = new VehicleNotFoundException('missing-id');
+      const { json } = runFilter(error);
+
+      expect(json).toHaveBeenCalledWith(
+        expect.objectContaining({ message: error.message }),
+      );
+    });
   });
 
-  it('should instantiate default DTO values', () => {
-    const query = new ListVehiclesQueryDto();
+  it('should expose the table schema metadata', () => {
+    expect(vehiclesTable).toBeDefined();
+    expect(vehiclesTable).toHaveProperty('vehicle_id');
+  });
+
+  it('should apply the default pagination values', () => {
+    const query: ListVehiclesQueryDto = ListVehiclesQuerySchema.parse({});
     expect(query.page).toBe(1);
     expect(query.limit).toBe(10);
   });

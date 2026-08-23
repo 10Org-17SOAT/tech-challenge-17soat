@@ -122,7 +122,7 @@ describe('Vehicle Management (integração HTTP)', () => {
       model: payload.model,
     });
 
-    const id = created.body.id as string;
+    const id = created.body.vehicle_id as string;
 
     await request(app.getHttpServer())
       .post('/vehicles')
@@ -133,7 +133,7 @@ describe('Vehicle Management (integração HTTP)', () => {
       .get(`/vehicles/${id}`)
       .expect(200)
       .expect(({ body }) => {
-        expect(body.id).toBe(id);
+        expect(body.vehicle_id).toBe(id);
         expect(body.deletedAt).toBeNull();
       });
 
@@ -157,7 +157,7 @@ describe('Vehicle Management (integração HTTP)', () => {
       .expect(200)
       .expect(({ body }) => {
         expect(body).toMatchObject({
-          id,
+          vehicle_id: id,
           model: 'Fit',
           color: 'Azul',
           odometer: 20000,
@@ -173,7 +173,7 @@ describe('Vehicle Management (integração HTTP)', () => {
   it('trata entradas inexistentes e paginação limitada', async () => {
     repository.seed(
       Vehicle.create({
-        id: FIRST_ID,
+        vehicle_id: FIRST_ID,
         licensePlate: 'DEF-5678',
         model: 'Corolla',
         year: 2023,
@@ -188,14 +188,20 @@ describe('Vehicle Management (integração HTTP)', () => {
       .get(`/vehicles/${MISSING_ID}`)
       .expect(404);
 
+    // Fail-fast: out-of-range pagination is rejected by the Zod schema
+    // instead of being silently clamped.
     await request(app.getHttpServer())
       .get('/vehicles')
       .query({ page: 0, limit: 999 })
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .get('/vehicles')
       .expect(200)
       .expect(({ body }) => {
         expect(body.pagination).toMatchObject({
           page: 1,
-          limit: 100,
+          limit: 10,
           total: 1,
         });
       });
