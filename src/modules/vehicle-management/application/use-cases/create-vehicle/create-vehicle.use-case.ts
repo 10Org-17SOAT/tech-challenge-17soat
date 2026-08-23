@@ -15,9 +15,8 @@ export class CreateVehicleUseCase {
   async execute(input: CreateVehicleInput): Promise<CreateVehicleOutput> {
     // Check if license plate already exists
     const licensePlate = new LicensePlate(input.licensePlate);
-    const existingVehicle = await this.vehicleRepository.findByLicensePlate(
-      licensePlate,
-    );
+    const existingVehicle =
+      await this.vehicleRepository.findByLicensePlate(licensePlate);
 
     if (existingVehicle) {
       throw new DuplicateLicensePlateException(licensePlate.getValue());

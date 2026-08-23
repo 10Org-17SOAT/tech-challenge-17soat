@@ -19,7 +19,7 @@ export class DeleteVehicleUseCase {
       throw new VehicleNotFoundException(id);
     }
 
-    if(vehicle.isDeleted()) {
+    if (vehicle.isDeleted()) {
       throw new VehicleNotFoundException(id);
     }
 
