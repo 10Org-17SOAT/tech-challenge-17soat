@@ -69,7 +69,7 @@ describe('CustomerMapper', () => {
       corporateName: 'Acme LTDA',
       tradeName: 'Acme',
       email: 'contato@acme.com.br',
-      phone: { countryCode: '55', areaCode: null, number: '1133334444' },
+      phone: { countryCode: '55', areaCode: '11', number: '33334444' },
       address: {
         street: 'Rua da Consolacao',
         number: '200',
@@ -93,7 +93,7 @@ describe('CustomerMapper', () => {
     expect(customer.getName()).toBeNull();
     expect(customer.getCorporateName()).toBe('Acme LTDA');
     expect(customer.getEmail().getValue()).toBe('contato@acme.com.br');
-    expect(customer.getPhone().getAreaCode()).toBeNull();
+    expect(customer.getPhone().getAreaCode()).toBe('11');
     expect(customer.getAddress().getZipCode()).toBe('01302000');
     expect(customer.getCreatedAt()).toBe(now);
     expect(customer.getDeletedAt()).toBeNull();
