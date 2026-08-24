@@ -41,3 +41,13 @@ export class InvalidAddressException extends CustomerException {
     this.name = 'InvalidAddressException';
   }
 }
+
+export class DuplicateDocumentException extends CustomerException {
+  constructor(document: string, options?: { cause?: unknown }) {
+    super(`Customer document "${document}" is already in use.`);
+    this.name = 'DuplicateDocumentException';
+    if (options?.cause !== undefined) {
+      this.cause = options.cause;
+    }
+  }
+}
