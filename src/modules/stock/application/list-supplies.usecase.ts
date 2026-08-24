@@ -1,7 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Supply } from '../domain/supply.entity';
 import { SUPPLY_REPOSITORY } from '../domain/supply.repository';
-import type { Pagination, SupplyRepository } from '../domain/supply.repository';
+import type {
+  ListSuppliesFilter,
+  SupplyRepository,
+} from '../domain/supply.repository';
 
 export interface ListSuppliesOutput {
   items: Supply[];
@@ -17,8 +20,8 @@ export class ListSuppliesUseCase {
     private readonly supplyRepository: SupplyRepository,
   ) {}
 
-  async execute(pagination: Pagination): Promise<ListSuppliesOutput> {
-    const { items, total } = await this.supplyRepository.findMany(pagination);
-    return { items, total, ...pagination };
+  async execute(filter: ListSuppliesFilter): Promise<ListSuppliesOutput> {
+    const { items, total } = await this.supplyRepository.findMany(filter);
+    return { items, total, page: filter.page, limit: filter.limit };
   }
 }

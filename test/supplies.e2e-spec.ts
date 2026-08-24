@@ -127,6 +127,79 @@ describe('Supplies (e2e)', () => {
       await http().get('/supplies?page=0').expect(400);
       await http().get('/supplies?limit=abc').expect(400);
     });
+
+    describe('name search', () => {
+      const seed = async () => {
+        for (const name of [
+          'Óleo 5W30',
+          'Filtro de óleo',
+          'Pastilha de freio',
+        ]) {
+          await http()
+            .post('/supplies')
+            .send({ name, priceInCents: 100 })
+            .expect(201);
+        }
+      };
+
+      it('filters supplies by a partial, case-insensitive name match', async () => {
+        await seed();
+
+        const partial = pageBody(
+          await http().get('/supplies?name=de').expect(200),
+        );
+        expect(partial.items.map((s) => s.name).sort()).toEqual([
+          'Filtro de óleo',
+          'Pastilha de freio',
+        ]);
+        expect(partial.total).toBe(2);
+
+        const upper = pageBody(
+          await http().get('/supplies?name=PASTILHA').expect(200),
+        );
+        expect(upper.items.map((s) => s.name)).toEqual(['Pastilha de freio']);
+        expect(upper.total).toBe(1);
+      });
+
+      it('returns the full listing when the search term is omitted', async () => {
+        await seed();
+
+        const all = pageBody(await http().get('/supplies').expect(200));
+        expect(all.total).toBe(3);
+      });
+
+      it('returns an empty list with total zero when nothing matches', async () => {
+        await seed();
+
+        const none = pageBody(
+          await http().get('/supplies?name=amortecedor').expect(200),
+        );
+        expect(none.items).toEqual([]);
+        expect(none.total).toBe(0);
+      });
+
+      it('does not return soft deleted supplies in the search', async () => {
+        await seed();
+        const listed = pageBody(
+          await http().get('/supplies?name=óleo').expect(200),
+        );
+        const oil = listed.items.find((s) => s.name === 'Óleo 5W30');
+
+        await http().delete(`/supplies/${oil!.id}`).expect(204);
+
+        const after = pageBody(
+          await http().get('/supplies?name=óleo').expect(200),
+        );
+        expect(after.items.map((s) => s.name)).toEqual(['Filtro de óleo']);
+        expect(after.total).toBe(1);
+      });
+
+      it('rejects a search term above the maximum length', async () => {
+        await http()
+          .get(`/supplies?name=${'a'.repeat(256)}`)
+          .expect(400);
+      });
+    });
   });
 
   describe('GET /supplies/:id', () => {
