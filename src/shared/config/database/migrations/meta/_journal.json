@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1787612197819,
+      "tag": "20260824225637_opposite_white_queen",
+      "breakpoints": true
+    }
+  ]
+}
