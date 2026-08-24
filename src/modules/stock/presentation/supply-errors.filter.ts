@@ -7,11 +7,17 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Response } from 'express';
+import { InvalidStockMovementError } from '../domain/errors/invalid-stock-movement.error';
 import { InvalidSupplyError } from '../domain/errors/invalid-supply.error';
 import { SupplyNameAlreadyExistsError } from '../domain/errors/supply-name-already-exists.error';
 import { SupplyNotFoundError } from '../domain/errors/supply-not-found.error';
 
-@Catch(SupplyNotFoundError, SupplyNameAlreadyExistsError, InvalidSupplyError)
+@Catch(
+  SupplyNotFoundError,
+  SupplyNameAlreadyExistsError,
+  InvalidSupplyError,
+  InvalidStockMovementError,
+)
 export class SupplyErrorsFilter implements ExceptionFilter {
   catch(error: Error, host: ArgumentsHost) {
     const response = host.switchToHttp().getResponse<Response>();

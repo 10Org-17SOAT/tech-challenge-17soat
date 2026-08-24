@@ -16,7 +16,13 @@ import { CreateSupplyUseCase } from '../application/create-supply.usecase';
 import { DeleteSupplyUseCase } from '../application/delete-supply.usecase';
 import { GetSupplyUseCase } from '../application/get-supply.usecase';
 import { ListSuppliesUseCase } from '../application/list-supplies.usecase';
+import { RegisterStockEntryUseCase } from '../application/register-stock-entry.usecase';
 import { UpdateSupplyUseCase } from '../application/update-supply.usecase';
+import {
+  RegisterStockEntryDto,
+  StockEntryResponseDto,
+  toStockEntryResponse,
+} from './dtos/stock-movement.dtos';
 import {
   CreateSupplyDto,
   ListSuppliesQueryDto,
@@ -38,6 +44,7 @@ export class SuppliesController {
     private readonly listSupplies: ListSuppliesUseCase,
     private readonly updateSupply: UpdateSupplyUseCase,
     private readonly deleteSupply: DeleteSupplyUseCase,
+    private readonly registerStockEntry: RegisterStockEntryUseCase,
   ) {}
 
   @Get()
@@ -90,5 +97,23 @@ export class SuppliesController {
   @ApiResponse({ status: 404, description: 'Supply não encontrado' })
   async remove(@Param() params: SupplyIdParamDto): Promise<void> {
     await this.deleteSupply.execute(params.id);
+  }
+
+  @Post(':id/stock-entries')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Registra a entrada de peças no estoque' })
+  @ApiResponse({ status: 201, type: StockEntryResponseDto })
+  @ApiResponse({ status: 400, description: 'Quantidade inválida' })
+  @ApiResponse({ status: 404, description: 'Supply não encontrado' })
+  async createStockEntry(
+    @Param() params: SupplyIdParamDto,
+    @Body() body: RegisterStockEntryDto,
+  ): Promise<StockEntryResponseDto> {
+    const { movement, availableBalance } =
+      await this.registerStockEntry.execute({
+        supplyId: params.id,
+        quantity: body.quantity,
+      });
+    return toStockEntryResponse(movement, availableBalance);
   }
 }
