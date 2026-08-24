@@ -1,6 +1,6 @@
 import { CustomerRepository } from '../../domain/repository/customer.repository';
 import { CustomerResponseDTO } from '../dto/customer.dto';
-import { CustomerNotFoundException } from '../exceptions/customer-not-found.exception';
+import { CustomerNotFoundException } from '../exceptions/customer-application.exception';
 
 export class FindCustomerByIdUseCase {
   constructor(private readonly repository: CustomerRepository) {}

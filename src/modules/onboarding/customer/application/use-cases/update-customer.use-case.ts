@@ -5,7 +5,7 @@ import { Phone } from '../../domain/value-objects/phone.value-object';
 import { Address } from '../../domain/value-objects/address.value-object';
 import { CustomerRepository } from '../../domain/repository/customer.repository';
 import { UpdateCustomerInput, CustomerResponseDTO } from '../dto/customer.dto';
-import { CustomerNotFoundException } from '../exceptions/customer-not-found.exception';
+import { CustomerNotFoundException } from '../exceptions/customer-application.exception';
 
 export class UpdateCustomerUseCase {
   constructor(private readonly repository: CustomerRepository) {}

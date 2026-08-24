@@ -6,7 +6,7 @@ import { Document } from '../../domain/value-objects/document.value-object';
 import { Email } from '../../domain/value-objects/email.value-object';
 import { Phone } from '../../domain/value-objects/phone.value-object';
 import { Address } from '../../domain/value-objects/address.value-object';
-import { CustomerNotFoundException } from '../exceptions/customer-not-found.exception';
+import { CustomerNotFoundException } from '../exceptions/customer-application.exception';
 
 describe('FindCustomerByIdUseCase', () => {
   let useCase: FindCustomerByIdUseCase;

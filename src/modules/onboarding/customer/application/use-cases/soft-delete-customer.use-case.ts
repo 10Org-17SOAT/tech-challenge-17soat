@@ -1,5 +1,5 @@
 import { CustomerRepository } from '../../domain/repository/customer.repository';
-import { CustomerNotFoundException } from '../exceptions/customer-not-found.exception';
+import { CustomerNotFoundException } from '../exceptions/customer-application.exception';
 
 export class SoftDeleteCustomerUseCase {
   constructor(private readonly repository: CustomerRepository) {}

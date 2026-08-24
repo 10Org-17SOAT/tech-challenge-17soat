@@ -2,7 +2,7 @@ import { randomUUID } from 'crypto';
 import { PersonType } from './value-objects/person-type.enum';
 import { Document } from './value-objects/document.value-object';
 import { Email } from './value-objects/email.value-object';
-import { Phone, PhoneProps } from './value-objects/phone.value-object';
+import { Phone } from './value-objects/phone.value-object';
 import { Address, AddressProps } from './value-objects/address.value-object';
 import { InvalidCustomerException } from './exceptions/customer.exceptions';
 
@@ -126,7 +126,11 @@ export class Customer {
     corporateName: string | null;
     tradeName: string | null;
     email: string;
-    phone: PhoneProps;
+    phone: {
+      countryCode: string;
+      areaCode: string | null;
+      number: string;
+    };
     address: AddressProps;
     createdAt: Date;
     updatedAt: Date;

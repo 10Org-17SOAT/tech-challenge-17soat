@@ -1,4 +1,6 @@
-import { PersonType } from '../value-objects/person-type.enum';
+import { AddressProps } from '../../domain/value-objects/address.value-object';
+import { PersonType } from '../../domain/value-objects/person-type.enum';
+import { PhoneProps } from '../../domain/value-objects/phone.value-object';
 
 export interface CreateCustomerInput {
   personType: PersonType;
@@ -52,20 +54,8 @@ export interface CustomerResponseDTO {
   corporateName: string | null;
   tradeName: string | null;
   email: string;
-  phone: {
-    countryCode: string;
-    areaCode: string | null;
-    number: string;
-  };
-  address: {
-    street: string;
-    number: string;
-    complement: string | null;
-    neighborhood: string;
-    city: string;
-    state: string;
-    zipCode: string;
-  };
+  phone: PhoneProps;
+  address: AddressProps;
   createdAt: Date;
   updatedAt: Date;
 }

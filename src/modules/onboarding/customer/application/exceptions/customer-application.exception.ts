@@ -1,5 +1,3 @@
-import { CustomerNotFoundException } from '../exceptions/customer-application.exception';
-
 export class CustomerApplicationException extends Error {
   constructor(message: string) {
     super(message);
@@ -7,4 +5,9 @@ export class CustomerApplicationException extends Error {
   }
 }
 
-export { CustomerNotFoundException };
+export class CustomerNotFoundException extends Error {
+  constructor(id: string) {
+    super(`Customer with id "${id}" not found.`);
+    this.name = 'CustomerNotFoundException';
+  }
+}
