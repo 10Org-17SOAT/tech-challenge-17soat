@@ -34,13 +34,9 @@ export class RegisterStockEntryUseCase {
       throw new SupplyNotFoundError(supplyId);
     }
 
-    // Quantity is validated inside the entity's value object, so an invalid
-    // amount is rejected before anything reaches the ledger.
     const movement = StockMovement.in(supply.id, quantity);
     await this.stockMovementRepository.save(movement);
 
-    // Always derived from the ledger — never a stored running total, which
-    // would drift (GUIDELINES.md § Domain criticality).
     const availableBalance =
       await this.stockMovementRepository.getAvailableBalance(supply.id);
 
