@@ -3,3 +3,4 @@ export * from '../../../modules/onboarding/customer/infrastructure/persistence/c
 export * from '../../../modules/service-order/services/infrastructure/persistence/schema';
 export * from '../../../modules/stock/infrastructure/persistence/schema';
 export { vehiclesTable } from '../../../modules/onboarding/vehicles/infrastructure/persistence/vehicle.schema';
+export * from '../../../modules/service-order/orders/infrastructure/persistence/schema';
