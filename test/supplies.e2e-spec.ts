@@ -26,7 +26,11 @@ describe('Supplies (e2e)', () => {
     });
   });
 
-  beforeEach(() => pool.query('DELETE FROM supplies'));
+  // Movements reference supplies, so they must be cleared first.
+  beforeEach(async () => {
+    await pool.query('DELETE FROM stock_movements');
+    await pool.query('DELETE FROM supplies');
+  });
 
   afterAll(async () => {
     await pool.end();
