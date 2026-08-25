@@ -3,7 +3,7 @@ import { PersonType } from './value-objects/person-type.enum';
 import { Document } from './value-objects/document.value-object';
 import { Email } from './value-objects/email.value-object';
 import { Phone } from './value-objects/phone.value-object';
-import { Address, AddressProps } from './value-objects/address.value-object';
+import { Address } from './value-objects/address.value-object';
 import { InvalidCustomerException } from './exceptions/customer.exceptions';
 
 export interface CustomerProps {
@@ -131,7 +131,15 @@ export class Customer {
       areaCode: string | null;
       number: string;
     };
-    address: AddressProps;
+    address: {
+      street: string;
+      number: string;
+      complement: string | null;
+      neighborhood: string;
+      city: string;
+      state: string;
+      zipCode: string;
+    };
     createdAt: Date;
     updatedAt: Date;
     deletedAt: Date | null;

@@ -5,7 +5,7 @@ export class CustomerApplicationException extends Error {
   }
 }
 
-export class CustomerNotFoundException extends Error {
+export class CustomerNotFoundException extends CustomerApplicationException {
   constructor(id: string) {
     super(`Customer with id "${id}" not found.`);
     this.name = 'CustomerNotFoundException';

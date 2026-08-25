@@ -75,7 +75,15 @@ export class Address {
     );
   }
 
-  toPrimitives(): AddressProps {
+  toPrimitives(): {
+    street: string;
+    number: string;
+    complement: string | null;
+    neighborhood: string;
+    city: string;
+    state: string;
+    zipCode: string;
+  } {
     return {
       street: this.street,
       number: this.number,
