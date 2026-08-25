@@ -1,7 +1,7 @@
 import { Supply } from '../domain/supply.entity';
-import {
+import type {
+  ListSuppliesFilter,
   PaginatedSupplies,
-  Pagination,
   SupplyRepository,
 } from '../domain/supply.repository';
 
@@ -22,8 +22,17 @@ export class InMemorySupplyRepository implements SupplyRepository {
     return Promise.resolve(null);
   }
 
-  findMany({ page, limit }: Pagination): Promise<PaginatedSupplies> {
-    const active = [...this.supplies.values()].filter((s) => !s.deletedAt);
+  findMany({
+    page,
+    limit,
+    name,
+  }: ListSuppliesFilter): Promise<PaginatedSupplies> {
+    const term = name?.toLocaleLowerCase();
+    const active = [...this.supplies.values()].filter(
+      (s) =>
+        !s.deletedAt &&
+        (term === undefined || s.name.toLocaleLowerCase().includes(term)),
+    );
     return Promise.resolve({
       items: active.slice((page - 1) * limit, page * limit),
       total: active.length,
