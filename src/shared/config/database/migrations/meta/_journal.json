@@ -11,3 +11,65 @@
     }
   ]
 }
+      "when": 1786557169542,
+      "tag": "0000_vehicles",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786557170000,
+      "tag": "0001_add_deleted_at_to_vehicles",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786672421114,
+      "tag": "20260814015341_known_stingray",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1786817235809,
+      "tag": "0002_hard_scourge",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1786817473948,
+      "tag": "0003_small_greymalkin",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1786817899435,
+      "tag": "0004_stiff_psynapse",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1786982324959,
+      "tag": "20260817155844_bitter_terrax",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1787009167491,
+      "tag": "20260817232607_abandoned_patriot",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1787186021824,
+      "tag": "20260820003341_careless_sway",
+      "breakpoints": true
+    }
+  ]
+}
