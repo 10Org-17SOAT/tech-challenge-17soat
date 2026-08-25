@@ -72,4 +72,55 @@ export function describeStockMovementRepositoryContract(
   it('returns a zero balance for a supply id that has never been seen', async () => {
     await expect(repository.getAvailableBalance(randomUUID())).resolves.toBe(0);
   });
+
+  describe('batch balances', () => {
+    it('aggregates the balance of several supplies in one call', async () => {
+      const otherSupplyId = await context.createSupply();
+      await repository.save(StockMovement.in(supplyId, 10));
+      await repository.save(StockMovement.reserve(supplyId, 4, 'OS-1'));
+      await repository.save(StockMovement.in(otherSupplyId, 3));
+
+      const balances = await repository.getAvailableBalances([
+        supplyId,
+        otherSupplyId,
+      ]);
+
+      expect(balances.get(supplyId)).toBe(6);
+      expect(balances.get(otherSupplyId)).toBe(3);
+    });
+
+    it('maps a supply without movements to zero instead of omitting it', async () => {
+      const balances = await repository.getAvailableBalances([supplyId]);
+
+      expect(balances.get(supplyId)).toBe(0);
+    });
+
+    it('maps an unknown supply id to zero', async () => {
+      const unknownId = randomUUID();
+
+      const balances = await repository.getAvailableBalances([unknownId]);
+
+      expect(balances.get(unknownId)).toBe(0);
+    });
+
+    it('returns an empty map for an empty id list', async () => {
+      await repository.save(StockMovement.in(supplyId, 10));
+
+      const balances = await repository.getAvailableBalances([]);
+
+      expect(balances.size).toBe(0);
+    });
+
+    it('agrees with the single-supply balance query', async () => {
+      await repository.save(StockMovement.in(supplyId, 9));
+      await repository.save(StockMovement.reserve(supplyId, 2, 'OS-7'));
+
+      const [single, batch] = await Promise.all([
+        repository.getAvailableBalance(supplyId),
+        repository.getAvailableBalances([supplyId]),
+      ]);
+
+      expect(batch.get(supplyId)).toBe(single);
+    });
+  });
 }

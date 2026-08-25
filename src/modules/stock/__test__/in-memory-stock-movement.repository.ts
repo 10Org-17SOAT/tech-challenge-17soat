@@ -13,6 +13,16 @@ export class InMemoryStockMovementRepository implements StockMovementRepository 
     return this.sumSignedBy(supplyId, MovementType.In, MovementType.Reserve);
   }
 
+  async getAvailableBalances(
+    supplyIds: string[],
+  ): Promise<Map<string, number>> {
+    const balances = new Map<string, number>();
+    for (const supplyId of supplyIds) {
+      balances.set(supplyId, await this.getAvailableBalance(supplyId));
+    }
+    return balances;
+  }
+
   getReservedQuantity(supplyId: string): Promise<number> {
     return this.sumSignedBy(
       supplyId,
