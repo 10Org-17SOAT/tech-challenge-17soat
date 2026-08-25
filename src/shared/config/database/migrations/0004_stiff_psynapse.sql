@@ -1,0 +1,1 @@
+ALTER TABLE "vehicles" RENAME COLUMN "id" TO "vehicle_id";

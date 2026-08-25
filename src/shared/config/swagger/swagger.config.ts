@@ -12,8 +12,10 @@ export function setupSwagger(app: INestApplication): void {
 
   const document = cleanupOpenApiDoc(SwaggerModule.createDocument(app, config));
 
+  SwaggerModule.setup('docs', app, document);
+
   app.use(
-    '/docs',
+    '/reference',
     apiReference({
       content: document,
     }),
