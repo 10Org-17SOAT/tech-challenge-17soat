@@ -3,12 +3,20 @@ import { Document } from '../../domain/value-objects/document.value-object';
 import { Email } from '../../domain/value-objects/email.value-object';
 import { Phone } from '../../domain/value-objects/phone.value-object';
 import { Address } from '../../domain/value-objects/address.value-object';
-import { CustomerRepository } from '../../domain/repository/customer.repository';
+import {
+  CUSTOMER_REPOSITORY,
+  type CustomerRepository,
+} from '../../domain/repository/customer.repository';
 import { UpdateCustomerInput, CustomerResponseDTO } from '../dto/customer.dto';
 import { CustomerNotFoundException } from '../exceptions/customer-application.exception';
+import { Inject, Injectable } from '@nestjs/common';
 
+@Injectable()
 export class UpdateCustomerUseCase {
-  constructor(private readonly repository: CustomerRepository) {}
+  constructor(
+    @Inject(CUSTOMER_REPOSITORY)
+    private readonly repository: CustomerRepository,
+  ) {}
 
   async execute(input: {
     id: string;

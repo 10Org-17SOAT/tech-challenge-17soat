@@ -1,13 +1,21 @@
+import { Inject, Injectable } from '@nestjs/common';
 import { Customer } from '../../domain/customer.entity';
 import { Document } from '../../domain/value-objects/document.value-object';
 import { Email } from '../../domain/value-objects/email.value-object';
 import { Phone } from '../../domain/value-objects/phone.value-object';
 import { Address } from '../../domain/value-objects/address.value-object';
-import { CustomerRepository } from '../../domain/repository/customer.repository';
+import {
+  CUSTOMER_REPOSITORY,
+  type CustomerRepository,
+} from '../../domain/repository/customer.repository';
 import { CreateCustomerInput, CustomerResponseDTO } from '../dto/customer.dto';
 
+@Injectable()
 export class CreateCustomerUseCase {
-  constructor(private readonly repository: CustomerRepository) {}
+  constructor(
+    @Inject(CUSTOMER_REPOSITORY)
+    private readonly repository: CustomerRepository,
+  ) {}
 
   async execute(input: CreateCustomerInput): Promise<CustomerResponseDTO> {
     const customer = Customer.create({

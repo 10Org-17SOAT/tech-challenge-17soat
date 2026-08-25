@@ -1,8 +1,16 @@
-import { CustomerRepository } from '../../domain/repository/customer.repository';
+import { Inject, Injectable } from '@nestjs/common';
+import {
+  CUSTOMER_REPOSITORY,
+  type CustomerRepository,
+} from '../../domain/repository/customer.repository';
 import { CustomerNotFoundException } from '../exceptions/customer-application.exception';
 
+@Injectable()
 export class SoftDeleteCustomerUseCase {
-  constructor(private readonly repository: CustomerRepository) {}
+  constructor(
+    @Inject(CUSTOMER_REPOSITORY)
+    private readonly repository: CustomerRepository,
+  ) {}
 
   async execute(input: { id: string }): Promise<void> {
     const customer = await this.repository.findById(input.id);

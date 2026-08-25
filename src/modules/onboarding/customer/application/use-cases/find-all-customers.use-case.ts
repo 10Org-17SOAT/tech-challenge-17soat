@@ -1,11 +1,17 @@
+import { Inject, Injectable } from '@nestjs/common';
 import {
-  CustomerRepository,
+  CUSTOMER_REPOSITORY,
+  type CustomerRepository,
   FindAllParams,
 } from '../../domain/repository/customer.repository';
 import { CustomerResponseDTO } from '../dto/customer.dto';
 
+@Injectable()
 export class FindAllCustomersUseCase {
-  constructor(private readonly repository: CustomerRepository) {}
+  constructor(
+    @Inject(CUSTOMER_REPOSITORY)
+    private readonly repository: CustomerRepository,
+  ) {}
 
   async execute(input: FindAllParams): Promise<{
     data: CustomerResponseDTO[];

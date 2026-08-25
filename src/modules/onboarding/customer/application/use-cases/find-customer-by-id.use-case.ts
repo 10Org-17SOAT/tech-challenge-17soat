@@ -1,9 +1,17 @@
-import { CustomerRepository } from '../../domain/repository/customer.repository';
+import { Inject, Injectable } from '@nestjs/common';
+import {
+  CUSTOMER_REPOSITORY,
+  type CustomerRepository,
+} from '../../domain/repository/customer.repository';
 import { CustomerResponseDTO } from '../dto/customer.dto';
 import { CustomerNotFoundException } from '../exceptions/customer-application.exception';
 
+@Injectable()
 export class FindCustomerByIdUseCase {
-  constructor(private readonly repository: CustomerRepository) {}
+  constructor(
+    @Inject(CUSTOMER_REPOSITORY)
+    private readonly repository: CustomerRepository,
+  ) {}
 
   async execute(input: { id: string }): Promise<CustomerResponseDTO> {
     const customer = await this.repository.findById(input.id);
