@@ -3,6 +3,7 @@ import { CreateSupplyUseCase } from './application/create-supply.usecase';
 import { DeleteSupplyUseCase } from './application/delete-supply.usecase';
 import { GetSupplyUseCase } from './application/get-supply.usecase';
 import { ListSuppliesUseCase } from './application/list-supplies.usecase';
+import { RegisterStockEntryUseCase } from './application/register-stock-entry.usecase';
 import { UpdateSupplyUseCase } from './application/update-supply.usecase';
 import { DOMAIN_EVENT_PUBLISHER } from './domain/events/domain-event-publisher';
 import { STOCK_MOVEMENT_REPOSITORY } from './domain/stock-movement.repository';
@@ -26,6 +27,7 @@ import { SuppliesController } from './presentation/supplies.controller';
     ListSuppliesUseCase,
     UpdateSupplyUseCase,
     DeleteSupplyUseCase,
+    RegisterStockEntryUseCase,
   ],
   exports: [],
 })
