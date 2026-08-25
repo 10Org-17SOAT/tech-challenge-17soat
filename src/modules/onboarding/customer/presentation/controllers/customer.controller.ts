@@ -28,6 +28,10 @@ import {
   PaginatedCustomersResponseDto,
 } from '../dtos/customer.dtos';
 import { CustomerErrorsFilter } from '../filters/customer-errors.filter';
+import {
+  CustomerResponseDTO,
+  PaginatedCustomersDTO,
+} from '../../application/dto/customer.dto';
 import { PersonType } from '../../domain/value-objects/person-type.enum';
 
 @ApiTags('customers')
@@ -48,7 +52,7 @@ export class CustomerController {
   @ApiResponse({ status: 201, type: CustomerResponseDto })
   @ApiResponse({ status: 400, description: 'Payload inválido' })
   @ApiResponse({ status: 409, description: 'Documento já cadastrado' })
-  async create(@Body() body: CreateCustomerDto): Promise<CustomerResponseDto> {
+  async create(@Body() body: CreateCustomerDto): Promise<CustomerResponseDTO> {
     return this.createCustomer.execute({
       ...body,
       personType: PersonType[body.personType],
@@ -60,7 +64,7 @@ export class CustomerController {
   @ApiResponse({ status: 200, type: PaginatedCustomersResponseDto })
   async list(
     @Query() query: ListCustomersQueryDto,
-  ): Promise<PaginatedCustomersResponseDto> {
+  ): Promise<PaginatedCustomersDTO> {
     return this.findAllCustomers.execute({
       page: query.page,
       limit: query.limit,
@@ -79,7 +83,7 @@ export class CustomerController {
   @ApiResponse({ status: 404, description: 'Cliente não encontrado' })
   async getById(
     @Param() params: CustomerIdParamDto,
-  ): Promise<CustomerResponseDto> {
+  ): Promise<CustomerResponseDTO> {
     return this.findCustomerById.execute({ id: params.id });
   }
 
@@ -91,7 +95,7 @@ export class CustomerController {
   async update(
     @Param() params: CustomerIdParamDto,
     @Body() body: UpdateCustomerDto,
-  ): Promise<CustomerResponseDto> {
+  ): Promise<CustomerResponseDTO> {
     return this.updateCustomer.execute({ id: params.id, data: body });
   }
 

@@ -69,3 +69,11 @@ export interface CustomerResponseDTO {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface PaginatedCustomersDTO {
+  data: CustomerResponseDTO[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
