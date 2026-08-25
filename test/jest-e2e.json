@@ -6,6 +6,7 @@
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
   },
+  "maxWorkers": 1,
   "collectCoverage": true,
   "collectCoverageFrom": [
     "src/modules/vehicle-management/application/use-cases/**/*.ts",
