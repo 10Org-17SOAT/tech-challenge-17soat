@@ -1,14 +1,14 @@
-import { Order } from '../domain/order.entity';
+import { ServiceOrder } from '../domain/service-order.entity';
 import {
-  ListOrdersFilter,
-  OrderRepository,
-  PaginatedOrders,
-} from '../domain/order.repository';
+  ListServiceOrdersFilter,
+  ServiceOrderRepository,
+  PaginatedServiceOrders,
+} from '../domain/service-order.repository';
 
-export class InMemoryOrderRepository implements OrderRepository {
-  readonly orders = new Map<string, Order>();
+export class InMemoryServiceOrderRepository implements ServiceOrderRepository {
+  readonly orders = new Map<string, ServiceOrder>();
 
-  findById(id: string): Promise<Order | null> {
+  findById(id: string): Promise<ServiceOrder | null> {
     const order = this.orders.get(id);
     return Promise.resolve(order && !order.deletedAt ? order : null);
   }
@@ -17,7 +17,7 @@ export class InMemoryOrderRepository implements OrderRepository {
     page,
     limit,
     status,
-  }: ListOrdersFilter): Promise<PaginatedOrders> {
+  }: ListServiceOrdersFilter): Promise<PaginatedServiceOrders> {
     const filtered = [...this.orders.values()]
       .filter((o) => !o.deletedAt)
       .filter((o) => (status ? o.status === status : true))
@@ -29,7 +29,7 @@ export class InMemoryOrderRepository implements OrderRepository {
     });
   }
 
-  save(order: Order): Promise<void> {
+  save(order: ServiceOrder): Promise<void> {
     this.orders.set(order.id, order);
     return Promise.resolve();
   }

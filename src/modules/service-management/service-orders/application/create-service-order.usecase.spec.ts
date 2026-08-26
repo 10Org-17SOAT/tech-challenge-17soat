@@ -1,13 +1,13 @@
-import { InMemoryOrderRepository } from '../__test__/in-memory-order.repository';
-import { CreateOrderUseCase } from './create-order.usecase';
+import { InMemoryServiceOrderRepository } from '../__test__/in-memory-service-order.repository';
+import { CreateServiceOrderUseCase } from './create-service-order.usecase';
 
-describe('CreateOrderUseCase', () => {
-  let repository: InMemoryOrderRepository;
-  let useCase: CreateOrderUseCase;
+describe('CreateServiceOrderUseCase', () => {
+  let repository: InMemoryServiceOrderRepository;
+  let useCase: CreateServiceOrderUseCase;
 
   beforeEach(() => {
-    repository = new InMemoryOrderRepository();
-    useCase = new CreateOrderUseCase(repository);
+    repository = new InMemoryServiceOrderRepository();
+    useCase = new CreateServiceOrderUseCase(repository);
   });
 
   it('creates an order in status received and persists it', async () => {

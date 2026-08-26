@@ -1,11 +1,11 @@
-import { InvalidOrderError } from './errors/invalid-order.error';
-import { InvalidOrderTransitionError } from './errors/invalid-order-transition.error';
-import { OrderNotDeletableError } from './errors/order-not-deletable.error';
-import { Order } from './order.entity';
+import { InvalidServiceOrderError } from './errors/invalid-service-order.error';
+import { InvalidServiceOrderTransitionError } from './errors/invalid-service-order-transition.error';
+import { ServiceOrderNotDeletableError } from './errors/service-order-not-deletable.error';
+import { ServiceOrder } from './service-order.entity';
 
-describe('Order', () => {
+describe('ServiceOrder', () => {
   it('creates an order with defaults', () => {
-    const order = Order.create({});
+    const order = ServiceOrder.create({});
 
     expect(order.id).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
@@ -23,22 +23,22 @@ describe('Order', () => {
   });
 
   it('normalizes notes on create (trims, empty becomes null)', () => {
-    expect(Order.create({ notes: '  keep me  ' }).notes).toBe('keep me');
-    expect(Order.create({ notes: '   ' }).notes).toBeNull();
+    expect(ServiceOrder.create({ notes: '  keep me  ' }).notes).toBe('keep me');
+    expect(ServiceOrder.create({ notes: '   ' }).notes).toBeNull();
   });
 
   it('rejects negative or non-integer mileage', () => {
-    expect(() => Order.create({ vehicleMileageAtEntry: -1 })).toThrow(
-      InvalidOrderError,
+    expect(() => ServiceOrder.create({ vehicleMileageAtEntry: -1 })).toThrow(
+      InvalidServiceOrderError,
     );
-    expect(() => Order.create({ vehicleMileageAtEntry: 10.5 })).toThrow(
-      InvalidOrderError,
+    expect(() => ServiceOrder.create({ vehicleMileageAtEntry: 10.5 })).toThrow(
+      InvalidServiceOrderError,
     );
   });
 
   describe('state machine', () => {
     it('walks the happy path and stamps timestamps + approval', () => {
-      const order = Order.create({});
+      const order = ServiceOrder.create({});
 
       order.transitionTo('in_diagnosis');
       expect(order.status).toBe('in_diagnosis');
@@ -62,44 +62,44 @@ describe('Order', () => {
     });
 
     it('rejects skipping steps', () => {
-      const order = Order.create({});
+      const order = ServiceOrder.create({});
       expect(() => order.transitionTo('in_execution')).toThrow(
-        InvalidOrderTransitionError,
+        InvalidServiceOrderTransitionError,
       );
     });
 
     it('rejects going backwards', () => {
-      const order = Order.create({});
+      const order = ServiceOrder.create({});
       order.transitionTo('in_diagnosis');
       expect(order.status).toBe('in_diagnosis');
       expect(() => order.transitionTo('received')).toThrow(
-        InvalidOrderTransitionError,
+        InvalidServiceOrderTransitionError,
       );
     });
 
     it('rejects transitioning to the same status', () => {
-      const order = Order.create({});
+      const order = ServiceOrder.create({});
       expect(() => order.transitionTo('received')).toThrow(
-        InvalidOrderTransitionError,
+        InvalidServiceOrderTransitionError,
       );
     });
 
     it('rejects transitioning out of the terminal status', () => {
-      const order = Order.create({});
+      const order = ServiceOrder.create({});
       order.transitionTo('in_diagnosis');
       order.transitionTo('awaiting_approval');
       order.transitionTo('awaiting_execution');
       order.transitionTo('in_execution');
       order.transitionTo('finished');
       expect(() => order.transitionTo('received')).toThrow(
-        InvalidOrderTransitionError,
+        InvalidServiceOrderTransitionError,
       );
     });
   });
 
   describe('update()', () => {
     it('updates only the provided fields', () => {
-      const order = Order.create({ notes: 'old', vehicleMileageAtEntry: 100 });
+      const order = ServiceOrder.create({ notes: 'old', vehicleMileageAtEntry: 100 });
       order.update({ notes: 'new', vehicleMileageAtEntry: 200 });
 
       expect(order.notes).toBe('new');
@@ -107,7 +107,7 @@ describe('Order', () => {
     });
 
     it('allows nulling notes and stripping whitespace', () => {
-      const order = Order.create({ notes: 'x' });
+      const order = ServiceOrder.create({ notes: 'x' });
       order.update({ notes: null });
       expect(order.notes).toBeNull();
 
@@ -116,22 +116,22 @@ describe('Order', () => {
     });
 
     it('blocks mileage/scheduledAt updates once in_execution', () => {
-      const order = Order.create({});
+      const order = ServiceOrder.create({});
       order.transitionTo('in_diagnosis');
       order.transitionTo('awaiting_approval');
       order.transitionTo('awaiting_execution');
       order.transitionTo('in_execution');
 
       expect(() => order.update({ vehicleMileageAtEntry: 500 })).toThrow(
-        InvalidOrderError,
+        InvalidServiceOrderError,
       );
       expect(() => order.update({ scheduledAt: new Date() })).toThrow(
-        InvalidOrderError,
+        InvalidServiceOrderError,
       );
     });
 
     it('still allows editing notes when finished', () => {
-      const order = Order.create({});
+      const order = ServiceOrder.create({});
       order.transitionTo('in_diagnosis');
       order.transitionTo('awaiting_approval');
       order.transitionTo('awaiting_execution');
@@ -145,15 +145,15 @@ describe('Order', () => {
 
   describe('delete()', () => {
     it('soft deletes an order in status received', () => {
-      const order = Order.create({});
+      const order = ServiceOrder.create({});
       order.delete();
       expect(order.deletedAt).toBeInstanceOf(Date);
     });
 
     it('refuses to delete after diagnosis started', () => {
-      const order = Order.create({});
+      const order = ServiceOrder.create({});
       order.transitionTo('in_diagnosis');
-      expect(() => order.delete()).toThrow(OrderNotDeletableError);
+      expect(() => order.delete()).toThrow(ServiceOrderNotDeletableError);
     });
   });
 });

@@ -1,19 +1,19 @@
-import { Order } from '../domain/order.entity';
-import { InMemoryOrderRepository } from '../__test__/in-memory-order.repository';
-import { ListOrdersUseCase } from './list-orders.usecase';
+import { ServiceOrder } from '../domain/service-order.entity';
+import { InMemoryServiceOrderRepository } from '../__test__/in-memory-service-order.repository';
+import { ListServiceOrdersUseCase } from './list-service-orders.usecase';
 
-describe('ListOrdersUseCase', () => {
-  let repository: InMemoryOrderRepository;
-  let useCase: ListOrdersUseCase;
+describe('ListServiceOrdersUseCase', () => {
+  let repository: InMemoryServiceOrderRepository;
+  let useCase: ListServiceOrdersUseCase;
 
   beforeEach(() => {
-    repository = new InMemoryOrderRepository();
-    useCase = new ListOrdersUseCase(repository);
+    repository = new InMemoryServiceOrderRepository();
+    useCase = new ListServiceOrdersUseCase(repository);
   });
 
   it('paginates and reports total', async () => {
     for (let i = 0; i < 5; i++) {
-      await repository.save(Order.create({}));
+      await repository.save(ServiceOrder.create({}));
     }
 
     const first = await useCase.execute({ page: 1, limit: 2 });
@@ -27,8 +27,8 @@ describe('ListOrdersUseCase', () => {
   });
 
   it('filters by status', async () => {
-    const a = Order.create({});
-    const b = Order.create({});
+    const a = ServiceOrder.create({});
+    const b = ServiceOrder.create({});
     b.transitionTo('in_diagnosis');
     await repository.save(a);
     await repository.save(b);
@@ -43,7 +43,7 @@ describe('ListOrdersUseCase', () => {
   });
 
   it('excludes soft-deleted orders', async () => {
-    const order = Order.create({});
+    const order = ServiceOrder.create({});
     await repository.save(order);
     order.delete();
     await repository.save(order);
