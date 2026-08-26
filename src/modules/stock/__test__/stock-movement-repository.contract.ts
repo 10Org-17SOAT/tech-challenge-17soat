@@ -13,7 +13,7 @@ export interface StockMovementRepositoryContext {
  * Behaviour every StockMovementRepository must satisfy, whatever the storage.
  * Shared by the in-memory fake (unit) and the Drizzle adapter (e2e) so the fake
  * can never drift from the real balance arithmetic — stock integrity is
- * critical (GUIDELINES.md § Domain criticality).
+ * critical.
  */
 export function describeStockMovementRepositoryContract(
   makeContext: () => Promise<StockMovementRepositoryContext>,

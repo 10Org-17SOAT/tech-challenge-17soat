@@ -48,7 +48,7 @@ export class ReservePartUseCase {
 
     // The atomic check-and-insert is the repository's job, not this use
     // case's: a read-then-write here would be a TOCTOU race under load
-    // (GUIDELINES.md § Domain criticality, product doc's technical risk #1).
+    // (product doc's technical risk #1).
     await this.stockMovementRepository.reserveIfAvailable(movement);
 
     this.eventPublisher.publish(

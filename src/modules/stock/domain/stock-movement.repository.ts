@@ -8,7 +8,7 @@ export interface StockMovementRepository {
    * supply — throws InsufficientStockError otherwise, leaving no trace of the
    * rejected attempt. This is the one operation in the ledger that cannot be
    * a plain check-then-insert: two concurrent calls must never both succeed
-   * when only one fits (GUIDELINES.md § Domain criticality).
+   * when only one fits.
    */
   reserveIfAvailable(movement: StockMovement): Promise<void>;
   /** SUM(IN) - SUM(RESERVE): units that may still be reserved. */

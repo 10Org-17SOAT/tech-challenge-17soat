@@ -21,8 +21,8 @@ interface InternalProps {
 
 /**
  * One entry of the stock ledger. Quantity lives here and only here — supplies
- * hold catalogue data, never a running total (GUIDELINES.md § Domain
- * criticality: the balance must always be derivable and auditable).
+ * hold catalogue data, never a running total: the balance must always be
+ * derivable and auditable.
  */
 export class StockMovement {
   private constructor(private readonly props: InternalProps) {}
