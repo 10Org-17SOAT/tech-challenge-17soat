@@ -16,6 +16,7 @@ import { CreateSupplyUseCase } from '../application/create-supply.usecase';
 import { DeleteSupplyUseCase } from '../application/delete-supply.usecase';
 import { GetSupplyUseCase } from '../application/get-supply.usecase';
 import { ListSuppliesUseCase } from '../application/list-supplies.usecase';
+import { LookupStockUseCase } from '../application/lookup-stock.usecase';
 import { RegisterStockEntryUseCase } from '../application/register-stock-entry.usecase';
 import { UpdateSupplyUseCase } from '../application/update-supply.usecase';
 import {
@@ -29,6 +30,7 @@ import {
   PaginatedSuppliesResponseDto,
   SupplyIdParamDto,
   SupplyResponseDto,
+  SupplyStockResponseDto,
   toSupplyResponse,
   UpdateSupplyDto,
 } from './dtos/supply.dtos';
@@ -45,6 +47,7 @@ export class SuppliesController {
     private readonly updateSupply: UpdateSupplyUseCase,
     private readonly deleteSupply: DeleteSupplyUseCase,
     private readonly registerStockEntry: RegisterStockEntryUseCase,
+    private readonly lookupStock: LookupStockUseCase,
   ) {}
 
   @Get()
@@ -65,7 +68,9 @@ export class SuppliesController {
   @ApiResponse({ status: 409, description: 'Nome já cadastrado' })
   async create(@Body() body: CreateSupplyDto): Promise<SupplyResponseDto> {
     const supply = await this.createSupply.execute(body);
-    return toSupplyResponse(supply);
+    // A brand new supply has no ledger movements yet, so its balance is zero by
+    // construction — no need to query for it.
+    return toSupplyResponse({ supply, availableBalance: 0 });
   }
 
   @Get(':id')
@@ -73,8 +78,17 @@ export class SuppliesController {
   @ApiResponse({ status: 200, type: SupplyResponseDto })
   @ApiResponse({ status: 404, description: 'Supply não encontrado' })
   async getById(@Param() params: SupplyIdParamDto): Promise<SupplyResponseDto> {
-    const supply = await this.getSupply.execute(params.id);
-    return toSupplyResponse(supply);
+    return toSupplyResponse(await this.getSupply.execute(params.id));
+  }
+
+  @Get(':id/stock')
+  @ApiOperation({ summary: 'Consulta o saldo disponível de uma peça' })
+  @ApiResponse({ status: 200, type: SupplyStockResponseDto })
+  @ApiResponse({ status: 404, description: 'Supply não encontrado' })
+  async getStock(
+    @Param() params: SupplyIdParamDto,
+  ): Promise<SupplyStockResponseDto> {
+    return this.lookupStock.execute(params.id);
   }
 
   @Patch(':id')
@@ -86,8 +100,7 @@ export class SuppliesController {
     @Param() params: SupplyIdParamDto,
     @Body() body: UpdateSupplyDto,
   ): Promise<SupplyResponseDto> {
-    const supply = await this.updateSupply.execute(params.id, body);
-    return toSupplyResponse(supply);
+    return toSupplyResponse(await this.updateSupply.execute(params.id, body));
   }
 
   @Delete(':id')

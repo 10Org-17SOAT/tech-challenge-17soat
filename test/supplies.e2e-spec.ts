@@ -44,6 +44,7 @@ describe('Supplies (e2e)', () => {
     name: string;
     description: string | null;
     priceInCents: number;
+    availableBalance: number;
     createdAt: string;
     updatedAt: string;
   }
