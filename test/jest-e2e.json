@@ -9,7 +9,7 @@
   "maxWorkers": 1,
   "collectCoverage": true,
   "collectCoverageFrom": [
-    "src/modules/vehicle-management/application/use-cases/**/*.ts",
+    "src/modules/onboarding/vehicle-management/application/use-cases/**/*.ts",
     "!src/**/*.spec.ts"
   ],
   "coverageThreshold": {

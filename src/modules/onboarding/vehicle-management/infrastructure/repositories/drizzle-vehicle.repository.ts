@@ -6,7 +6,7 @@ import { VehicleId, LicensePlate } from '../../domain/value-objects';
 import {
   DATABASE_CONNECTION,
   type DrizzleDatabase,
-} from '../../../../shared/config/database';
+} from '../../../../../shared/config/database';
 import { vehiclesTable } from '../persistence/vehicle.schema';
 import { VehicleMapper } from '../mappers/vehicle.mapper';
 import { VehicleException } from '../../domain/exceptions/vehicle.exceptions';
