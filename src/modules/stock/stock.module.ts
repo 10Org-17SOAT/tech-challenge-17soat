@@ -5,6 +5,7 @@ import { GetSupplyUseCase } from './application/get-supply.usecase';
 import { ListSuppliesUseCase } from './application/list-supplies.usecase';
 import { LookupStockUseCase } from './application/lookup-stock.usecase';
 import { RegisterStockEntryUseCase } from './application/register-stock-entry.usecase';
+import { ReservePartUseCase } from './application/reserve-part.usecase';
 import { UpdateSupplyUseCase } from './application/update-supply.usecase';
 import { DOMAIN_EVENT_PUBLISHER } from './domain/events/domain-event-publisher';
 import { STOCK_MOVEMENT_REPOSITORY } from './domain/stock-movement.repository';
@@ -30,6 +31,7 @@ import { SuppliesController } from './presentation/supplies.controller';
     DeleteSupplyUseCase,
     RegisterStockEntryUseCase,
     LookupStockUseCase,
+    ReservePartUseCase,
   ],
   exports: [],
 })

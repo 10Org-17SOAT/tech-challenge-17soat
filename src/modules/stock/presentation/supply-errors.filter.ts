@@ -7,6 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Response } from 'express';
+import { InsufficientStockError } from '../domain/errors/insufficient-stock.error';
 import { InvalidStockMovementError } from '../domain/errors/invalid-stock-movement.error';
 import { InvalidSupplyError } from '../domain/errors/invalid-supply.error';
 import { SupplyNameAlreadyExistsError } from '../domain/errors/supply-name-already-exists.error';
@@ -17,6 +18,7 @@ import { SupplyNotFoundError } from '../domain/errors/supply-not-found.error';
   SupplyNameAlreadyExistsError,
   InvalidSupplyError,
   InvalidStockMovementError,
+  InsufficientStockError,
 )
 export class SupplyErrorsFilter implements ExceptionFilter {
   catch(error: Error, host: ArgumentsHost) {
@@ -29,7 +31,10 @@ export class SupplyErrorsFilter implements ExceptionFilter {
     if (error instanceof SupplyNotFoundError) {
       return new NotFoundException(error.message);
     }
-    if (error instanceof SupplyNameAlreadyExistsError) {
+    if (
+      error instanceof SupplyNameAlreadyExistsError ||
+      error instanceof InsufficientStockError
+    ) {
       return new ConflictException(error.message);
     }
     return new BadRequestException(error.message);

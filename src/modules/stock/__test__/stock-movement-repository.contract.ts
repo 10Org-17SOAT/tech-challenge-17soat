@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { InsufficientStockError } from '../domain/errors/insufficient-stock.error';
 import { StockMovement } from '../domain/stock-movement.entity';
 import type { StockMovementRepository } from '../domain/stock-movement.repository';
 
@@ -12,7 +13,7 @@ export interface StockMovementRepositoryContext {
  * Behaviour every StockMovementRepository must satisfy, whatever the storage.
  * Shared by the in-memory fake (unit) and the Drizzle adapter (e2e) so the fake
  * can never drift from the real balance arithmetic — stock integrity is
- * critical (GUIDELINES.md § Domain criticality).
+ * critical.
  */
 export function describeStockMovementRepositoryContract(
   makeContext: () => Promise<StockMovementRepositoryContext>,
@@ -111,6 +112,17 @@ export function describeStockMovementRepositoryContract(
       expect(balances.size).toBe(0);
     });
 
+    it('reserveIfAvailable does not disappear from the batch balance', async () => {
+      await repository.save(StockMovement.in(supplyId, 10));
+      await repository.reserveIfAvailable(
+        StockMovement.reserve(supplyId, 4, 'OS-batch'),
+      );
+
+      const balances = await repository.getAvailableBalances([supplyId]);
+
+      expect(balances.get(supplyId)).toBe(6);
+    });
+
     it('agrees with the single-supply balance query', async () => {
       await repository.save(StockMovement.in(supplyId, 9));
       await repository.save(StockMovement.reserve(supplyId, 2, 'OS-7'));
@@ -121,6 +133,66 @@ export function describeStockMovementRepositoryContract(
       ]);
 
       expect(batch.get(supplyId)).toBe(single);
+    });
+  });
+
+  describe('reserveIfAvailable', () => {
+    it('reserves a quantity within the available balance, lowering available and raising reserved', async () => {
+      await repository.save(StockMovement.in(supplyId, 10));
+
+      await repository.reserveIfAvailable(
+        StockMovement.reserve(supplyId, 6, 'OS-1'),
+      );
+
+      await expect(repository.getAvailableBalance(supplyId)).resolves.toBe(4);
+      await expect(repository.getReservedQuantity(supplyId)).resolves.toBe(6);
+    });
+
+    it('rejects a reservation that exceeds the available balance, changing no balance', async () => {
+      await repository.save(StockMovement.in(supplyId, 5));
+
+      await expect(
+        repository.reserveIfAvailable(
+          StockMovement.reserve(supplyId, 6, 'OS-2'),
+        ),
+      ).rejects.toBeInstanceOf(InsufficientStockError);
+
+      await expect(repository.getAvailableBalance(supplyId)).resolves.toBe(5);
+      await expect(repository.getReservedQuantity(supplyId)).resolves.toBe(0);
+    });
+
+    it('rejects a reservation against a supply with no movements at all', async () => {
+      await expect(
+        repository.reserveIfAvailable(
+          StockMovement.reserve(supplyId, 1, 'OS-3'),
+        ),
+      ).rejects.toBeInstanceOf(InsufficientStockError);
+    });
+
+    // The technical risk #1 flagged by the product doc: two reservations
+    // racing the same supply where only one fits must never both succeed —
+    // a plain check-then-insert passes a single-process test and fails here.
+    it('accepts exactly one of two concurrent reservations where only one fits, and the available balance never goes negative', async () => {
+      await repository.save(StockMovement.in(supplyId, 10));
+
+      const attempts = await Promise.allSettled([
+        repository.reserveIfAvailable(
+          StockMovement.reserve(supplyId, 7, 'OS-A'),
+        ),
+        repository.reserveIfAvailable(
+          StockMovement.reserve(supplyId, 7, 'OS-B'),
+        ),
+      ]);
+
+      const fulfilled = attempts.filter((a) => a.status === 'fulfilled');
+      const rejected = attempts.filter((a) => a.status === 'rejected');
+      expect(fulfilled).toHaveLength(1);
+      expect(rejected).toHaveLength(1);
+      expect(rejected[0].reason).toBeInstanceOf(InsufficientStockError);
+
+      const availableBalance = await repository.getAvailableBalance(supplyId);
+      expect(availableBalance).toBe(3);
+      expect(availableBalance).toBeGreaterThanOrEqual(0);
     });
   });
 }

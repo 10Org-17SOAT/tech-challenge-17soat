@@ -1,3 +1,4 @@
+import { InsufficientStockError } from '../domain/errors/insufficient-stock.error';
 import { MovementType, StockMovement } from '../domain/stock-movement.entity';
 import type { StockMovementRepository } from '../domain/stock-movement.repository';
 
@@ -5,6 +6,28 @@ export class InMemoryStockMovementRepository implements StockMovementRepository 
   readonly movements: StockMovement[] = [];
 
   save(movement: StockMovement): Promise<void> {
+    this.movements.push(movement);
+    return Promise.resolve();
+  }
+
+  // No `await` between the balance read and the push: the whole check runs
+  // in one microtask, so two Promise.all'd calls can never interleave — the
+  // same guarantee the Drizzle adapter gets from a row lock.
+  reserveIfAvailable(movement: StockMovement): Promise<void> {
+    const availableBalance = this.sumSignedSync(
+      movement.supplyId,
+      MovementType.In,
+      MovementType.Reserve,
+    );
+    if (availableBalance < movement.quantity) {
+      return Promise.reject(
+        new InsufficientStockError(
+          movement.supplyId,
+          movement.quantity,
+          availableBalance,
+        ),
+      );
+    }
     this.movements.push(movement);
     return Promise.resolve();
   }
@@ -36,14 +59,20 @@ export class InMemoryStockMovementRepository implements StockMovementRepository 
     credit: MovementType,
     debit: MovementType,
   ): Promise<number> {
-    const total = this.movements
+    return Promise.resolve(this.sumSignedSync(supplyId, credit, debit));
+  }
+
+  private sumSignedSync(
+    supplyId: string,
+    credit: MovementType,
+    debit: MovementType,
+  ): number {
+    return this.movements
       .filter((movement) => movement.supplyId === supplyId)
       .reduce((sum, movement) => {
         if (movement.type === credit) return sum + movement.quantity;
         if (movement.type === debit) return sum - movement.quantity;
         return sum;
       }, 0);
-
-    return Promise.resolve(total);
   }
 }

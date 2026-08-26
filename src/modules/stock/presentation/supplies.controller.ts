@@ -18,10 +18,14 @@ import { GetSupplyUseCase } from '../application/get-supply.usecase';
 import { ListSuppliesUseCase } from '../application/list-supplies.usecase';
 import { LookupStockUseCase } from '../application/lookup-stock.usecase';
 import { RegisterStockEntryUseCase } from '../application/register-stock-entry.usecase';
+import { ReservePartUseCase } from '../application/reserve-part.usecase';
 import { UpdateSupplyUseCase } from '../application/update-supply.usecase';
 import {
   RegisterStockEntryDto,
+  ReservationResponseDto,
+  ReservePartDto,
   StockEntryResponseDto,
+  toReservationResponse,
   toStockEntryResponse,
 } from './dtos/stock-movement.dtos';
 import {
@@ -48,6 +52,7 @@ export class SuppliesController {
     private readonly deleteSupply: DeleteSupplyUseCase,
     private readonly registerStockEntry: RegisterStockEntryUseCase,
     private readonly lookupStock: LookupStockUseCase,
+    private readonly reservePart: ReservePartUseCase,
   ) {}
 
   @Get()
@@ -128,5 +133,28 @@ export class SuppliesController {
         quantity: body.quantity,
       });
     return toStockEntryResponse(movement, availableBalance);
+  }
+
+  @Post(':id/reservations')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Reserva uma quantidade de uma peça para uma OS' })
+  @ApiResponse({ status: 201, type: ReservationResponseDto })
+  @ApiResponse({
+    status: 400,
+    description: 'Quantidade ou referência inválida',
+  })
+  @ApiResponse({ status: 404, description: 'Supply não encontrado' })
+  @ApiResponse({ status: 409, description: 'Saldo disponível insuficiente' })
+  async createReservation(
+    @Param() params: SupplyIdParamDto,
+    @Body() body: ReservePartDto,
+  ): Promise<ReservationResponseDto> {
+    const { movement, availableBalance, reservedQuantity } =
+      await this.reservePart.execute({
+        supplyId: params.id,
+        quantity: body.quantity,
+        serviceOrderReference: body.serviceOrderReference,
+      });
+    return toReservationResponse(movement, availableBalance, reservedQuantity);
   }
 }
