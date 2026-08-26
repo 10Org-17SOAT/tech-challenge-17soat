@@ -6,7 +6,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CustomerModule } from './modules/onboarding/customer/customer.module';
 import { VehicleManagementModule } from './modules/onboarding/vehicles/vehicle-management.module';
-import { ServiceOrderModule } from './modules/service-order/service-order.module';
+import { ServiceOrderModule } from './modules/service-management/service-order.module';
 import { StockModule } from './modules/stock/stock.module';
 import { DatabaseModule } from './shared/config/database/database.module';
 import { validateEnv } from './shared/config/env/env.validation';
