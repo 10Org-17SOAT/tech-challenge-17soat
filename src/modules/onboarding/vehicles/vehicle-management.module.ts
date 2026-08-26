@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { DatabaseModule } from '../../shared/config/database/database.module';
+import { DatabaseModule } from '../../../shared/config/database/database.module';
 import { VehicleController } from './presentation/controllers/vehicle.controller';
 import { CreateVehicleUseCase } from './application/use-cases/create-vehicle/create-vehicle.use-case';
 import { FindVehicleByIdUseCase } from './application/use-cases/find-vehicle-by-id/find-vehicle-by-id.use-case';
