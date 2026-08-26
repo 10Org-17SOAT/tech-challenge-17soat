@@ -1,19 +1,19 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
-import { Order } from '../../domain/order.entity';
-import { orderStatusEnum } from '../../infrastructure/persistence/schema';
+import { ServiceOrder } from '../../domain/service-order.entity';
+import { serviceOrderStatusEnum } from '../../infrastructure/persistence/schema';
 
-const orderStatusValues = orderStatusEnum.enumValues;
+const serviceOrderStatusValues = serviceOrderStatusEnum.enumValues;
 
-export const createOrderSchema = z.object({
+export const createServiceOrderSchema = z.object({
   notes: z.string().trim().max(2000).optional(),
   vehicleMileageAtEntry: z.number().int().nonnegative().optional(),
   scheduledAt: z.coerce.date().optional(),
 });
 
-export class CreateOrderDto extends createZodDto(createOrderSchema) {}
+export class CreateServiceOrderDto extends createZodDto(createServiceOrderSchema) {}
 
-export const updateOrderSchema = z
+export const updateServiceOrderSchema = z
   .object({
     notes: z.string().trim().max(2000).nullable(),
     vehicleMileageAtEntry: z.number().int().nonnegative().nullable(),
@@ -21,25 +21,25 @@ export const updateOrderSchema = z
   })
   .partial();
 
-export class UpdateOrderDto extends createZodDto(updateOrderSchema) {}
+export class UpdateServiceOrderDto extends createZodDto(updateServiceOrderSchema) {}
 
-export const updateOrderStatusSchema = z.object({
-  status: z.enum(orderStatusValues),
+export const updateServiceOrderStatusSchema = z.object({
+  status: z.enum(serviceOrderStatusValues),
 });
 
-export class UpdateOrderStatusDto extends createZodDto(
-  updateOrderStatusSchema,
+export class UpdateServiceOrderStatusDto extends createZodDto(
+  updateServiceOrderStatusSchema,
 ) {}
 
-export const orderIdParamSchema = z.object({
+export const serviceOrderIdParamSchema = z.object({
   id: z.uuid(),
 });
 
-export class OrderIdParamDto extends createZodDto(orderIdParamSchema) {}
+export class ServiceOrderIdParamDto extends createZodDto(serviceOrderIdParamSchema) {}
 
-export const orderResponseSchema = z.object({
+export const serviceOrderResponseSchema = z.object({
   id: z.uuid(),
-  status: z.enum(orderStatusValues),
+  status: z.enum(serviceOrderStatusValues),
   approvedByCustomer: z.boolean(),
   notes: z.string().nullable(),
   vehicleMileageAtEntry: z.number().int().nullable(),
@@ -50,28 +50,28 @@ export const orderResponseSchema = z.object({
   updatedAt: z.iso.datetime(),
 });
 
-export class OrderResponseDto extends createZodDto(orderResponseSchema) {}
+export class ServiceOrderResponseDto extends createZodDto(serviceOrderResponseSchema) {}
 
-export const listOrdersQuerySchema = z.object({
+export const listServiceOrdersQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),
-  status: z.enum(orderStatusValues).optional(),
+  status: z.enum(serviceOrderStatusValues).optional(),
 });
 
-export class ListOrdersQueryDto extends createZodDto(listOrdersQuerySchema) {}
+export class ListServiceOrdersQueryDto extends createZodDto(listServiceOrdersQuerySchema) {}
 
-export const paginatedOrdersResponseSchema = z.object({
-  items: z.array(orderResponseSchema),
+export const paginatedServiceOrdersResponseSchema = z.object({
+  items: z.array(serviceOrderResponseSchema),
   total: z.number().int(),
   page: z.number().int(),
   limit: z.number().int(),
 });
 
-export class PaginatedOrdersResponseDto extends createZodDto(
-  paginatedOrdersResponseSchema,
+export class PaginatedServiceOrdersResponseDto extends createZodDto(
+  paginatedServiceOrdersResponseSchema,
 ) {}
 
-export function toOrderResponse(order: Order): OrderResponseDto {
+export function toServiceOrderResponse(order: ServiceOrder): ServiceOrderResponseDto {
   return {
     id: order.id,
     status: order.status,

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
-import { InvalidOrderError } from './errors/invalid-order.error';
-import { InvalidOrderTransitionError } from './errors/invalid-order-transition.error';
-import { OrderNotDeletableError } from './errors/order-not-deletable.error';
+import { InvalidServiceOrderError } from './errors/invalid-service-order.error';
+import { InvalidServiceOrderTransitionError } from './errors/invalid-service-order-transition.error';
+import { ServiceOrderNotDeletableError } from './errors/service-order-not-deletable.error';
 
 export const ORDER_STATUSES = [
   'received',
@@ -12,9 +12,9 @@ export const ORDER_STATUSES = [
   'finished',
 ] as const;
 
-export type OrderStatus = (typeof ORDER_STATUSES)[number];
+export type ServiceOrderStatus = (typeof ORDER_STATUSES)[number];
 
-const STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus | null> = {
+const STATUS_TRANSITIONS: Record<ServiceOrderStatus, ServiceOrderStatus | null> = {
   received: 'in_diagnosis',
   in_diagnosis: 'awaiting_approval',
   awaiting_approval: 'awaiting_execution',
@@ -24,14 +24,14 @@ const STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus | null> = {
 };
 
 // Once execution starts, mileage and schedule become historical facts.
-const OPERATIONAL_LOCKED_STATUSES = new Set<OrderStatus>([
+const OPERATIONAL_LOCKED_STATUSES = new Set<ServiceOrderStatus>([
   'in_execution',
   'finished',
 ]);
 
-export interface OrderProps {
+export interface ServiceOrderProps {
   id: string;
-  status: OrderStatus;
+  status: ServiceOrderStatus;
   approvedByCustomer: boolean;
   notes: string | null;
   vehicleMileageAtEntry: number | null;
@@ -43,29 +43,29 @@ export interface OrderProps {
   deletedAt: Date | null;
 }
 
-export interface CreateOrderProps {
+export interface CreateServiceOrderProps {
   notes?: string | null;
   vehicleMileageAtEntry?: number | null;
   scheduledAt?: Date | null;
 }
 
-export interface UpdateOrderProps {
+export interface UpdateServiceOrderProps {
   notes?: string | null;
   vehicleMileageAtEntry?: number | null;
   scheduledAt?: Date | null;
 }
 
-export class Order {
-  private constructor(private readonly props: OrderProps) {}
+export class ServiceOrder {
+  private constructor(private readonly props: ServiceOrderProps) {}
 
-  static create(props: CreateOrderProps): Order {
+  static create(props: CreateServiceOrderProps): ServiceOrder {
     const now = new Date();
-    return new Order({
+    return new ServiceOrder({
       id: randomUUID(),
       status: 'received',
       approvedByCustomer: false,
-      notes: Order.normalizeNotes(props.notes ?? null),
-      vehicleMileageAtEntry: Order.validateMileage(
+      notes: ServiceOrder.normalizeNotes(props.notes ?? null),
+      vehicleMileageAtEntry: ServiceOrder.validateMileage(
         props.vehicleMileageAtEntry ?? null,
       ),
       scheduledAt: props.scheduledAt ?? null,
@@ -77,33 +77,33 @@ export class Order {
     });
   }
 
-  static restore(props: OrderProps): Order {
-    return new Order({ ...props });
+  static restore(props: ServiceOrderProps): ServiceOrder {
+    return new ServiceOrder({ ...props });
   }
 
-  update(changes: UpdateOrderProps): void {
+  update(changes: UpdateServiceOrderProps): void {
     const operationalLocked = OPERATIONAL_LOCKED_STATUSES.has(
       this.props.status,
     );
 
     if (changes.notes !== undefined) {
-      this.props.notes = Order.normalizeNotes(changes.notes);
+      this.props.notes = ServiceOrder.normalizeNotes(changes.notes);
     }
 
     if (changes.vehicleMileageAtEntry !== undefined) {
       if (operationalLocked) {
-        throw new InvalidOrderError(
+        throw new InvalidServiceOrderError(
           `Vehicle mileage cannot be updated once the order reaches "${this.props.status}"`,
         );
       }
-      this.props.vehicleMileageAtEntry = Order.validateMileage(
+      this.props.vehicleMileageAtEntry = ServiceOrder.validateMileage(
         changes.vehicleMileageAtEntry,
       );
     }
 
     if (changes.scheduledAt !== undefined) {
       if (operationalLocked) {
-        throw new InvalidOrderError(
+        throw new InvalidServiceOrderError(
           `Scheduled date cannot be updated once the order reaches "${this.props.status}"`,
         );
       }
@@ -113,10 +113,10 @@ export class Order {
     this.props.updatedAt = new Date();
   }
 
-  transitionTo(next: OrderStatus): void {
+  transitionTo(next: ServiceOrderStatus): void {
     const expected = STATUS_TRANSITIONS[this.props.status];
     if (expected !== next) {
-      throw new InvalidOrderTransitionError(this.props.status, next);
+      throw new InvalidServiceOrderTransitionError(this.props.status, next);
     }
 
     const now = new Date();
@@ -137,7 +137,7 @@ export class Order {
 
   delete(): void {
     if (this.props.status !== 'received') {
-      throw new OrderNotDeletableError(this.props.status);
+      throw new ServiceOrderNotDeletableError(this.props.status);
     }
     const now = new Date();
     this.props.deletedAt = now;
@@ -153,7 +153,7 @@ export class Order {
   private static validateMileage(value: number | null): number | null {
     if (value === null) return null;
     if (!Number.isInteger(value) || value < 0) {
-      throw new InvalidOrderError(
+      throw new InvalidServiceOrderError(
         'Vehicle mileage must be a non-negative integer',
       );
     }
@@ -164,7 +164,7 @@ export class Order {
     return this.props.id;
   }
 
-  get status(): OrderStatus {
+  get status(): ServiceOrderStatus {
     return this.props.status;
   }
 

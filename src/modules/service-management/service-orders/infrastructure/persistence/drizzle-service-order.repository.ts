@@ -2,31 +2,31 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, count, desc, eq, isNull } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../../../../../shared/config/database/database.constants';
 import type { DrizzleDatabase } from '../../../../../shared/config/database/drizzle.provider';
-import { Order } from '../../domain/order.entity';
+import { ServiceOrder } from '../../domain/service-order.entity';
 import type {
-  ListOrdersFilter,
-  OrderRepository,
-  PaginatedOrders,
-} from '../../domain/order.repository';
-import { orders } from './schema';
+  ListServiceOrdersFilter,
+  ServiceOrderRepository,
+  PaginatedServiceOrders,
+} from '../../domain/service-order.repository';
+import { serviceOrders } from './schema';
 
-type OrderRow = typeof orders.$inferSelect;
+type ServiceOrderRow = typeof serviceOrders.$inferSelect;
 
-function toEntity(row: OrderRow): Order {
-  return Order.restore(row);
+function toEntity(row: ServiceOrderRow): ServiceOrder {
+  return ServiceOrder.restore(row);
 }
 
 @Injectable()
-export class DrizzleOrderRepository implements OrderRepository {
+export class DrizzleServiceOrderRepository implements ServiceOrderRepository {
   constructor(
     @Inject(DATABASE_CONNECTION) private readonly db: DrizzleDatabase,
   ) {}
 
-  async findById(id: string): Promise<Order | null> {
+  async findById(id: string): Promise<ServiceOrder | null> {
     const rows = await this.db
       .select()
-      .from(orders)
-      .where(and(eq(orders.id, id), isNull(orders.deletedAt)))
+      .from(serviceOrders)
+      .where(and(eq(serviceOrders.id, id), isNull(serviceOrders.deletedAt)))
       .limit(1);
     return rows[0] ? toEntity(rows[0]) : null;
   }
@@ -35,27 +35,27 @@ export class DrizzleOrderRepository implements OrderRepository {
     page,
     limit,
     status,
-  }: ListOrdersFilter): Promise<PaginatedOrders> {
+  }: ListServiceOrdersFilter): Promise<PaginatedServiceOrders> {
     const where = and(
-      isNull(orders.deletedAt),
-      status ? eq(orders.status, status) : undefined,
+      isNull(serviceOrders.deletedAt),
+      status ? eq(serviceOrders.status, status) : undefined,
     );
 
     const [rows, [{ total }]] = await Promise.all([
       this.db
         .select()
-        .from(orders)
+        .from(serviceOrders)
         .where(where)
-        .orderBy(desc(orders.createdAt), orders.id)
+        .orderBy(desc(serviceOrders.createdAt), serviceOrders.id)
         .limit(limit)
         .offset((page - 1) * limit),
-      this.db.select({ total: count() }).from(orders).where(where),
+      this.db.select({ total: count() }).from(serviceOrders).where(where),
     ]);
     return { items: rows.map(toEntity), total };
   }
 
-  async save(order: Order): Promise<void> {
-    const row: OrderRow = {
+  async save(order: ServiceOrder): Promise<void> {
+    const row: ServiceOrderRow = {
       id: order.id,
       status: order.status,
       approvedByCustomer: order.approvedByCustomer,
@@ -70,8 +70,8 @@ export class DrizzleOrderRepository implements OrderRepository {
     };
 
     await this.db
-      .insert(orders)
+      .insert(serviceOrders)
       .values(row)
-      .onConflictDoUpdate({ target: orders.id, set: row });
+      .onConflictDoUpdate({ target: serviceOrders.id, set: row });
   }
 }

@@ -7,13 +7,13 @@ import {
   timestamp,
   uuid,
 } from 'drizzle-orm/pg-core';
-import { ORDER_STATUSES } from '../../domain/order.entity';
+import { ORDER_STATUSES } from '../../domain/service-order.entity';
 
-export const orderStatusEnum = pgEnum('order_status', ORDER_STATUSES);
+export const serviceOrderStatusEnum = pgEnum('service_order_status', ORDER_STATUSES);
 
-export const orders = pgTable('orders', {
-  id: uuid('order_id').primaryKey(),
-  status: orderStatusEnum('status').notNull().default('received'),
+export const serviceOrders = pgTable('service_orders', {
+  id: uuid('service_order_id').primaryKey(),
+  status: serviceOrderStatusEnum('status').notNull().default('received'),
   approvedByCustomer: boolean('approved_by_customer').notNull().default(false),
   notes: text('notes'),
   vehicleMileageAtEntry: integer('vehicle_mileage_at_entry'),
