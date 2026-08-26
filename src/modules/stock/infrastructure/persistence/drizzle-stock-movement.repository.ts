@@ -2,12 +2,13 @@ import { Inject, Injectable } from '@nestjs/common';
 import { eq, inArray, sql } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../../../../shared/config/database/database.constants';
 import type { DrizzleDatabase } from '../../../../shared/config/database/drizzle.provider';
+import { InsufficientStockError } from '../../domain/errors/insufficient-stock.error';
 import {
   MovementType,
   StockMovement,
 } from '../../domain/stock-movement.entity';
 import type { StockMovementRepository } from '../../domain/stock-movement.repository';
-import { stockMovements } from './schema';
+import { stockMovements, supplies } from './schema';
 
 type StockMovementRow = typeof stockMovements.$inferSelect;
 
@@ -28,6 +29,63 @@ export class DrizzleStockMovementRepository implements StockMovementRepository {
     };
 
     await this.db.insert(stockMovements).values(row);
+  }
+
+  // The only write in the ledger that needs a concurrency guarantee beyond
+  // append-only: two reservations racing the same supply must never both fit
+  // when only one can. A separate check-then-insert is a classic TOCTOU race
+  // under load, so the transaction locks the *supply row* first — never a
+  // stored balance, since that would reintroduce the drift the ledger exists
+  // to avoid — which serializes every reservation attempt for that supply.
+  // The balance is then read and the insert done inside the same lock.
+  async reserveIfAvailable(movement: StockMovement): Promise<void> {
+    await this.db.transaction(async (tx) => {
+      const locked = await tx
+        .select({ id: supplies.id })
+        .from(supplies)
+        .where(eq(supplies.id, movement.supplyId))
+        .for('update');
+
+      if (locked.length === 0) {
+        throw new InsufficientStockError(
+          movement.supplyId,
+          movement.quantity,
+          0,
+        );
+      }
+
+      const [row] = await tx
+        .select({
+          total: sql<string>`coalesce(sum(
+            case
+              when ${stockMovements.type} = ${MovementType.In} then ${stockMovements.quantity}
+              when ${stockMovements.type} = ${MovementType.Reserve} then -${stockMovements.quantity}
+              else 0
+            end
+          ), 0)`,
+        })
+        .from(stockMovements)
+        .where(eq(stockMovements.supplyId, movement.supplyId));
+
+      const availableBalance = Number(row.total);
+      if (availableBalance < movement.quantity) {
+        throw new InsufficientStockError(
+          movement.supplyId,
+          movement.quantity,
+          availableBalance,
+        );
+      }
+
+      const insertRow: StockMovementRow = {
+        id: movement.id,
+        supplyId: movement.supplyId,
+        type: movement.type,
+        quantity: movement.quantity,
+        serviceOrderReference: movement.serviceOrderReference,
+        createdAt: movement.createdAt,
+      };
+      await tx.insert(stockMovements).values(insertRow);
+    });
   }
 
   getAvailableBalance(supplyId: string): Promise<number> {
