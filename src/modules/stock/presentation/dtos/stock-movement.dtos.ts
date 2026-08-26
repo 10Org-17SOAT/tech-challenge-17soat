@@ -34,3 +34,40 @@ export function toStockEntryResponse(
     createdAt: movement.createdAt.toISOString(),
   };
 }
+
+export const reservePartSchema = z.object({
+  quantity: z.number().int().positive(),
+  serviceOrderReference: z.string().trim().min(1).max(255),
+});
+
+export class ReservePartDto extends createZodDto(reservePartSchema) {}
+
+export const reservationResponseSchema = z.object({
+  movementId: z.uuid(),
+  supplyId: z.uuid(),
+  quantity: z.number().int(),
+  serviceOrderReference: z.string(),
+  availableBalance: z.number().int(),
+  reservedQuantity: z.number().int(),
+  createdAt: z.iso.datetime(),
+});
+
+export class ReservationResponseDto extends createZodDto(
+  reservationResponseSchema,
+) {}
+
+export function toReservationResponse(
+  movement: StockMovement,
+  availableBalance: number,
+  reservedQuantity: number,
+): ReservationResponseDto {
+  return {
+    movementId: movement.id,
+    supplyId: movement.supplyId,
+    quantity: movement.quantity,
+    serviceOrderReference: movement.serviceOrderReference as string,
+    availableBalance,
+    reservedQuantity,
+    createdAt: movement.createdAt.toISOString(),
+  };
+}
