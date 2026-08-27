@@ -11,6 +11,7 @@ export interface StockMovementRepository {
    * when only one fits.
    */
   reserveIfAvailable(movement: StockMovement): Promise<void>;
+  writeOffIfReserved(movement: StockMovement): Promise<void>;
   /** SUM(IN) - SUM(RESERVE): units that may still be reserved. */
   getAvailableBalance(supplyId: string): Promise<number>;
   /**
@@ -19,8 +20,10 @@ export interface StockMovementRepository {
    * present in the map — a supply with no movements maps to 0, never absent.
    */
   getAvailableBalances(supplyIds: string[]): Promise<Map<string, number>>;
-  /** SUM(RESERVE) - SUM(CONSUME): units held for service orders, not yet taken. */
-  getReservedQuantity(supplyId: string): Promise<number>;
+  getReservedQuantity(
+    supplyId: string,
+    serviceOrderReference?: string,
+  ): Promise<number>;
 }
 
 export const STOCK_MOVEMENT_REPOSITORY = Symbol('STOCK_MOVEMENT_REPOSITORY');

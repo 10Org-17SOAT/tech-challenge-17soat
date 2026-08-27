@@ -1,8 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../../../../shared/config/database/database.constants';
 import type { DrizzleDatabase } from '../../../../shared/config/database/drizzle.provider';
+import { ExceedsReservedQuantityError } from '../../domain/errors/exceeds-reserved-quantity.error';
 import { InsufficientStockError } from '../../domain/errors/insufficient-stock.error';
+import { ReservationNotFoundError } from '../../domain/errors/reservation-not-found.error';
 import {
   MovementType,
   StockMovement,
@@ -88,6 +90,63 @@ export class DrizzleStockMovementRepository implements StockMovementRepository {
     });
   }
 
+  async writeOffIfReserved(movement: StockMovement): Promise<void> {
+    await this.db.transaction(async (tx) => {
+      await tx
+        .select({ id: supplies.id })
+        .from(supplies)
+        .where(eq(supplies.id, movement.supplyId))
+        .for('update');
+
+      const [row] = await tx
+        .select({
+          total: sql<string>`coalesce(sum(
+            case
+              when ${stockMovements.type} = ${MovementType.Reserve} then ${stockMovements.quantity}
+              when ${stockMovements.type} = ${MovementType.Consume} then -${stockMovements.quantity}
+              else 0
+            end
+          ), 0)`,
+        })
+        .from(stockMovements)
+        .where(
+          and(
+            eq(stockMovements.supplyId, movement.supplyId),
+            eq(
+              stockMovements.serviceOrderReference,
+              movement.serviceOrderReference as string,
+            ),
+          ),
+        );
+
+      const reservedQuantity = Number(row.total);
+      if (reservedQuantity === 0) {
+        throw new ReservationNotFoundError(
+          movement.supplyId,
+          movement.serviceOrderReference as string,
+        );
+      }
+      if (movement.quantity > reservedQuantity) {
+        throw new ExceedsReservedQuantityError(
+          movement.supplyId,
+          movement.serviceOrderReference as string,
+          movement.quantity,
+          reservedQuantity,
+        );
+      }
+
+      const insertRow: StockMovementRow = {
+        id: movement.id,
+        supplyId: movement.supplyId,
+        type: movement.type,
+        quantity: movement.quantity,
+        serviceOrderReference: movement.serviceOrderReference,
+        createdAt: movement.createdAt,
+      };
+      await tx.insert(stockMovements).values(insertRow);
+    });
+  }
+
   getAvailableBalance(supplyId: string): Promise<number> {
     return this.sumSignedBy(supplyId, MovementType.In, MovementType.Reserve);
   }
@@ -122,11 +181,15 @@ export class DrizzleStockMovementRepository implements StockMovementRepository {
     return balances;
   }
 
-  getReservedQuantity(supplyId: string): Promise<number> {
+  getReservedQuantity(
+    supplyId: string,
+    serviceOrderReference?: string,
+  ): Promise<number> {
     return this.sumSignedBy(
       supplyId,
       MovementType.Reserve,
       MovementType.Consume,
+      serviceOrderReference,
     );
   }
 
@@ -137,6 +200,7 @@ export class DrizzleStockMovementRepository implements StockMovementRepository {
     supplyId: string,
     credit: MovementType,
     debit: MovementType,
+    serviceOrderReference?: string,
   ): Promise<number> {
     const [row] = await this.db
       .select({
@@ -149,7 +213,14 @@ export class DrizzleStockMovementRepository implements StockMovementRepository {
         ), 0)`,
       })
       .from(stockMovements)
-      .where(eq(stockMovements.supplyId, supplyId));
+      .where(
+        and(
+          eq(stockMovements.supplyId, supplyId),
+          serviceOrderReference === undefined
+            ? undefined
+            : eq(stockMovements.serviceOrderReference, serviceOrderReference),
+        ),
+      );
 
     return Number(row.total);
   }

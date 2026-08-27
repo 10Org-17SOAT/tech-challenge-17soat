@@ -1,4 +1,6 @@
+import { ExceedsReservedQuantityError } from '../domain/errors/exceeds-reserved-quantity.error';
 import { InsufficientStockError } from '../domain/errors/insufficient-stock.error';
+import { ReservationNotFoundError } from '../domain/errors/reservation-not-found.error';
 import { MovementType, StockMovement } from '../domain/stock-movement.entity';
 import type { StockMovementRepository } from '../domain/stock-movement.repository';
 
@@ -32,6 +34,35 @@ export class InMemoryStockMovementRepository implements StockMovementRepository 
     return Promise.resolve();
   }
 
+  writeOffIfReserved(movement: StockMovement): Promise<void> {
+    const reservedQuantity = this.sumSignedSync(
+      movement.supplyId,
+      MovementType.Reserve,
+      MovementType.Consume,
+      movement.serviceOrderReference ?? undefined,
+    );
+    if (reservedQuantity === 0) {
+      return Promise.reject(
+        new ReservationNotFoundError(
+          movement.supplyId,
+          movement.serviceOrderReference as string,
+        ),
+      );
+    }
+    if (movement.quantity > reservedQuantity) {
+      return Promise.reject(
+        new ExceedsReservedQuantityError(
+          movement.supplyId,
+          movement.serviceOrderReference as string,
+          movement.quantity,
+          reservedQuantity,
+        ),
+      );
+    }
+    this.movements.push(movement);
+    return Promise.resolve();
+  }
+
   getAvailableBalance(supplyId: string): Promise<number> {
     return this.sumSignedBy(supplyId, MovementType.In, MovementType.Reserve);
   }
@@ -46,11 +77,15 @@ export class InMemoryStockMovementRepository implements StockMovementRepository 
     return balances;
   }
 
-  getReservedQuantity(supplyId: string): Promise<number> {
+  getReservedQuantity(
+    supplyId: string,
+    serviceOrderReference?: string,
+  ): Promise<number> {
     return this.sumSignedBy(
       supplyId,
       MovementType.Reserve,
       MovementType.Consume,
+      serviceOrderReference,
     );
   }
 
@@ -58,17 +93,26 @@ export class InMemoryStockMovementRepository implements StockMovementRepository 
     supplyId: string,
     credit: MovementType,
     debit: MovementType,
+    serviceOrderReference?: string,
   ): Promise<number> {
-    return Promise.resolve(this.sumSignedSync(supplyId, credit, debit));
+    return Promise.resolve(
+      this.sumSignedSync(supplyId, credit, debit, serviceOrderReference),
+    );
   }
 
   private sumSignedSync(
     supplyId: string,
     credit: MovementType,
     debit: MovementType,
+    serviceOrderReference?: string,
   ): number {
     return this.movements
-      .filter((movement) => movement.supplyId === supplyId)
+      .filter(
+        (movement) =>
+          movement.supplyId === supplyId &&
+          (serviceOrderReference === undefined ||
+            movement.serviceOrderReference === serviceOrderReference),
+      )
       .reduce((sum, movement) => {
         if (movement.type === credit) return sum + movement.quantity;
         if (movement.type === debit) return sum - movement.quantity;
