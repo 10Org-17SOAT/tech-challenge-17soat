@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
+import { ExceedsReservedQuantityError } from '../domain/errors/exceeds-reserved-quantity.error';
 import { InsufficientStockError } from '../domain/errors/insufficient-stock.error';
+import { ReservationNotFoundError } from '../domain/errors/reservation-not-found.error';
 import { StockMovement } from '../domain/stock-movement.entity';
 import type { StockMovementRepository } from '../domain/stock-movement.repository';
 
@@ -59,6 +61,23 @@ export function describeStockMovementRepositoryContract(
     await repository.save(StockMovement.consume(supplyId, 4, 'OS-1'));
 
     await expect(repository.getReservedQuantity(supplyId)).resolves.toBe(3);
+  });
+
+  it('scopes the reserved quantity to a single service order reference when given', async () => {
+    await repository.save(StockMovement.in(supplyId, 10));
+    await repository.save(StockMovement.reserve(supplyId, 4, 'OS-1'));
+    await repository.save(StockMovement.reserve(supplyId, 3, 'OS-2'));
+    await repository.save(StockMovement.consume(supplyId, 1, 'OS-1'));
+
+    await expect(
+      repository.getReservedQuantity(supplyId, 'OS-1'),
+    ).resolves.toBe(3);
+    await expect(
+      repository.getReservedQuantity(supplyId, 'OS-2'),
+    ).resolves.toBe(3);
+    await expect(
+      repository.getReservedQuantity(supplyId, 'OS-none'),
+    ).resolves.toBe(0);
   });
 
   it('keeps the balances of different supplies isolated', async () => {
@@ -193,6 +212,74 @@ export function describeStockMovementRepositoryContract(
       const availableBalance = await repository.getAvailableBalance(supplyId);
       expect(availableBalance).toBe(3);
       expect(availableBalance).toBeGreaterThanOrEqual(0);
+    });
+  });
+
+  describe('writeOffIfReserved', () => {
+    it('writes off a quantity within what is reserved, lowering the reserved quantity by that amount', async () => {
+      await repository.save(StockMovement.in(supplyId, 10));
+      await repository.save(StockMovement.reserve(supplyId, 6, 'OS-1'));
+
+      await repository.writeOffIfReserved(
+        StockMovement.consume(supplyId, 4, 'OS-1'),
+      );
+
+      await expect(
+        repository.getReservedQuantity(supplyId, 'OS-1'),
+      ).resolves.toBe(2);
+      await expect(repository.getAvailableBalance(supplyId)).resolves.toBe(4);
+    });
+
+    it('rejects a write-off that exceeds the reserved quantity, changing no balance', async () => {
+      await repository.save(StockMovement.in(supplyId, 10));
+      await repository.save(StockMovement.reserve(supplyId, 4, 'OS-2'));
+
+      await expect(
+        repository.writeOffIfReserved(
+          StockMovement.consume(supplyId, 5, 'OS-2'),
+        ),
+      ).rejects.toBeInstanceOf(ExceedsReservedQuantityError);
+
+      await expect(
+        repository.getReservedQuantity(supplyId, 'OS-2'),
+      ).resolves.toBe(4);
+    });
+
+    it('rejects a write-off against a reference with no reservation at all', async () => {
+      await repository.save(StockMovement.in(supplyId, 10));
+
+      await expect(
+        repository.writeOffIfReserved(
+          StockMovement.consume(supplyId, 1, 'OS-none'),
+        ),
+      ).rejects.toBeInstanceOf(ReservationNotFoundError);
+    });
+
+    it('accepts exactly one of two concurrent write-offs where only one fits, and the reserved quantity never goes negative', async () => {
+      await repository.save(StockMovement.in(supplyId, 10));
+      await repository.save(StockMovement.reserve(supplyId, 10, 'OS-race'));
+
+      const attempts = await Promise.allSettled([
+        repository.writeOffIfReserved(
+          StockMovement.consume(supplyId, 7, 'OS-race'),
+        ),
+        repository.writeOffIfReserved(
+          StockMovement.consume(supplyId, 7, 'OS-race'),
+        ),
+      ]);
+
+      const fulfilled = attempts.filter((a) => a.status === 'fulfilled');
+      const rejected = attempts.filter((a) => a.status === 'rejected');
+      expect(fulfilled).toHaveLength(1);
+      expect(rejected).toHaveLength(1);
+      expect(rejected[0].reason).toBeInstanceOf(ExceedsReservedQuantityError);
+
+      const reservedQuantity = await repository.getReservedQuantity(
+        supplyId,
+        'OS-race',
+      );
+      expect(reservedQuantity).toBe(3);
+      expect(reservedQuantity).toBeGreaterThanOrEqual(0);
     });
   });
 }
