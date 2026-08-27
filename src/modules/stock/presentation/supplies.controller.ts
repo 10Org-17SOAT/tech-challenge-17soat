@@ -20,6 +20,7 @@ import { LookupStockUseCase } from '../application/lookup-stock.usecase';
 import { RegisterStockEntryUseCase } from '../application/register-stock-entry.usecase';
 import { ReservePartUseCase } from '../application/reserve-part.usecase';
 import { UpdateSupplyUseCase } from '../application/update-supply.usecase';
+import { WriteOffReservedPartUseCase } from '../application/write-off-reserved-part.usecase';
 import {
   RegisterStockEntryDto,
   ReservationResponseDto,
@@ -27,6 +28,9 @@ import {
   StockEntryResponseDto,
   toReservationResponse,
   toStockEntryResponse,
+  toWriteOffResponse,
+  WriteOffReservedPartDto,
+  WriteOffResponseDto,
 } from './dtos/stock-movement.dtos';
 import {
   CreateSupplyDto,
@@ -53,6 +57,7 @@ export class SuppliesController {
     private readonly registerStockEntry: RegisterStockEntryUseCase,
     private readonly lookupStock: LookupStockUseCase,
     private readonly reservePart: ReservePartUseCase,
+    private readonly writeOffReservedPart: WriteOffReservedPartUseCase,
   ) {}
 
   @Get()
@@ -156,5 +161,31 @@ export class SuppliesController {
         serviceOrderReference: body.serviceOrderReference,
       });
     return toReservationResponse(movement, availableBalance, reservedQuantity);
+  }
+
+  @Post(':id/write-offs')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Dá baixa em uma quantidade reservada de uma peça' })
+  @ApiResponse({ status: 201, type: WriteOffResponseDto })
+  @ApiResponse({
+    status: 400,
+    description: 'Quantidade ou referência inválida',
+  })
+  @ApiResponse({ status: 404, description: 'Supply ou reserva não encontrada' })
+  @ApiResponse({
+    status: 409,
+    description: 'Quantidade reservada insuficiente',
+  })
+  async createWriteOff(
+    @Param() params: SupplyIdParamDto,
+    @Body() body: WriteOffReservedPartDto,
+  ): Promise<WriteOffResponseDto> {
+    const { movement, reservedQuantity } =
+      await this.writeOffReservedPart.execute({
+        supplyId: params.id,
+        quantity: body.quantity,
+        serviceOrderReference: body.serviceOrderReference,
+      });
+    return toWriteOffResponse(movement, reservedQuantity);
   }
 }

@@ -7,6 +7,7 @@ import { LookupStockUseCase } from './application/lookup-stock.usecase';
 import { RegisterStockEntryUseCase } from './application/register-stock-entry.usecase';
 import { ReservePartUseCase } from './application/reserve-part.usecase';
 import { UpdateSupplyUseCase } from './application/update-supply.usecase';
+import { WriteOffReservedPartUseCase } from './application/write-off-reserved-part.usecase';
 import { DOMAIN_EVENT_PUBLISHER } from './domain/events/domain-event-publisher';
 import { STOCK_MOVEMENT_REPOSITORY } from './domain/stock-movement.repository';
 import { SUPPLY_REPOSITORY } from './domain/supply.repository';
@@ -32,6 +33,7 @@ import { SuppliesController } from './presentation/supplies.controller';
     RegisterStockEntryUseCase,
     LookupStockUseCase,
     ReservePartUseCase,
+    WriteOffReservedPartUseCase,
   ],
   exports: [],
 })

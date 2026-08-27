@@ -71,3 +71,37 @@ export function toReservationResponse(
     createdAt: movement.createdAt.toISOString(),
   };
 }
+
+export const writeOffReservedPartSchema = z.object({
+  quantity: z.number().int().positive(),
+  serviceOrderReference: z.string().trim().min(1).max(255),
+});
+
+export class WriteOffReservedPartDto extends createZodDto(
+  writeOffReservedPartSchema,
+) {}
+
+export const writeOffResponseSchema = z.object({
+  movementId: z.uuid(),
+  supplyId: z.uuid(),
+  quantity: z.number().int(),
+  serviceOrderReference: z.string(),
+  reservedQuantity: z.number().int(),
+  createdAt: z.iso.datetime(),
+});
+
+export class WriteOffResponseDto extends createZodDto(writeOffResponseSchema) {}
+
+export function toWriteOffResponse(
+  movement: StockMovement,
+  reservedQuantity: number,
+): WriteOffResponseDto {
+  return {
+    movementId: movement.id,
+    supplyId: movement.supplyId,
+    quantity: movement.quantity,
+    serviceOrderReference: movement.serviceOrderReference as string,
+    reservedQuantity,
+    createdAt: movement.createdAt.toISOString(),
+  };
+}
