@@ -1,13 +1,21 @@
 import { INestApplication } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Pool } from 'pg';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
+import { DiagnosisCompleted } from './../src/modules/service-management/service-orders/domain/events/diagnosis-completed.event';
+import { DiagnosisStarted } from './../src/modules/service-management/service-orders/domain/events/diagnosis-started.event';
+import { ExecutionCompleted } from './../src/modules/service-management/service-orders/domain/events/execution-completed.event';
+import { ExecutionStarted } from './../src/modules/service-management/service-orders/domain/events/execution-started.event';
+import { QuotationApproved } from './../src/modules/service-management/service-orders/domain/events/quotation-approved.event';
+import type { DomainEvent } from './../src/shared/domain/events/domain-event';
 
 describe('ServiceOrders (e2e)', () => {
   let app: INestApplication<App>;
   let pool: Pool;
+  let emitter: EventEmitter2;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -16,6 +24,8 @@ describe('ServiceOrders (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     await app.init();
+
+    emitter = app.get(EventEmitter2);
 
     pool = new Pool({
       host: process.env.DB_HOST ?? 'localhost',
@@ -55,37 +65,46 @@ describe('ServiceOrders (e2e)', () => {
     limit: number;
   }
 
+  interface StatusResponse {
+    status: string;
+  }
+
   const orderBody = (res: request.Response) => res.body as ServiceOrderResponse;
   const pageBody = (res: request.Response) => res.body as PaginatedResponse;
+  const statusBody = (res: request.Response) => res.body as StatusResponse;
 
+  async function emit(event: DomainEvent): Promise<void> {
+    await emitter.emitAsync(event.name, event);
+  }
+
+  // Status now only advances in response to domain events published by other
+  // modules (mechanic, quotation) — this mirrors that by emitting the events
+  // directly on the app's event bus, the same way a future publisher would.
   async function advanceTo(id: string, target: string): Promise<void> {
-    const path: Record<string, string[]> = {
-      in_diagnosis: ['in_diagnosis'],
-      awaiting_approval: ['in_diagnosis', 'awaiting_approval'],
+    const path: Record<string, DomainEvent[]> = {
+      in_diagnosis: [new DiagnosisStarted(id)],
+      awaiting_approval: [new DiagnosisStarted(id), new DiagnosisCompleted(id)],
       awaiting_execution: [
-        'in_diagnosis',
-        'awaiting_approval',
-        'awaiting_execution',
+        new DiagnosisStarted(id),
+        new DiagnosisCompleted(id),
+        new QuotationApproved(id),
       ],
       in_execution: [
-        'in_diagnosis',
-        'awaiting_approval',
-        'awaiting_execution',
-        'in_execution',
+        new DiagnosisStarted(id),
+        new DiagnosisCompleted(id),
+        new QuotationApproved(id),
+        new ExecutionStarted(id),
       ],
       finished: [
-        'in_diagnosis',
-        'awaiting_approval',
-        'awaiting_execution',
-        'in_execution',
-        'finished',
+        new DiagnosisStarted(id),
+        new DiagnosisCompleted(id),
+        new QuotationApproved(id),
+        new ExecutionStarted(id),
+        new ExecutionCompleted(id),
       ],
     };
-    for (const step of path[target] ?? []) {
-      await http()
-        .patch(`/service-orders/${id}/status`)
-        .send({ status: step })
-        .expect(200);
+    for (const event of path[target] ?? []) {
+      await emit(event);
     }
   }
 
@@ -219,66 +238,63 @@ describe('ServiceOrders (e2e)', () => {
     });
   });
 
-  describe('PATCH /service-orders/:id/status', () => {
-    it('walks the happy path and stamps timestamps + approval', async () => {
+  describe('GET /service-orders/:id/status', () => {
+    it('returns received for a freshly created order', async () => {
       const created = orderBody(await http().post('/service-orders').send({}));
 
-      const inDiag = orderBody(
-        await http()
-          .patch(`/service-orders/${created.id}/status`)
-          .send({ status: 'in_diagnosis' })
-          .expect(200),
+      const status = statusBody(
+        await http().get(`/service-orders/${created.id}/status`).expect(200),
       );
-      expect(inDiag.status).toBe('in_diagnosis');
+      expect(status.status).toBe('received');
+    });
 
-      await http()
-        .patch(`/service-orders/${created.id}/status`)
-        .send({ status: 'awaiting_approval' })
-        .expect(200);
+    it('reflects the status advanced by domain events, stamping timestamps + approval', async () => {
+      const created = orderBody(await http().post('/service-orders').send({}));
 
+      await emit(new DiagnosisStarted(created.id));
+      expect(
+        statusBody(
+          await http().get(`/service-orders/${created.id}/status`).expect(200),
+        ).status,
+      ).toBe('in_diagnosis');
+
+      await emit(new DiagnosisCompleted(created.id));
+      await emit(new QuotationApproved(created.id));
       const approved = orderBody(
-        await http()
-          .patch(`/service-orders/${created.id}/status`)
-          .send({ status: 'awaiting_execution' })
-          .expect(200),
+        await http().get(`/service-orders/${created.id}`).expect(200),
       );
+      expect(approved.status).toBe('awaiting_execution');
       expect(approved.approvedByCustomer).toBe(true);
 
+      await emit(new ExecutionStarted(created.id));
       const started = orderBody(
-        await http()
-          .patch(`/service-orders/${created.id}/status`)
-          .send({ status: 'in_execution' })
-          .expect(200),
+        await http().get(`/service-orders/${created.id}`).expect(200),
       );
       expect(started.startedAt).not.toBeNull();
 
+      await emit(new ExecutionCompleted(created.id));
       const finished = orderBody(
-        await http()
-          .patch(`/service-orders/${created.id}/status`)
-          .send({ status: 'finished' })
-          .expect(200),
+        await http().get(`/service-orders/${created.id}`).expect(200),
       );
+      expect(finished.status).toBe('finished');
       expect(finished.completedAt).not.toBeNull();
     });
 
-    it('rejects invalid transitions with 409', async () => {
+    it('ignores events describing an invalid transition and keeps the current status', async () => {
       const created = orderBody(await http().post('/service-orders').send({}));
-      await http()
-        .patch(`/service-orders/${created.id}/status`)
-        .send({ status: 'finished' })
-        .expect(409);
-      await http()
-        .patch(`/service-orders/${created.id}/status`)
-        .send({ status: 'received' })
-        .expect(409);
+
+      await emit(new ExecutionCompleted(created.id));
+
+      const status = statusBody(
+        await http().get(`/service-orders/${created.id}/status`).expect(200),
+      );
+      expect(status.status).toBe('received');
     });
 
-    it('rejects unknown status with 400', async () => {
-      const created = orderBody(await http().post('/service-orders').send({}));
+    it('returns 404 for unknown id', async () => {
       await http()
-        .patch(`/service-orders/${created.id}/status`)
-        .send({ status: 'nope' })
-        .expect(400);
+        .get('/service-orders/6f2c8e0a-0b0e-4f6e-9e1e-000000000000/status')
+        .expect(404);
     });
   });
 
