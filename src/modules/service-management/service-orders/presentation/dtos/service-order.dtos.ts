@@ -23,14 +23,6 @@ export const updateServiceOrderSchema = z
 
 export class UpdateServiceOrderDto extends createZodDto(updateServiceOrderSchema) {}
 
-export const updateServiceOrderStatusSchema = z.object({
-  status: z.enum(serviceOrderStatusValues),
-});
-
-export class UpdateServiceOrderStatusDto extends createZodDto(
-  updateServiceOrderStatusSchema,
-) {}
-
 export const serviceOrderIdParamSchema = z.object({
   id: z.uuid(),
 });
@@ -51,6 +43,14 @@ export const serviceOrderResponseSchema = z.object({
 });
 
 export class ServiceOrderResponseDto extends createZodDto(serviceOrderResponseSchema) {}
+
+export const serviceOrderStatusResponseSchema = z.object({
+  status: z.enum(serviceOrderStatusValues),
+});
+
+export class ServiceOrderStatusResponseDto extends createZodDto(
+  serviceOrderStatusResponseSchema,
+) {}
 
 export const listServiceOrdersQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),

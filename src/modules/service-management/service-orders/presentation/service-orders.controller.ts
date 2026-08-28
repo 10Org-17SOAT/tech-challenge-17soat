@@ -14,19 +14,19 @@ import {
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateServiceOrderUseCase } from '../application/create-service-order.usecase';
 import { DeleteServiceOrderUseCase } from '../application/delete-service-order.usecase';
+import { GetServiceOrderStatusUseCase } from '../application/get-service-order-status.usecase';
 import { GetServiceOrderUseCase } from '../application/get-service-order.usecase';
 import { ListServiceOrdersUseCase } from '../application/list-service-orders.usecase';
-import { UpdateServiceOrderStatusUseCase } from '../application/update-service-order-status.usecase';
 import { UpdateServiceOrderUseCase } from '../application/update-service-order.usecase';
 import {
   CreateServiceOrderDto,
   ListServiceOrdersQueryDto,
   ServiceOrderIdParamDto,
   ServiceOrderResponseDto,
+  ServiceOrderStatusResponseDto,
   PaginatedServiceOrdersResponseDto,
   toServiceOrderResponse,
   UpdateServiceOrderDto,
-  UpdateServiceOrderStatusDto,
 } from './dtos/service-order.dtos';
 import { ServiceOrderErrorsFilter } from './service-order-errors.filter';
 
@@ -37,9 +37,9 @@ export class ServiceOrdersController {
   constructor(
     private readonly createOrder: CreateServiceOrderUseCase,
     private readonly getOrder: GetServiceOrderUseCase,
+    private readonly getOrderStatus: GetServiceOrderStatusUseCase,
     private readonly listOrders: ListServiceOrdersUseCase,
     private readonly updateOrder: UpdateServiceOrderUseCase,
-    private readonly updateOrderStatus: UpdateServiceOrderStatusUseCase,
     private readonly deleteOrder: DeleteServiceOrderUseCase,
   ) {}
 
@@ -71,6 +71,17 @@ export class ServiceOrdersController {
     return toServiceOrderResponse(order);
   }
 
+  @Get(':id/status')
+  @ApiOperation({ summary: 'Consulta o status atual de uma OS' })
+  @ApiResponse({ status: 200, type: ServiceOrderStatusResponseDto })
+  @ApiResponse({ status: 404, description: 'OS não encontrada' })
+  async getStatus(
+    @Param() params: ServiceOrderIdParamDto,
+  ): Promise<ServiceOrderStatusResponseDto> {
+    const status = await this.getOrderStatus.execute(params.id);
+    return { status };
+  }
+
   @Patch(':id')
   @ApiOperation({ summary: 'Atualiza campos editoriais da OS' })
   @ApiResponse({ status: 200, type: ServiceOrderResponseDto })
@@ -81,21 +92,6 @@ export class ServiceOrdersController {
     @Body() body: UpdateServiceOrderDto,
   ): Promise<ServiceOrderResponseDto> {
     const order = await this.updateOrder.execute(params.id, body);
-    return toServiceOrderResponse(order);
-  }
-
-  @Patch(':id/status')
-  @ApiOperation({
-    summary: 'Avança o status da OS conforme a máquina de estados',
-  })
-  @ApiResponse({ status: 200, type: ServiceOrderResponseDto })
-  @ApiResponse({ status: 404, description: 'OS não encontrada' })
-  @ApiResponse({ status: 409, description: 'Transição inválida' })
-  async transition(
-    @Param() params: ServiceOrderIdParamDto,
-    @Body() body: UpdateServiceOrderStatusDto,
-  ): Promise<ServiceOrderResponseDto> {
-    const order = await this.updateOrderStatus.execute(params.id, body.status);
     return toServiceOrderResponse(order);
   }
 
