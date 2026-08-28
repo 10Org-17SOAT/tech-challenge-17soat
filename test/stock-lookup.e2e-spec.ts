@@ -5,7 +5,7 @@ import { Pool } from 'pg';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
-import { DOMAIN_EVENT_PUBLISHER } from './../src/modules/stock/domain/events/domain-event-publisher';
+import { DOMAIN_EVENT_PUBLISHER } from './../src/shared/domain/events/domain-event-publisher';
 import { RecordingDomainEventPublisher } from './../src/modules/stock/__test__/recording-domain-event.publisher';
 
 describe('Stock lookup (e2e)', () => {
@@ -16,8 +16,8 @@ describe('Stock lookup (e2e)', () => {
   beforeAll(async () => {
     publisher = new RecordingDomainEventPublisher();
 
-    // The real adapter is a no-op, so the recording double is the only way to
-    // prove the event actually leaves the use case over HTTP.
+    // Overriding with a recording double keeps this assertion independent of
+    // whatever else in the app happens to subscribe to the emitted event.
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     })
