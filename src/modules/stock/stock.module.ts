@@ -8,10 +8,8 @@ import { RegisterStockEntryUseCase } from './application/register-stock-entry.us
 import { ReservePartUseCase } from './application/reserve-part.usecase';
 import { UpdateSupplyUseCase } from './application/update-supply.usecase';
 import { WriteOffReservedPartUseCase } from './application/write-off-reserved-part.usecase';
-import { DOMAIN_EVENT_PUBLISHER } from './domain/events/domain-event-publisher';
 import { STOCK_MOVEMENT_REPOSITORY } from './domain/stock-movement.repository';
 import { SUPPLY_REPOSITORY } from './domain/supply.repository';
-import { NoopDomainEventPublisher } from './infrastructure/events/noop-domain-event-publisher';
 import { DrizzleStockMovementRepository } from './infrastructure/persistence/drizzle-stock-movement.repository';
 import { DrizzleSupplyRepository } from './infrastructure/persistence/drizzle-supply.repository';
 import { SuppliesController } from './presentation/supplies.controller';
@@ -24,7 +22,6 @@ import { SuppliesController } from './presentation/supplies.controller';
       provide: STOCK_MOVEMENT_REPOSITORY,
       useClass: DrizzleStockMovementRepository,
     },
-    { provide: DOMAIN_EVENT_PUBLISHER, useClass: NoopDomainEventPublisher },
     CreateSupplyUseCase,
     GetSupplyUseCase,
     ListSuppliesUseCase,
