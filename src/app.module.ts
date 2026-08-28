@@ -10,6 +10,7 @@ import { ServiceOrderModule } from './modules/service-management/service-order.m
 import { StockModule } from './modules/stock/stock.module';
 import { DatabaseModule } from './shared/config/database/database.module';
 import { validateEnv } from './shared/config/env/env.validation';
+import { SharedEventsModule } from './shared/events/events.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { validateEnv } from './shared/config/env/env.validation';
       validate: validateEnv,
     }),
     DatabaseModule,
+    SharedEventsModule,
     StockModule,
     ServiceOrderModule,
     VehicleManagementModule,
