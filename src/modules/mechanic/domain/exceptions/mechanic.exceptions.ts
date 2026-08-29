@@ -64,3 +64,13 @@ export class AllocatedMechanicException extends MechanicException {
     this.name = 'AllocatedMechanicException';
   }
 }
+
+export class DuplicateCpfException extends MechanicException {
+  constructor(cpf: string, options?: { cause?: unknown }) {
+    super(`Mechanic CPF "${cpf}" is already in use.`);
+    this.name = 'DuplicateCpfException';
+    if (options?.cause !== undefined) {
+      this.cause = options.cause;
+    }
+  }
+}

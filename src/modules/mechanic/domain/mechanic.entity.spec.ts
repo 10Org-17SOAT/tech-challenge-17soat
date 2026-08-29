@@ -3,6 +3,7 @@ import { Cpf } from './value-objects/cpf.value-object';
 import { Email } from './value-objects/email.value-object';
 import { Phone } from './value-objects/phone.value-object';
 import { MECHANIC_AVAILABILITY } from './value-objects/mechanic-availability.enum';
+import type { Specialty } from './value-objects/specialty.enum';
 import {
   AllocatedMechanicException,
   InvalidMechanicException,
@@ -16,7 +17,7 @@ const validProps = {
   cpf: '11144477735',
   email: 'john.doe@example.com',
   phone: { countryCode: '55', areaCode: '11', number: '912345678' },
-  specialties: ['mechanical', 'electrical'] as const,
+  specialties: ['mechanical', 'electrical'] as Specialty[],
   hireDate: new Date('2024-01-15T00:00:00.000Z'),
 };
 
