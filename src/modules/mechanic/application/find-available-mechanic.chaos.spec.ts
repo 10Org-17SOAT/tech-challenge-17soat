@@ -40,9 +40,7 @@ describe('FindAvailableMechanicUseCase chaos', () => {
       expect(rejected[0].reason).toBeInstanceOf(NoAvailableMechanicException);
 
       const stored = repository.mechanics.get(mechanic.getId());
-      expect(stored?.getAvailability()).toBe(
-        MECHANIC_AVAILABILITY.Allocated,
-      );
+      expect(stored?.getAvailability()).toBe(MECHANIC_AVAILABILITY.Allocated);
       expect(stored?.getCurrentServiceOrderId()).toBeDefined();
 
       // Exactly one event: the winning claim.

@@ -73,7 +73,9 @@ export class DrizzleMechanicRepository implements MechanicRepository {
     return updated[0] ? MechanicMapper.toDomain(updated[0]) : null;
   }
 
-  async findMany(params: FindMechanicsParams): Promise<PaginatedResult<Mechanic>> {
+  async findMany(
+    params: FindMechanicsParams,
+  ): Promise<PaginatedResult<Mechanic>> {
     const { page, limit, filters } = params;
     const conditions = [isNull(mechanicsTable.deletedAt)];
 

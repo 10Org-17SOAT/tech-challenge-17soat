@@ -4,10 +4,7 @@ import {
   MECHANIC_REPOSITORY,
   type MechanicRepository,
 } from '../../domain/repository/mechanic.repository';
-import {
-  CreateMechanicInput,
-  MechanicResponseDTO,
-} from '../dto/mechanic.dto';
+import { CreateMechanicInput, MechanicResponseDTO } from '../dto/mechanic.dto';
 
 @Injectable()
 export class CreateMechanicUseCase {

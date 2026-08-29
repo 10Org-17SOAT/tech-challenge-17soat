@@ -7,9 +7,7 @@ export class MechanicException extends Error {
 
 export class InvalidCpfException extends MechanicException {
   constructor(cpf: string) {
-    super(
-      `Invalid CPF: "${cpf}". Expected 11 digits with valid check digits.`,
-    );
+    super(`Invalid CPF: "${cpf}". Expected 11 digits with valid check digits.`);
     this.name = 'InvalidCpfException';
   }
 }

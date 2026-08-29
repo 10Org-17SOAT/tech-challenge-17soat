@@ -6,7 +6,6 @@ import { AppModule } from '../src/app.module';
 import { MECHANIC_REPOSITORY } from '../src/modules/mechanic/domain/repository/mechanic.repository';
 import { InMemoryMechanicRepository } from '../src/modules/mechanic/__test__/in-memory-mechanic.repository';
 import { Mechanic } from '../src/modules/mechanic/domain/mechanic.entity';
-import { MECHANIC_AVAILABILITY } from '../src/modules/mechanic/domain/value-objects/mechanic-availability.enum';
 
 /**
  * E2E suite running against the real AppModule wiring with the repository

@@ -28,9 +28,7 @@ describe('Mechanic', () => {
     it('creates a mechanic in AVAILABLE state with availableSince set', () => {
       const mechanic = makeMechanic();
 
-      expect(mechanic.getAvailability()).toBe(
-        MECHANIC_AVAILABILITY.Available,
-      );
+      expect(mechanic.getAvailability()).toBe(MECHANIC_AVAILABILITY.Available);
       expect(mechanic.getAvailableSince()).toBeInstanceOf(Date);
       expect(mechanic.getCurrentServiceOrderId()).toBeNull();
       expect(mechanic.getDeletedAt()).toBeNull();
@@ -38,21 +36,19 @@ describe('Mechanic', () => {
     });
 
     it('rejects an empty name', () => {
-      expect(() =>
-        Mechanic.create({ ...validProps, name: '   ' }),
-      ).toThrow(InvalidMechanicException);
+      expect(() => Mechanic.create({ ...validProps, name: '   ' })).toThrow(
+        InvalidMechanicException,
+      );
     });
 
     it('rejects a mechanic without specialties', () => {
-      expect(() =>
-        Mechanic.create({ ...validProps, specialties: [] }),
-      ).toThrow(InvalidMechanicException);
+      expect(() => Mechanic.create({ ...validProps, specialties: [] })).toThrow(
+        InvalidMechanicException,
+      );
     });
 
     it('rejects an invalid cpf', () => {
-      expect(() =>
-        Mechanic.create({ ...validProps, cpf: '123' }),
-      ).toThrow();
+      expect(() => Mechanic.create({ ...validProps, cpf: '123' })).toThrow();
     });
 
     it('rejects an invalid email', () => {
@@ -94,9 +90,7 @@ describe('Mechanic', () => {
       mechanic.updateProfile({ name: 'Jane Doe' });
 
       expect(mechanic.getCpf().getValue()).toBe('11144477735');
-      expect(mechanic.getAvailability()).toBe(
-        MECHANIC_AVAILABILITY.Available,
-      );
+      expect(mechanic.getAvailability()).toBe(MECHANIC_AVAILABILITY.Available);
       expect(mechanic.getAvailableSince()).toBe(availableSince);
       expect(mechanic.getCurrentServiceOrderId()).toBeNull();
     });
@@ -104,9 +98,7 @@ describe('Mechanic', () => {
     it('validates provided fields', () => {
       const mechanic = makeMechanic();
 
-      expect(() =>
-        mechanic.updateProfile({ email: 'not-an-email' }),
-      ).toThrow();
+      expect(() => mechanic.updateProfile({ email: 'not-an-email' })).toThrow();
     });
 
     it('touches updatedAt', () => {
@@ -127,9 +119,7 @@ describe('Mechanic', () => {
 
       mechanic.claim('OS-1');
 
-      expect(mechanic.getAvailability()).toBe(
-        MECHANIC_AVAILABILITY.Allocated,
-      );
+      expect(mechanic.getAvailability()).toBe(MECHANIC_AVAILABILITY.Allocated);
       expect(mechanic.getCurrentServiceOrderId()).toBe('OS-1');
     });
 
@@ -192,9 +182,7 @@ describe('Mechanic', () => {
 
       mechanic.release('OS-1');
 
-      expect(mechanic.getAvailability()).toBe(
-        MECHANIC_AVAILABILITY.Available,
-      );
+      expect(mechanic.getAvailability()).toBe(MECHANIC_AVAILABILITY.Available);
       expect(mechanic.getCurrentServiceOrderId()).toBeNull();
       expect(mechanic.getAvailableSince()).toBeInstanceOf(Date);
     });
@@ -223,9 +211,7 @@ describe('Mechanic', () => {
 
       mechanic.deactivate();
 
-      expect(mechanic.getAvailability()).toBe(
-        MECHANIC_AVAILABILITY.Inactive,
-      );
+      expect(mechanic.getAvailability()).toBe(MECHANIC_AVAILABILITY.Inactive);
       expect(mechanic.getDeletedAt()).toBeInstanceOf(Date);
     });
 
@@ -233,9 +219,7 @@ describe('Mechanic', () => {
       const mechanic = makeMechanic();
       mechanic.claim('OS-1');
 
-      expect(() => mechanic.deactivate()).toThrow(
-        AllocatedMechanicException,
-      );
+      expect(() => mechanic.deactivate()).toThrow(AllocatedMechanicException);
     });
   });
 
@@ -263,9 +247,7 @@ describe('Mechanic', () => {
       });
 
       expect(mechanic.getId()).toBe('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11');
-      expect(mechanic.getAvailability()).toBe(
-        MECHANIC_AVAILABILITY.Allocated,
-      );
+      expect(mechanic.getAvailability()).toBe(MECHANIC_AVAILABILITY.Allocated);
       expect(mechanic.getCurrentServiceOrderId()).toBe('OS-1');
     });
 
