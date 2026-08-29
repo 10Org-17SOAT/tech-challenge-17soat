@@ -50,6 +50,9 @@ describe('Mechanics (e2e)', () => {
     availableSince: string;
     createdAt: string;
     updatedAt: string;
+    // Excluded by design — asserted as absent in the response.
+    deletedAt?: string;
+    currentServiceOrderId?: string;
   }
 
   interface PaginatedResponse {
