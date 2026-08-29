@@ -1,4 +1,4 @@
-import { InvalidStockMovementError } from '../errors/invalid-stock-movement.error';
+import { InvalidStockMovementError } from '@/modules/stock/domain/errors/invalid-stock-movement.error';
 
 export class Quantity {
   private constructor(readonly units: number) {}

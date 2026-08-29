@@ -1,20 +1,20 @@
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { randomUUID } from 'node:crypto';
-import { AppModule } from './../src/app.module';
-import { describeStockMovementRepositoryContract } from './../src/modules/stock/__test__/stock-movement-repository.contract';
-import { StockMovement } from './../src/modules/stock/domain/stock-movement.entity';
-import { STOCK_MOVEMENT_REPOSITORY } from './../src/modules/stock/domain/stock-movement.repository';
-import type { StockMovementRepository } from './../src/modules/stock/domain/stock-movement.repository';
-import { SUPPLY_REPOSITORY } from './../src/modules/stock/domain/supply.repository';
-import type { SupplyRepository } from './../src/modules/stock/domain/supply.repository';
-import { Supply } from './../src/modules/stock/domain/supply.entity';
-import { DATABASE_CONNECTION } from './../src/shared/config/database/database.constants';
-import type { DrizzleDatabase } from './../src/shared/config/database/drizzle.provider';
+import { AppModule } from '@/app.module';
+import { describeStockMovementRepositoryContract } from '@/modules/stock/__test__/stock-movement-repository.contract';
+import { StockMovement } from '@/modules/stock/domain/stock-movement.entity';
+import { STOCK_MOVEMENT_REPOSITORY } from '@/modules/stock/domain/stock-movement.repository';
+import type { StockMovementRepository } from '@/modules/stock/domain/stock-movement.repository';
+import { SUPPLY_REPOSITORY } from '@/modules/stock/domain/supply.repository';
+import type { SupplyRepository } from '@/modules/stock/domain/supply.repository';
+import { Supply } from '@/modules/stock/domain/supply.entity';
+import { DATABASE_CONNECTION } from '@/shared/config/database/database.constants';
+import type { DrizzleDatabase } from '@/shared/config/database/drizzle.provider';
 import {
   stockMovements,
   supplies,
-} from './../src/modules/stock/infrastructure/persistence/schema';
+} from '@/modules/stock/infrastructure/persistence/schema';
 
 // Exercises the Drizzle adapter against a real Postgres: the balance arithmetic
 // lives in SQL, so the in-memory fake alone cannot prove it.

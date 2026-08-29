@@ -1,4 +1,4 @@
-import { Supply } from './supply.entity';
+import { Supply } from '@/modules/stock/domain/supply.entity';
 
 export interface Pagination {
   page: number;

@@ -1,5 +1,5 @@
-import { InvalidSupplyError } from '../errors/invalid-supply.error';
-import { SupplyName } from './supply-name.vo';
+import { InvalidSupplyError } from '@/modules/stock/domain/errors/invalid-supply.error';
+import { SupplyName } from '@/modules/stock/domain/value-objects/supply-name.vo';
 
 describe('SupplyName', () => {
   it('trims the value', () => {

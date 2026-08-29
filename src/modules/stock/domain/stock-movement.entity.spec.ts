@@ -1,6 +1,9 @@
 import { randomUUID } from 'node:crypto';
-import { InvalidStockMovementError } from './errors/invalid-stock-movement.error';
-import { MovementType, StockMovement } from './stock-movement.entity';
+import { InvalidStockMovementError } from '@/modules/stock/domain/errors/invalid-stock-movement.error';
+import {
+  MovementType,
+  StockMovement,
+} from '@/modules/stock/domain/stock-movement.entity';
 
 describe('StockMovement', () => {
   const supplyId = randomUUID();

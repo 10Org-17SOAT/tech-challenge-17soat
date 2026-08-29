@@ -1,16 +1,19 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, inArray, sql } from 'drizzle-orm';
-import { DATABASE_CONNECTION } from '../../../../shared/config/database/database.constants';
-import type { DrizzleDatabase } from '../../../../shared/config/database/drizzle.provider';
-import { ExceedsReservedQuantityError } from '../../domain/errors/exceeds-reserved-quantity.error';
-import { InsufficientStockError } from '../../domain/errors/insufficient-stock.error';
-import { ReservationNotFoundError } from '../../domain/errors/reservation-not-found.error';
+import { DATABASE_CONNECTION } from '@/shared/config/database/database.constants';
+import type { DrizzleDatabase } from '@/shared/config/database/drizzle.provider';
+import { ExceedsReservedQuantityError } from '@/modules/stock/domain/errors/exceeds-reserved-quantity.error';
+import { InsufficientStockError } from '@/modules/stock/domain/errors/insufficient-stock.error';
+import { ReservationNotFoundError } from '@/modules/stock/domain/errors/reservation-not-found.error';
 import {
   MovementType,
   StockMovement,
-} from '../../domain/stock-movement.entity';
-import type { StockMovementRepository } from '../../domain/stock-movement.repository';
-import { stockMovements, supplies } from './schema';
+} from '@/modules/stock/domain/stock-movement.entity';
+import type { StockMovementRepository } from '@/modules/stock/domain/stock-movement.repository';
+import {
+  stockMovements,
+  supplies,
+} from '@/modules/stock/infrastructure/persistence/schema';
 
 type StockMovementRow = typeof stockMovements.$inferSelect;
 

@@ -1,5 +1,5 @@
-import { InvalidStockMovementError } from '../errors/invalid-stock-movement.error';
-import { Quantity } from './quantity.vo';
+import { InvalidStockMovementError } from '@/modules/stock/domain/errors/invalid-stock-movement.error';
+import { Quantity } from '@/modules/stock/domain/value-objects/quantity.vo';
 
 describe('Quantity', () => {
   it('creates a quantity from a positive integer', () => {

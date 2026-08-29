@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import { InvalidStockMovementError } from './errors/invalid-stock-movement.error';
-import { Quantity } from './value-objects/quantity.vo';
+import { InvalidStockMovementError } from '@/modules/stock/domain/errors/invalid-stock-movement.error';
+import { Quantity } from '@/modules/stock/domain/value-objects/quantity.vo';
 
 export const MovementType = {
   In: 'IN',

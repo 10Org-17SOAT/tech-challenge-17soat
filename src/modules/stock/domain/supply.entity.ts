@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import { Price } from './value-objects/price.vo';
-import { SupplyName } from './value-objects/supply-name.vo';
+import { Price } from '@/modules/stock/domain/value-objects/price.vo';
+import { SupplyName } from '@/modules/stock/domain/value-objects/supply-name.vo';
 
 export interface SupplyProps {
   id: string;

@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { SupplyNotFoundError } from '../domain/errors/supply-not-found.error';
-import { SUPPLY_REPOSITORY } from '../domain/supply.repository';
-import type { SupplyRepository } from '../domain/supply.repository';
+import { SupplyNotFoundError } from '@/modules/stock/domain/errors/supply-not-found.error';
+import { SUPPLY_REPOSITORY } from '@/modules/stock/domain/supply.repository';
+import type { SupplyRepository } from '@/modules/stock/domain/supply.repository';
 
 @Injectable()
 export class DeleteSupplyUseCase {

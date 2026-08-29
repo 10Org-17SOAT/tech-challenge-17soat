@@ -1,6 +1,6 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
-import { StockMovement } from '../../domain/stock-movement.entity';
+import { StockMovement } from '@/modules/stock/domain/stock-movement.entity';
 
 export const registerStockEntrySchema = z.object({
   quantity: z.number().int().positive(),

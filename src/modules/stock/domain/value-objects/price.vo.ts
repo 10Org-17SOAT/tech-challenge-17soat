@@ -1,4 +1,4 @@
-import { InvalidSupplyError } from '../errors/invalid-supply.error';
+import { InvalidSupplyError } from '@/modules/stock/domain/errors/invalid-supply.error';
 
 export class Price {
   private constructor(readonly inCents: number) {}

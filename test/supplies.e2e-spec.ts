@@ -3,7 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Pool } from 'pg';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { AppModule } from './../src/app.module';
+import { AppModule } from '@/app.module';
 
 describe('Supplies (e2e)', () => {
   let app: INestApplication<App>;

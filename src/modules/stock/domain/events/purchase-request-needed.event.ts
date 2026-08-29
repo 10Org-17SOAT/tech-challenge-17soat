@@ -1,4 +1,4 @@
-import type { DomainEvent } from './domain-event';
+import type { DomainEvent } from '@/modules/stock/domain/events/domain-event';
 
 /**
  * Raised when a stock lookup finds a supply with no units left to reserve —

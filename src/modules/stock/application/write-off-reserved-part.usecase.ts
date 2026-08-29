@@ -1,13 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { SupplyNotFoundError } from '../domain/errors/supply-not-found.error';
-import { DOMAIN_EVENT_PUBLISHER } from '../domain/events/domain-event-publisher';
-import type { DomainEventPublisher } from '../domain/events/domain-event-publisher';
-import { PartWrittenOffFromStock } from '../domain/events/part-written-off-from-stock.event';
-import { StockMovement } from '../domain/stock-movement.entity';
-import { STOCK_MOVEMENT_REPOSITORY } from '../domain/stock-movement.repository';
-import type { StockMovementRepository } from '../domain/stock-movement.repository';
-import { SUPPLY_REPOSITORY } from '../domain/supply.repository';
-import type { SupplyRepository } from '../domain/supply.repository';
+import { SupplyNotFoundError } from '@/modules/stock/domain/errors/supply-not-found.error';
+import { DOMAIN_EVENT_PUBLISHER } from '@/modules/stock/domain/events/domain-event-publisher';
+import type { DomainEventPublisher } from '@/modules/stock/domain/events/domain-event-publisher';
+import { PartWrittenOffFromStock } from '@/modules/stock/domain/events/part-written-off-from-stock.event';
+import { StockMovement } from '@/modules/stock/domain/stock-movement.entity';
+import { STOCK_MOVEMENT_REPOSITORY } from '@/modules/stock/domain/stock-movement.repository';
+import type { StockMovementRepository } from '@/modules/stock/domain/stock-movement.repository';
+import { SUPPLY_REPOSITORY } from '@/modules/stock/domain/supply.repository';
+import type { SupplyRepository } from '@/modules/stock/domain/supply.repository';
 
 export interface WriteOffReservedPartInput {
   supplyId: string;

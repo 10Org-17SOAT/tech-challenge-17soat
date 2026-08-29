@@ -1,6 +1,6 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
-import type { SupplyWithBalance } from '../../application/supply-with-balance';
+import type { SupplyWithBalance } from '@/modules/stock/application/supply-with-balance';
 
 export const createSupplySchema = z.object({
   name: z.string().trim().min(1).max(255),

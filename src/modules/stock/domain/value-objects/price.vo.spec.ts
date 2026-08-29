@@ -1,5 +1,5 @@
-import { InvalidSupplyError } from '../errors/invalid-supply.error';
-import { Price } from './price.vo';
+import { InvalidSupplyError } from '@/modules/stock/domain/errors/invalid-supply.error';
+import { Price } from '@/modules/stock/domain/value-objects/price.vo';
 
 describe('Price', () => {
   it('accepts a non-negative integer amount of cents', () => {

@@ -4,9 +4,9 @@ import { randomUUID } from 'node:crypto';
 import { Pool } from 'pg';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { AppModule } from './../src/app.module';
-import { DOMAIN_EVENT_PUBLISHER } from './../src/modules/stock/domain/events/domain-event-publisher';
-import { RecordingDomainEventPublisher } from './../src/modules/stock/__test__/recording-domain-event.publisher';
+import { AppModule } from '@/app.module';
+import { DOMAIN_EVENT_PUBLISHER } from '@/modules/stock/domain/events/domain-event-publisher';
+import { RecordingDomainEventPublisher } from '@/modules/stock/__test__/recording-domain-event.publisher';
 
 describe('Reservations (e2e)', () => {
   let app: INestApplication<App>;

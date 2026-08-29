@@ -1,11 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { SupplyNameAlreadyExistsError } from '../domain/errors/supply-name-already-exists.error';
-import { SupplyNotFoundError } from '../domain/errors/supply-not-found.error';
-import { STOCK_MOVEMENT_REPOSITORY } from '../domain/stock-movement.repository';
-import type { StockMovementRepository } from '../domain/stock-movement.repository';
-import { SUPPLY_REPOSITORY } from '../domain/supply.repository';
-import type { SupplyRepository } from '../domain/supply.repository';
-import type { SupplyWithBalance } from './supply-with-balance';
+import { SupplyNameAlreadyExistsError } from '@/modules/stock/domain/errors/supply-name-already-exists.error';
+import { SupplyNotFoundError } from '@/modules/stock/domain/errors/supply-not-found.error';
+import { STOCK_MOVEMENT_REPOSITORY } from '@/modules/stock/domain/stock-movement.repository';
+import type { StockMovementRepository } from '@/modules/stock/domain/stock-movement.repository';
+import { SUPPLY_REPOSITORY } from '@/modules/stock/domain/supply.repository';
+import type { SupplyRepository } from '@/modules/stock/domain/supply.repository';
+import type { SupplyWithBalance } from '@/modules/stock/application/supply-with-balance';
 
 export interface UpdateSupplyInput {
   name?: string;

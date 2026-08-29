@@ -1,10 +1,10 @@
-import { StockMovement } from '../domain/stock-movement.entity';
-import { Supply } from '../domain/supply.entity';
-import { InMemoryStockMovementRepository } from '../__test__/in-memory-stock-movement.repository';
-import { InMemorySupplyRepository } from '../__test__/in-memory-supply.repository';
-import { RecordingDomainEventPublisher } from '../__test__/recording-domain-event.publisher';
-import { LookupStockUseCase } from './lookup-stock.usecase';
-import { ListSuppliesUseCase } from './list-supplies.usecase';
+import { StockMovement } from '@/modules/stock/domain/stock-movement.entity';
+import { Supply } from '@/modules/stock/domain/supply.entity';
+import { InMemoryStockMovementRepository } from '@/modules/stock/__test__/in-memory-stock-movement.repository';
+import { InMemorySupplyRepository } from '@/modules/stock/__test__/in-memory-supply.repository';
+import { RecordingDomainEventPublisher } from '@/modules/stock/__test__/recording-domain-event.publisher';
+import { LookupStockUseCase } from '@/modules/stock/application/lookup-stock.usecase';
+import { ListSuppliesUseCase } from '@/modules/stock/application/list-supplies.usecase';
 
 describe('ListSuppliesUseCase', () => {
   let repository: InMemorySupplyRepository;

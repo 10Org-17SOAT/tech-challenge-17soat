@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto';
-import { ExceedsReservedQuantityError } from '../domain/errors/exceeds-reserved-quantity.error';
-import { InsufficientStockError } from '../domain/errors/insufficient-stock.error';
-import { ReservationNotFoundError } from '../domain/errors/reservation-not-found.error';
-import { StockMovement } from '../domain/stock-movement.entity';
-import type { StockMovementRepository } from '../domain/stock-movement.repository';
+import { ExceedsReservedQuantityError } from '@/modules/stock/domain/errors/exceeds-reserved-quantity.error';
+import { InsufficientStockError } from '@/modules/stock/domain/errors/insufficient-stock.error';
+import { ReservationNotFoundError } from '@/modules/stock/domain/errors/reservation-not-found.error';
+import { StockMovement } from '@/modules/stock/domain/stock-movement.entity';
+import type { StockMovementRepository } from '@/modules/stock/domain/stock-movement.repository';
 
 export interface StockMovementRepositoryContext {
   repository: StockMovementRepository;

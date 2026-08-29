@@ -1,10 +1,10 @@
-import { SupplyNameAlreadyExistsError } from '../domain/errors/supply-name-already-exists.error';
-import { SupplyNotFoundError } from '../domain/errors/supply-not-found.error';
-import { Supply } from '../domain/supply.entity';
-import { StockMovement } from '../domain/stock-movement.entity';
-import { InMemoryStockMovementRepository } from '../__test__/in-memory-stock-movement.repository';
-import { InMemorySupplyRepository } from '../__test__/in-memory-supply.repository';
-import { UpdateSupplyUseCase } from './update-supply.usecase';
+import { SupplyNameAlreadyExistsError } from '@/modules/stock/domain/errors/supply-name-already-exists.error';
+import { SupplyNotFoundError } from '@/modules/stock/domain/errors/supply-not-found.error';
+import { Supply } from '@/modules/stock/domain/supply.entity';
+import { StockMovement } from '@/modules/stock/domain/stock-movement.entity';
+import { InMemoryStockMovementRepository } from '@/modules/stock/__test__/in-memory-stock-movement.repository';
+import { InMemorySupplyRepository } from '@/modules/stock/__test__/in-memory-supply.repository';
+import { UpdateSupplyUseCase } from '@/modules/stock/application/update-supply.usecase';
 
 describe('UpdateSupplyUseCase', () => {
   let repository: InMemorySupplyRepository;

@@ -1,6 +1,6 @@
-import { SupplyNameAlreadyExistsError } from '../domain/errors/supply-name-already-exists.error';
-import { CreateSupplyUseCase } from './create-supply.usecase';
-import { InMemorySupplyRepository } from '../__test__/in-memory-supply.repository';
+import { SupplyNameAlreadyExistsError } from '@/modules/stock/domain/errors/supply-name-already-exists.error';
+import { CreateSupplyUseCase } from '@/modules/stock/application/create-supply.usecase';
+import { InMemorySupplyRepository } from '@/modules/stock/__test__/in-memory-supply.repository';
 
 describe('CreateSupplyUseCase', () => {
   let repository: InMemorySupplyRepository;

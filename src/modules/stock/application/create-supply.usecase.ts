@@ -1,8 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { SupplyNameAlreadyExistsError } from '../domain/errors/supply-name-already-exists.error';
-import { Supply } from '../domain/supply.entity';
-import { SUPPLY_REPOSITORY } from '../domain/supply.repository';
-import type { SupplyRepository } from '../domain/supply.repository';
+import { SupplyNameAlreadyExistsError } from '@/modules/stock/domain/errors/supply-name-already-exists.error';
+import { Supply } from '@/modules/stock/domain/supply.entity';
+import { SUPPLY_REPOSITORY } from '@/modules/stock/domain/supply.repository';
+import type { SupplyRepository } from '@/modules/stock/domain/supply.repository';
 
 export interface CreateSupplyInput {
   name: string;

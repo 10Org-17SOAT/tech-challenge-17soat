@@ -1,12 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { STOCK_MOVEMENT_REPOSITORY } from '../domain/stock-movement.repository';
-import type { StockMovementRepository } from '../domain/stock-movement.repository';
-import { SUPPLY_REPOSITORY } from '../domain/supply.repository';
+import { STOCK_MOVEMENT_REPOSITORY } from '@/modules/stock/domain/stock-movement.repository';
+import type { StockMovementRepository } from '@/modules/stock/domain/stock-movement.repository';
+import { SUPPLY_REPOSITORY } from '@/modules/stock/domain/supply.repository';
 import type {
   ListSuppliesFilter,
   SupplyRepository,
-} from '../domain/supply.repository';
-import type { SupplyWithBalance } from './supply-with-balance';
+} from '@/modules/stock/domain/supply.repository';
+import type { SupplyWithBalance } from '@/modules/stock/application/supply-with-balance';
 
 export interface ListSuppliesOutput {
   items: SupplyWithBalance[];

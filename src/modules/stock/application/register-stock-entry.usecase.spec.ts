@@ -1,10 +1,10 @@
-import { InvalidStockMovementError } from '../domain/errors/invalid-stock-movement.error';
-import { SupplyNotFoundError } from '../domain/errors/supply-not-found.error';
-import { MovementType } from '../domain/stock-movement.entity';
-import { Supply } from '../domain/supply.entity';
-import { InMemoryStockMovementRepository } from '../__test__/in-memory-stock-movement.repository';
-import { InMemorySupplyRepository } from '../__test__/in-memory-supply.repository';
-import { RegisterStockEntryUseCase } from './register-stock-entry.usecase';
+import { InvalidStockMovementError } from '@/modules/stock/domain/errors/invalid-stock-movement.error';
+import { SupplyNotFoundError } from '@/modules/stock/domain/errors/supply-not-found.error';
+import { MovementType } from '@/modules/stock/domain/stock-movement.entity';
+import { Supply } from '@/modules/stock/domain/supply.entity';
+import { InMemoryStockMovementRepository } from '@/modules/stock/__test__/in-memory-stock-movement.repository';
+import { InMemorySupplyRepository } from '@/modules/stock/__test__/in-memory-supply.repository';
+import { RegisterStockEntryUseCase } from '@/modules/stock/application/register-stock-entry.usecase';
 
 describe('RegisterStockEntryUseCase', () => {
   let supplyRepository: InMemorySupplyRepository;

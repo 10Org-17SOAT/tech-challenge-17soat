@@ -1,9 +1,9 @@
-import { Supply } from '../domain/supply.entity';
+import { Supply } from '@/modules/stock/domain/supply.entity';
 import type {
   ListSuppliesFilter,
   PaginatedSupplies,
   SupplyRepository,
-} from '../domain/supply.repository';
+} from '@/modules/stock/domain/supply.repository';
 
 export class InMemorySupplyRepository implements SupplyRepository {
   readonly supplies = new Map<string, Supply>();

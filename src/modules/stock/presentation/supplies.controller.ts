@@ -12,15 +12,15 @@ import {
   UseFilters,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { CreateSupplyUseCase } from '../application/create-supply.usecase';
-import { DeleteSupplyUseCase } from '../application/delete-supply.usecase';
-import { GetSupplyUseCase } from '../application/get-supply.usecase';
-import { ListSuppliesUseCase } from '../application/list-supplies.usecase';
-import { LookupStockUseCase } from '../application/lookup-stock.usecase';
-import { RegisterStockEntryUseCase } from '../application/register-stock-entry.usecase';
-import { ReservePartUseCase } from '../application/reserve-part.usecase';
-import { UpdateSupplyUseCase } from '../application/update-supply.usecase';
-import { WriteOffReservedPartUseCase } from '../application/write-off-reserved-part.usecase';
+import { CreateSupplyUseCase } from '@/modules/stock/application/create-supply.usecase';
+import { DeleteSupplyUseCase } from '@/modules/stock/application/delete-supply.usecase';
+import { GetSupplyUseCase } from '@/modules/stock/application/get-supply.usecase';
+import { ListSuppliesUseCase } from '@/modules/stock/application/list-supplies.usecase';
+import { LookupStockUseCase } from '@/modules/stock/application/lookup-stock.usecase';
+import { RegisterStockEntryUseCase } from '@/modules/stock/application/register-stock-entry.usecase';
+import { ReservePartUseCase } from '@/modules/stock/application/reserve-part.usecase';
+import { UpdateSupplyUseCase } from '@/modules/stock/application/update-supply.usecase';
+import { WriteOffReservedPartUseCase } from '@/modules/stock/application/write-off-reserved-part.usecase';
 import {
   RegisterStockEntryDto,
   ReservationResponseDto,
@@ -31,7 +31,7 @@ import {
   toWriteOffResponse,
   WriteOffReservedPartDto,
   WriteOffResponseDto,
-} from './dtos/stock-movement.dtos';
+} from '@/modules/stock/presentation/dtos/stock-movement.dtos';
 import {
   CreateSupplyDto,
   ListSuppliesQueryDto,
@@ -41,8 +41,8 @@ import {
   SupplyStockResponseDto,
   toSupplyResponse,
   UpdateSupplyDto,
-} from './dtos/supply.dtos';
-import { SupplyErrorsFilter } from './supply-errors.filter';
+} from '@/modules/stock/presentation/dtos/supply.dtos';
+import { SupplyErrorsFilter } from '@/modules/stock/presentation/supply-errors.filter';
 
 @ApiTags('supplies')
 @Controller('supplies')

@@ -1,7 +1,7 @@
-import { SupplyNotFoundError } from '../domain/errors/supply-not-found.error';
-import { Supply } from '../domain/supply.entity';
-import { DeleteSupplyUseCase } from './delete-supply.usecase';
-import { InMemorySupplyRepository } from '../__test__/in-memory-supply.repository';
+import { SupplyNotFoundError } from '@/modules/stock/domain/errors/supply-not-found.error';
+import { Supply } from '@/modules/stock/domain/supply.entity';
+import { DeleteSupplyUseCase } from '@/modules/stock/application/delete-supply.usecase';
+import { InMemorySupplyRepository } from '@/modules/stock/__test__/in-memory-supply.repository';
 
 describe('DeleteSupplyUseCase', () => {
   let repository: InMemorySupplyRepository;

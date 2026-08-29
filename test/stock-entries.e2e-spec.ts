@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { Pool } from 'pg';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { AppModule } from './../src/app.module';
+import { AppModule } from '@/app.module';
 
 describe('Stock entries (e2e)', () => {
   let app: INestApplication<App>;

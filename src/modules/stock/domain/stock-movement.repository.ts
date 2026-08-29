@@ -1,4 +1,4 @@
-import { StockMovement } from './stock-movement.entity';
+import { StockMovement } from '@/modules/stock/domain/stock-movement.entity';
 
 export interface StockMovementRepository {
   save(movement: StockMovement): Promise<void>;

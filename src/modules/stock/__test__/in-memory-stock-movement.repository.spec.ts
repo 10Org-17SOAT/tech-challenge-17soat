@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import { describeStockMovementRepositoryContract } from './stock-movement-repository.contract';
-import { InMemoryStockMovementRepository } from './in-memory-stock-movement.repository';
+import { describeStockMovementRepositoryContract } from '@/modules/stock/__test__/stock-movement-repository.contract';
+import { InMemoryStockMovementRepository } from '@/modules/stock/__test__/in-memory-stock-movement.repository';
 
 describe('InMemoryStockMovementRepository', () => {
   describeStockMovementRepositoryContract(() =>

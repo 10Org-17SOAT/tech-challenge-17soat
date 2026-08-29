@@ -1,9 +1,9 @@
-import { SupplyNotFoundError } from '../domain/errors/supply-not-found.error';
-import { StockMovement } from '../domain/stock-movement.entity';
-import { Supply } from '../domain/supply.entity';
-import { GetSupplyUseCase } from './get-supply.usecase';
-import { InMemoryStockMovementRepository } from '../__test__/in-memory-stock-movement.repository';
-import { InMemorySupplyRepository } from '../__test__/in-memory-supply.repository';
+import { SupplyNotFoundError } from '@/modules/stock/domain/errors/supply-not-found.error';
+import { StockMovement } from '@/modules/stock/domain/stock-movement.entity';
+import { Supply } from '@/modules/stock/domain/supply.entity';
+import { GetSupplyUseCase } from '@/modules/stock/application/get-supply.usecase';
+import { InMemoryStockMovementRepository } from '@/modules/stock/__test__/in-memory-stock-movement.repository';
+import { InMemorySupplyRepository } from '@/modules/stock/__test__/in-memory-supply.repository';
 
 describe('GetSupplyUseCase', () => {
   let repository: InMemorySupplyRepository;

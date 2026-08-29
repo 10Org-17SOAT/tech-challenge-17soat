@@ -1,13 +1,16 @@
-import { InsufficientStockError } from '../domain/errors/insufficient-stock.error';
-import { InvalidStockMovementError } from '../domain/errors/invalid-stock-movement.error';
-import { SupplyNotFoundError } from '../domain/errors/supply-not-found.error';
-import { PartReservedForServiceOrder } from '../domain/events/part-reserved-for-service-order.event';
-import { MovementType, StockMovement } from '../domain/stock-movement.entity';
-import { Supply } from '../domain/supply.entity';
-import { InMemoryStockMovementRepository } from '../__test__/in-memory-stock-movement.repository';
-import { InMemorySupplyRepository } from '../__test__/in-memory-supply.repository';
-import { RecordingDomainEventPublisher } from '../__test__/recording-domain-event.publisher';
-import { ReservePartUseCase } from './reserve-part.usecase';
+import { InsufficientStockError } from '@/modules/stock/domain/errors/insufficient-stock.error';
+import { InvalidStockMovementError } from '@/modules/stock/domain/errors/invalid-stock-movement.error';
+import { SupplyNotFoundError } from '@/modules/stock/domain/errors/supply-not-found.error';
+import { PartReservedForServiceOrder } from '@/modules/stock/domain/events/part-reserved-for-service-order.event';
+import {
+  MovementType,
+  StockMovement,
+} from '@/modules/stock/domain/stock-movement.entity';
+import { Supply } from '@/modules/stock/domain/supply.entity';
+import { InMemoryStockMovementRepository } from '@/modules/stock/__test__/in-memory-stock-movement.repository';
+import { InMemorySupplyRepository } from '@/modules/stock/__test__/in-memory-supply.repository';
+import { RecordingDomainEventPublisher } from '@/modules/stock/__test__/recording-domain-event.publisher';
+import { ReservePartUseCase } from '@/modules/stock/application/reserve-part.usecase';
 
 describe('ReservePartUseCase', () => {
   let supplyRepository: InMemorySupplyRepository;

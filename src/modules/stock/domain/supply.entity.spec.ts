@@ -1,5 +1,5 @@
-import { InvalidSupplyError } from './errors/invalid-supply.error';
-import { Supply } from './supply.entity';
+import { InvalidSupplyError } from '@/modules/stock/domain/errors/invalid-supply.error';
+import { Supply } from '@/modules/stock/domain/supply.entity';
 
 describe('Supply', () => {
   it('creates a supply with generated UUID and timestamps', () => {

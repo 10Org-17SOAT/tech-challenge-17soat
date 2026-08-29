@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { DomainEventPublisher } from '../../domain/events/domain-event-publisher';
+import type { DomainEventPublisher } from '@/modules/stock/domain/events/domain-event-publisher';
 
 /**
  * Placeholder adapter: the stock events have no consumer yet, so publishing is

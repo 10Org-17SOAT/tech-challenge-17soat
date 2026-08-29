@@ -1,13 +1,16 @@
-import { ExceedsReservedQuantityError } from '../domain/errors/exceeds-reserved-quantity.error';
-import { ReservationNotFoundError } from '../domain/errors/reservation-not-found.error';
-import { SupplyNotFoundError } from '../domain/errors/supply-not-found.error';
-import { PartWrittenOffFromStock } from '../domain/events/part-written-off-from-stock.event';
-import { MovementType, StockMovement } from '../domain/stock-movement.entity';
-import { Supply } from '../domain/supply.entity';
-import { InMemoryStockMovementRepository } from '../__test__/in-memory-stock-movement.repository';
-import { InMemorySupplyRepository } from '../__test__/in-memory-supply.repository';
-import { RecordingDomainEventPublisher } from '../__test__/recording-domain-event.publisher';
-import { WriteOffReservedPartUseCase } from './write-off-reserved-part.usecase';
+import { ExceedsReservedQuantityError } from '@/modules/stock/domain/errors/exceeds-reserved-quantity.error';
+import { ReservationNotFoundError } from '@/modules/stock/domain/errors/reservation-not-found.error';
+import { SupplyNotFoundError } from '@/modules/stock/domain/errors/supply-not-found.error';
+import { PartWrittenOffFromStock } from '@/modules/stock/domain/events/part-written-off-from-stock.event';
+import {
+  MovementType,
+  StockMovement,
+} from '@/modules/stock/domain/stock-movement.entity';
+import { Supply } from '@/modules/stock/domain/supply.entity';
+import { InMemoryStockMovementRepository } from '@/modules/stock/__test__/in-memory-stock-movement.repository';
+import { InMemorySupplyRepository } from '@/modules/stock/__test__/in-memory-supply.repository';
+import { RecordingDomainEventPublisher } from '@/modules/stock/__test__/recording-domain-event.publisher';
+import { WriteOffReservedPartUseCase } from '@/modules/stock/application/write-off-reserved-part.usecase';
 
 describe('WriteOffReservedPartUseCase', () => {
   let supplyRepository: InMemorySupplyRepository;

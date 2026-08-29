@@ -1,4 +1,4 @@
-import type { Supply } from '../domain/supply.entity';
+import type { Supply } from '@/modules/stock/domain/supply.entity';
 
 export interface SupplyWithBalance {
   supply: Supply;
