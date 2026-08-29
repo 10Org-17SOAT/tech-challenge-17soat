@@ -1,7 +1,7 @@
-import { ServiceNotFoundError } from '../domain/errors/service-not-found.error';
-import { Service } from '../domain/service.entity';
-import { InMemoryServiceRepository } from '../__test__/in-memory-service.repository';
-import { GetServiceUseCase } from './get-service.usecase';
+import { ServiceNotFoundError } from '@/modules/service-order/services/domain/errors/service-not-found.error';
+import { Service } from '@/modules/service-order/services/domain/service.entity';
+import { InMemoryServiceRepository } from '@/modules/service-order/services/__test__/in-memory-service.repository';
+import { GetServiceUseCase } from '@/modules/service-order/services/application/get-service.usecase';
 
 describe('GetServiceUseCase', () => {
   let repository: InMemoryServiceRepository;
@@ -24,8 +24,8 @@ describe('GetServiceUseCase', () => {
   });
 
   it('throws when the service does not exist', async () => {
-    await expect(
-      useCase.execute(crypto.randomUUID()),
-    ).rejects.toBeInstanceOf(ServiceNotFoundError);
+    await expect(useCase.execute(crypto.randomUUID())).rejects.toBeInstanceOf(
+      ServiceNotFoundError,
+    );
   });
 });

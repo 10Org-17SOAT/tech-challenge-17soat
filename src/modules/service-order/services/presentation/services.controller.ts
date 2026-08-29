@@ -12,11 +12,11 @@ import {
   UseFilters,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { CreateServiceUseCase } from '../application/create-service.usecase';
-import { DeleteServiceUseCase } from '../application/delete-service.usecase';
-import { GetServiceUseCase } from '../application/get-service.usecase';
-import { ListServicesUseCase } from '../application/list-services.usecase';
-import { UpdateServiceUseCase } from '../application/update-service.usecase';
+import { CreateServiceUseCase } from '@/modules/service-order/services/application/create-service.usecase';
+import { DeleteServiceUseCase } from '@/modules/service-order/services/application/delete-service.usecase';
+import { GetServiceUseCase } from '@/modules/service-order/services/application/get-service.usecase';
+import { ListServicesUseCase } from '@/modules/service-order/services/application/list-services.usecase';
+import { UpdateServiceUseCase } from '@/modules/service-order/services/application/update-service.usecase';
 import {
   CreateServiceDto,
   ListServicesQueryDto,
@@ -25,8 +25,8 @@ import {
   ServiceResponseDto,
   toServiceResponse,
   UpdateServiceDto,
-} from './dtos/service.dtos';
-import { ServiceErrorsFilter } from './service-errors.filter';
+} from '@/modules/service-order/services/presentation/dtos/service.dtos';
+import { ServiceErrorsFilter } from '@/modules/service-order/services/presentation/service-errors.filter';
 
 @ApiTags('services')
 @Controller('services')

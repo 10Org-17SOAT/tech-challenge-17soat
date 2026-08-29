@@ -1,6 +1,6 @@
-import { Service } from '../domain/service.entity';
-import { InMemoryServiceRepository } from '../__test__/in-memory-service.repository';
-import { ListServicesUseCase } from './list-services.usecase';
+import { Service } from '@/modules/service-order/services/domain/service.entity';
+import { InMemoryServiceRepository } from '@/modules/service-order/services/__test__/in-memory-service.repository';
+import { ListServicesUseCase } from '@/modules/service-order/services/application/list-services.usecase';
 
 describe('ListServicesUseCase', () => {
   let repository: InMemoryServiceRepository;

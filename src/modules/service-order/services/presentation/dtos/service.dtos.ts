@@ -1,7 +1,7 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
-import { serviceCategoryEnum } from '../../infrastructure/persistence/schema';
-import { Service } from '../../domain/service.entity';
+import { serviceCategoryEnum } from '@/modules/service-order/services/infrastructure/persistence/schema';
+import { Service } from '@/modules/service-order/services/domain/service.entity';
 
 const serviceCategoryValues = serviceCategoryEnum.enumValues;
 

@@ -1,6 +1,6 @@
-import { ServiceNameAlreadyExistsError } from '../domain/errors/service-name-already-exists.error';
-import { InMemoryServiceRepository } from '../__test__/in-memory-service.repository';
-import { CreateServiceUseCase } from './create-service.usecase';
+import { ServiceNameAlreadyExistsError } from '@/modules/service-order/services/domain/errors/service-name-already-exists.error';
+import { InMemoryServiceRepository } from '@/modules/service-order/services/__test__/in-memory-service.repository';
+import { CreateServiceUseCase } from '@/modules/service-order/services/application/create-service.usecase';
 
 describe('CreateServiceUseCase', () => {
   let repository: InMemoryServiceRepository;

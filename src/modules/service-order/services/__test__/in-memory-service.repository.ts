@@ -1,9 +1,9 @@
-import { Service } from '../domain/service.entity';
+import { Service } from '@/modules/service-order/services/domain/service.entity';
 import {
   PaginatedServices,
   Pagination,
   ServiceRepository,
-} from '../domain/service.repository';
+} from '@/modules/service-order/services/domain/service.repository';
 
 export class InMemoryServiceRepository implements ServiceRepository {
   readonly services = new Map<string, Service>();

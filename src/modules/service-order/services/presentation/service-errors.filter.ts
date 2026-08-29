@@ -7,9 +7,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { InvalidServiceError } from '../domain/errors/invalid-service.error';
-import { ServiceNameAlreadyExistsError } from '../domain/errors/service-name-already-exists.error';
-import { ServiceNotFoundError } from '../domain/errors/service-not-found.error';
+import { InvalidServiceError } from '@/modules/service-order/services/domain/errors/invalid-service.error';
+import { ServiceNameAlreadyExistsError } from '@/modules/service-order/services/domain/errors/service-name-already-exists.error';
+import { ServiceNotFoundError } from '@/modules/service-order/services/domain/errors/service-not-found.error';
 
 @Catch(ServiceNotFoundError, ServiceNameAlreadyExistsError, InvalidServiceError)
 export class ServiceErrorsFilter implements ExceptionFilter {

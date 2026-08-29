@@ -1,8 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ServiceNotFoundError } from '../domain/errors/service-not-found.error';
-import { Service } from '../domain/service.entity';
-import { SERVICE_REPOSITORY } from '../domain/service.repository';
-import type { ServiceRepository } from '../domain/service.repository';
+import { ServiceNotFoundError } from '@/modules/service-order/services/domain/errors/service-not-found.error';
+import { Service } from '@/modules/service-order/services/domain/service.entity';
+import { SERVICE_REPOSITORY } from '@/modules/service-order/services/domain/service.repository';
+import type { ServiceRepository } from '@/modules/service-order/services/domain/service.repository';
 
 @Injectable()
 export class GetServiceUseCase {

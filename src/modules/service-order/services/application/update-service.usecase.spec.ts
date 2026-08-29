@@ -1,8 +1,8 @@
-import { ServiceNameAlreadyExistsError } from '../domain/errors/service-name-already-exists.error';
-import { ServiceNotFoundError } from '../domain/errors/service-not-found.error';
-import { Service } from '../domain/service.entity';
-import { InMemoryServiceRepository } from '../__test__/in-memory-service.repository';
-import { UpdateServiceUseCase } from './update-service.usecase';
+import { ServiceNameAlreadyExistsError } from '@/modules/service-order/services/domain/errors/service-name-already-exists.error';
+import { ServiceNotFoundError } from '@/modules/service-order/services/domain/errors/service-not-found.error';
+import { Service } from '@/modules/service-order/services/domain/service.entity';
+import { InMemoryServiceRepository } from '@/modules/service-order/services/__test__/in-memory-service.repository';
+import { UpdateServiceUseCase } from '@/modules/service-order/services/application/update-service.usecase';
 
 describe('UpdateServiceUseCase', () => {
   let repository: InMemoryServiceRepository;

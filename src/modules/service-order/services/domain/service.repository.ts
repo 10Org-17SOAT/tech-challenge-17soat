@@ -1,4 +1,4 @@
-import { Service } from './service.entity';
+import { Service } from '@/modules/service-order/services/domain/service.entity';
 
 export interface Pagination {
   page: number;

@@ -1,7 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Service } from '../domain/service.entity';
-import { SERVICE_REPOSITORY } from '../domain/service.repository';
-import type { Pagination, ServiceRepository } from '../domain/service.repository';
+import { Service } from '@/modules/service-order/services/domain/service.entity';
+import { SERVICE_REPOSITORY } from '@/modules/service-order/services/domain/service.repository';
+import type {
+  Pagination,
+  ServiceRepository,
+} from '@/modules/service-order/services/domain/service.repository';
 
 export interface ListServicesOutput {
   items: Service[];

@@ -10,7 +10,7 @@ import {
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
-import { SERVICE_CATEGORIES } from '../../domain/service.entity';
+import { SERVICE_CATEGORIES } from '@/modules/service-order/services/domain/service.entity';
 
 export const serviceCategoryEnum = pgEnum(
   'service_category',

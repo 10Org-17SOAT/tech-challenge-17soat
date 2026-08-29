@@ -3,7 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Pool } from 'pg';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { AppModule } from './../src/app.module';
+import { AppModule } from '@/app.module';
 
 describe('Services (e2e)', () => {
   let app: INestApplication<App>;
@@ -189,7 +189,10 @@ describe('Services (e2e)', () => {
           .expect(200),
       );
 
-      expect(body).toMatchObject({ name: validService.name, priceInCents: 12000 });
+      expect(body).toMatchObject({
+        name: validService.name,
+        priceInCents: 12000,
+      });
     });
 
     it('deactivates a service via active flag', async () => {

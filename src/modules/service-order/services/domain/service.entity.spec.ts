@@ -1,5 +1,5 @@
-import { InvalidServiceError } from './errors/invalid-service.error';
-import { Service } from './service.entity';
+import { InvalidServiceError } from '@/modules/service-order/services/domain/errors/invalid-service.error';
+import { Service } from '@/modules/service-order/services/domain/service.entity';
 
 describe('Service', () => {
   it('creates a service with generated UUID and timestamps', () => {
@@ -27,7 +27,11 @@ describe('Service', () => {
 
   it('trims the name and rejects empty names', () => {
     expect(() =>
-      Service.create({ name: '   ', category: 'mechanical', priceInCents: 100 }),
+      Service.create({
+        name: '   ',
+        category: 'mechanical',
+        priceInCents: 100,
+      }),
     ).toThrow(InvalidServiceError);
 
     const service = Service.create({
@@ -99,7 +103,9 @@ describe('Service', () => {
     expect(service.name).toBe('Alinhamento');
     expect(service.priceInCents).toBe(7000);
     expect(service.active).toBe(false);
-    expect(service.updatedAt.getTime()).toBeGreaterThanOrEqual(before.getTime());
+    expect(service.updatedAt.getTime()).toBeGreaterThanOrEqual(
+      before.getTime(),
+    );
     expect(() => service.update({ name: '  ' })).toThrow(InvalidServiceError);
     expect(() => service.update({ priceInCents: -1 })).toThrow(
       InvalidServiceError,

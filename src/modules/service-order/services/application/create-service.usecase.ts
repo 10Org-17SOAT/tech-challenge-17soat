@@ -1,8 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ServiceNameAlreadyExistsError } from '../domain/errors/service-name-already-exists.error';
-import { Service, ServiceCategory } from '../domain/service.entity';
-import { SERVICE_REPOSITORY } from '../domain/service.repository';
-import type { ServiceRepository } from '../domain/service.repository';
+import { ServiceNameAlreadyExistsError } from '@/modules/service-order/services/domain/errors/service-name-already-exists.error';
+import {
+  Service,
+  ServiceCategory,
+} from '@/modules/service-order/services/domain/service.entity';
+import { SERVICE_REPOSITORY } from '@/modules/service-order/services/domain/service.repository';
+import type { ServiceRepository } from '@/modules/service-order/services/domain/service.repository';
 
 export interface CreateServiceInput {
   name: string;

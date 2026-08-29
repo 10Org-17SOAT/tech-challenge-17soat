@@ -1,15 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, count, eq, isNull } from 'drizzle-orm';
-import { DATABASE_CONNECTION } from '../../../../../shared/config/database/database.constants';
-import type { DrizzleDatabase } from '../../../../../shared/config/database/drizzle.provider';
-import { ServiceNameAlreadyExistsError } from '../../domain/errors/service-name-already-exists.error';
-import { Service } from '../../domain/service.entity';
+import { DATABASE_CONNECTION } from '@/shared/config/database/database.constants';
+import type { DrizzleDatabase } from '@/shared/config/database/drizzle.provider';
+import { ServiceNameAlreadyExistsError } from '@/modules/service-order/services/domain/errors/service-name-already-exists.error';
+import { Service } from '@/modules/service-order/services/domain/service.entity';
 import {
   PaginatedServices,
   Pagination,
   ServiceRepository,
-} from '../../domain/service.repository';
-import { services } from './schema';
+} from '@/modules/service-order/services/domain/service.repository';
+import { services } from '@/modules/service-order/services/infrastructure/persistence/schema';
 
 const PG_UNIQUE_VIOLATION = '23505';
 

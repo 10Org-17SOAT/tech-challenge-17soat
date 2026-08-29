@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { InvalidServiceError } from './errors/invalid-service.error';
+import { InvalidServiceError } from '@/modules/service-order/services/domain/errors/invalid-service.error';
 
 export const SERVICE_CATEGORIES = [
   'mechanical',
