@@ -2,9 +2,9 @@ import { Inject, Injectable } from '@nestjs/common';
 import {
   CUSTOMER_REPOSITORY,
   type CustomerRepository,
-} from '../../domain/repository/customer.repository';
-import { CustomerResponseDTO } from '../dto/customer.dto';
-import { CustomerNotFoundException } from '../exceptions/customer-application.exception';
+} from '@/modules/onboarding/customer/domain/repository/customer.repository';
+import { CustomerResponseDTO } from '@/modules/onboarding/customer/application/dto/customer.dto';
+import { CustomerNotFoundException } from '@/modules/onboarding/customer/application/exceptions/customer-application.exception';
 
 @Injectable()
 export class FindCustomerByIdUseCase {

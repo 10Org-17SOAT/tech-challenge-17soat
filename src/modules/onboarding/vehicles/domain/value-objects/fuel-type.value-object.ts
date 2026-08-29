@@ -1,5 +1,5 @@
-import { FuelTypeEnum } from '../enums/fuel-type.enum';
-import { InvalidFuelTypeException } from '../exceptions/vehicle.exceptions';
+import { FuelTypeEnum } from '@/modules/onboarding/vehicles/domain/enums/fuel-type.enum';
+import { InvalidFuelTypeException } from '@/modules/onboarding/vehicles/domain/exceptions/vehicle.exceptions';
 
 export class FuelType {
   private readonly value: FuelTypeEnum;

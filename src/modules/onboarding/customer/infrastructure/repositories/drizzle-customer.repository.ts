@@ -1,16 +1,16 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, asc, count, eq, ilike, isNull } from 'drizzle-orm';
-import { DATABASE_CONNECTION } from '../../../../../shared/config/database/database.constants';
-import type { DrizzleDatabase } from '../../../../../shared/config/database/drizzle.provider';
-import { Customer } from '../../domain/customer.entity';
+import { DATABASE_CONNECTION } from '@/shared/config/database/database.constants';
+import type { DrizzleDatabase } from '@/shared/config/database/drizzle.provider';
+import { Customer } from '@/modules/onboarding/customer/domain/customer.entity';
 import {
   type CustomerRepository,
   type FindAllParams,
   type PaginatedResult,
-} from '../../domain/repository/customer.repository';
-import { DuplicateDocumentException } from '../../domain/exceptions/customer.exceptions';
-import { customersTable } from '../persistence/customer.schema';
-import { CustomerMapper } from '../mappers/customer.mapper';
+} from '@/modules/onboarding/customer/domain/repository/customer.repository';
+import { DuplicateDocumentException } from '@/modules/onboarding/customer/domain/exceptions/customer.exceptions';
+import { customersTable } from '@/modules/onboarding/customer/infrastructure/persistence/customer.schema';
+import { CustomerMapper } from '@/modules/onboarding/customer/infrastructure/mappers/customer.mapper';
 
 const PG_UNIQUE_VIOLATION = '23505';
 

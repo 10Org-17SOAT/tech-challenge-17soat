@@ -1,12 +1,12 @@
-import { FindCustomerByIdUseCase } from './find-customer-by-id.use-case';
-import { CustomerRepository } from '../../domain/repository/customer.repository';
-import { Customer } from '../../domain/customer.entity';
-import { PersonType } from '../../domain/value-objects/person-type.enum';
-import { Document } from '../../domain/value-objects/document.value-object';
-import { Email } from '../../domain/value-objects/email.value-object';
-import { Phone } from '../../domain/value-objects/phone.value-object';
-import { Address } from '../../domain/value-objects/address.value-object';
-import { CustomerNotFoundException } from '../exceptions/customer-application.exception';
+import { FindCustomerByIdUseCase } from '@/modules/onboarding/customer/application/use-cases/find-customer-by-id.use-case';
+import { CustomerRepository } from '@/modules/onboarding/customer/domain/repository/customer.repository';
+import { Customer } from '@/modules/onboarding/customer/domain/customer.entity';
+import { PersonType } from '@/modules/onboarding/customer/domain/value-objects/person-type.enum';
+import { Document } from '@/modules/onboarding/customer/domain/value-objects/document.value-object';
+import { Email } from '@/modules/onboarding/customer/domain/value-objects/email.value-object';
+import { Phone } from '@/modules/onboarding/customer/domain/value-objects/phone.value-object';
+import { Address } from '@/modules/onboarding/customer/domain/value-objects/address.value-object';
+import { CustomerNotFoundException } from '@/modules/onboarding/customer/application/exceptions/customer-application.exception';
 
 describe('FindCustomerByIdUseCase', () => {
   let useCase: FindCustomerByIdUseCase;

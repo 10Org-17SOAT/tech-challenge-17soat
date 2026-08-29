@@ -2,9 +2,9 @@ import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { AppModule } from '../src/app.module';
-import { CUSTOMER_REPOSITORY } from '../src/modules/onboarding/customer/domain/repository/customer.repository';
-import { InMemoryCustomerRepository } from '../src/modules/onboarding/customer/__test__/in-memory-customer.repository';
+import { AppModule } from '@/app.module';
+import { CUSTOMER_REPOSITORY } from '@/modules/onboarding/customer/domain/repository/customer.repository';
+import { InMemoryCustomerRepository } from '@/modules/onboarding/customer/__test__/in-memory-customer.repository';
 
 /**
  * E2E suite running against the real AppModule wiring with the repository

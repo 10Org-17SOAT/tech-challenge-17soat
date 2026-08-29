@@ -12,27 +12,27 @@ import {
   UseFilters,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { CreateCustomerUseCase } from '../../application/use-cases/create-customer.use-case';
-import { FindCustomerByIdUseCase } from '../../application/use-cases/find-customer-by-id.use-case';
-import { FindAllCustomersUseCase } from '../../application/use-cases/find-all-customers.use-case';
-import { UpdateCustomerUseCase } from '../../application/use-cases/update-customer.use-case';
-import { SoftDeleteCustomerUseCase } from '../../application/use-cases/soft-delete-customer.use-case';
+import { CreateCustomerUseCase } from '@/modules/onboarding/customer/application/use-cases/create-customer.use-case';
+import { FindCustomerByIdUseCase } from '@/modules/onboarding/customer/application/use-cases/find-customer-by-id.use-case';
+import { FindAllCustomersUseCase } from '@/modules/onboarding/customer/application/use-cases/find-all-customers.use-case';
+import { UpdateCustomerUseCase } from '@/modules/onboarding/customer/application/use-cases/update-customer.use-case';
+import { SoftDeleteCustomerUseCase } from '@/modules/onboarding/customer/application/use-cases/soft-delete-customer.use-case';
 import {
   CreateCustomerDto,
   ListCustomersQueryDto,
   UpdateCustomerDto,
-} from '../../infrastructure/schemas/customer.schema';
+} from '@/modules/onboarding/customer/infrastructure/schemas/customer.schema';
 import {
   CustomerIdParamDto,
   CustomerResponseDto,
   PaginatedCustomersResponseDto,
-} from '../dtos/customer.dtos';
-import { CustomerErrorsFilter } from '../filters/customer-errors.filter';
+} from '@/modules/onboarding/customer/presentation/dtos/customer.dtos';
+import { CustomerErrorsFilter } from '@/modules/onboarding/customer/presentation/filters/customer-errors.filter';
 import {
   CustomerResponseDTO,
   PaginatedCustomersDTO,
-} from '../../application/dto/customer.dto';
-import { PersonType } from '../../domain/value-objects/person-type.enum';
+} from '@/modules/onboarding/customer/application/dto/customer.dto';
+import { PersonType } from '@/modules/onboarding/customer/domain/value-objects/person-type.enum';
 
 @ApiTags('customers')
 @Controller('customers')

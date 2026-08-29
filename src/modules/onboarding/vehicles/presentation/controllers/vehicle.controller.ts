@@ -12,19 +12,19 @@ import {
   UseFilters,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { CreateVehicleUseCase } from '../../application/use-cases/create-vehicle/create-vehicle.use-case';
-import { FindVehicleByIdUseCase } from '../../application/use-cases/find-vehicle-by-id/find-vehicle-by-id.use-case';
-import { ListVehiclesUseCase } from '../../application/use-cases/list-vehicles/list-vehicles.use-case';
-import { UpdateVehicleUseCase } from '../../application/use-cases/update-vehicle/update-vehicle.use-case';
-import { DeleteVehicleUseCase } from '../../application/use-cases/delete-vehicle/delete-vehicle.use-case';
-import { VehicleResponseDto } from '../../application/dtos/vehicle-response.dto';
-import { VehicleMapper } from '../../infrastructure/mappers/vehicle.mapper';
+import { CreateVehicleUseCase } from '@/modules/onboarding/vehicles/application/use-cases/create-vehicle/create-vehicle.use-case';
+import { FindVehicleByIdUseCase } from '@/modules/onboarding/vehicles/application/use-cases/find-vehicle-by-id/find-vehicle-by-id.use-case';
+import { ListVehiclesUseCase } from '@/modules/onboarding/vehicles/application/use-cases/list-vehicles/list-vehicles.use-case';
+import { UpdateVehicleUseCase } from '@/modules/onboarding/vehicles/application/use-cases/update-vehicle/update-vehicle.use-case';
+import { DeleteVehicleUseCase } from '@/modules/onboarding/vehicles/application/use-cases/delete-vehicle/delete-vehicle.use-case';
+import { VehicleResponseDto } from '@/modules/onboarding/vehicles/application/dtos/vehicle-response.dto';
+import { VehicleMapper } from '@/modules/onboarding/vehicles/infrastructure/mappers/vehicle.mapper';
 import {
   CreateVehicleDto,
   ListVehiclesQueryDto,
   UpdateVehicleDto,
-} from '../dtos/vehicle.dtos';
-import { VehicleErrorsFilter } from '../filters/vehicle-errors.filter';
+} from '@/modules/onboarding/vehicles/presentation/dtos/vehicle.dtos';
+import { VehicleErrorsFilter } from '@/modules/onboarding/vehicles/presentation/filters/vehicle-errors.filter';
 
 @ApiTags('Vehicles')
 @Controller('vehicles')

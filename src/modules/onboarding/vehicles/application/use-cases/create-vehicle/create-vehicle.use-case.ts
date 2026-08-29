@@ -1,9 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { IVehicleRepository } from '../../../domain/repositories/vehicle.repository';
-import { Vehicle } from '../../../domain/entities/vehicle.entity';
-import { LicensePlate } from '../../../domain/value-objects';
-import { DuplicateLicensePlateException } from '../../../domain/exceptions/vehicle.exceptions';
-import { CreateVehicleInput, CreateVehicleOutput } from './create-vehicle.dto';
+import type { IVehicleRepository } from '@/modules/onboarding/vehicles/domain/repositories/vehicle.repository';
+import { Vehicle } from '@/modules/onboarding/vehicles/domain/entities/vehicle.entity';
+import { LicensePlate } from '@/modules/onboarding/vehicles/domain/value-objects';
+import { DuplicateLicensePlateException } from '@/modules/onboarding/vehicles/domain/exceptions/vehicle.exceptions';
+import {
+  CreateVehicleInput,
+  CreateVehicleOutput,
+} from '@/modules/onboarding/vehicles/application/use-cases/create-vehicle/create-vehicle.dto';
 
 @Injectable()
 export class CreateVehicleUseCase {

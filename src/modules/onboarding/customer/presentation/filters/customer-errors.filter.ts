@@ -14,8 +14,8 @@ import {
   InvalidDocumentException,
   InvalidEmailException,
   InvalidPhoneException,
-} from '../../domain/exceptions/customer.exceptions';
-import { CustomerNotFoundException } from '../../application/exceptions/customer-application.exception';
+} from '@/modules/onboarding/customer/domain/exceptions/customer.exceptions';
+import { CustomerNotFoundException } from '@/modules/onboarding/customer/application/exceptions/customer-application.exception';
 
 @Catch(
   CustomerNotFoundException,

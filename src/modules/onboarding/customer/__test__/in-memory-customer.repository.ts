@@ -1,10 +1,10 @@
-import { Customer } from '../domain/customer.entity';
-import { DuplicateDocumentException } from '../domain/exceptions/customer.exceptions';
+import { Customer } from '@/modules/onboarding/customer/domain/customer.entity';
+import { DuplicateDocumentException } from '@/modules/onboarding/customer/domain/exceptions/customer.exceptions';
 import type {
   CustomerRepository,
   FindAllParams,
   PaginatedResult,
-} from '../domain/repository/customer.repository';
+} from '@/modules/onboarding/customer/domain/repository/customer.repository';
 
 export class InMemoryCustomerRepository implements CustomerRepository {
   readonly customers = new Map<string, Customer>();

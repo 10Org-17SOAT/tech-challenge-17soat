@@ -5,8 +5,8 @@ import {
   VehicleColor,
   FuelType,
   Odometer,
-} from '../value-objects';
-import { VehicleException } from '../exceptions/vehicle.exceptions';
+} from '@/modules/onboarding/vehicles/domain/value-objects';
+import { VehicleException } from '@/modules/onboarding/vehicles/domain/exceptions/vehicle.exceptions';
 
 export interface CreateVehicleProps {
   vehicle_id?: string;

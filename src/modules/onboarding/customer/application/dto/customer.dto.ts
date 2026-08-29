@@ -1,4 +1,4 @@
-import { PersonType } from '../../domain/value-objects/person-type.enum';
+import { PersonType } from '@/modules/onboarding/customer/domain/value-objects/person-type.enum';
 
 export interface CreateCustomerInput {
   personType: PersonType;

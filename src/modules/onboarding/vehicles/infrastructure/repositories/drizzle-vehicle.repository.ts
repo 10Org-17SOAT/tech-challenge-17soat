@@ -1,15 +1,18 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, count, eq, isNull } from 'drizzle-orm';
-import type { IVehicleRepository } from '../../domain/repositories/vehicle.repository';
-import { Vehicle } from '../../domain/entities/vehicle.entity';
-import { VehicleId, LicensePlate } from '../../domain/value-objects';
+import type { IVehicleRepository } from '@/modules/onboarding/vehicles/domain/repositories/vehicle.repository';
+import { Vehicle } from '@/modules/onboarding/vehicles/domain/entities/vehicle.entity';
+import {
+  VehicleId,
+  LicensePlate,
+} from '@/modules/onboarding/vehicles/domain/value-objects';
 import {
   DATABASE_CONNECTION,
   type DrizzleDatabase,
-} from '../../../../../shared/config/database';
-import { vehiclesTable } from '../persistence/vehicle.schema';
-import { VehicleMapper } from '../mappers/vehicle.mapper';
-import { VehicleException } from '../../domain/exceptions/vehicle.exceptions';
+} from '@/shared/config/database';
+import { vehiclesTable } from '@/modules/onboarding/vehicles/infrastructure/persistence/vehicle.schema';
+import { VehicleMapper } from '@/modules/onboarding/vehicles/infrastructure/mappers/vehicle.mapper';
+import { VehicleException } from '@/modules/onboarding/vehicles/domain/exceptions/vehicle.exceptions';
 
 @Injectable()
 export class DrizzleVehicleRepository implements IVehicleRepository {

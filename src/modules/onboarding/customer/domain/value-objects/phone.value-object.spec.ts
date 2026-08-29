@@ -1,5 +1,5 @@
-import { Phone } from './phone.value-object';
-import { InvalidPhoneException } from '../exceptions/customer.exceptions';
+import { Phone } from '@/modules/onboarding/customer/domain/value-objects/phone.value-object';
+import { InvalidPhoneException } from '@/modules/onboarding/customer/domain/exceptions/customer.exceptions';
 
 describe('Phone value object', () => {
   describe('creation', () => {

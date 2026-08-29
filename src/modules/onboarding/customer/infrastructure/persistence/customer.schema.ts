@@ -8,8 +8,8 @@ import {
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
-import type { AddressProps } from '../../domain/value-objects/address.value-object';
-import type { PhoneProps } from '../../domain/value-objects/phone.value-object';
+import type { AddressProps } from '@/modules/onboarding/customer/domain/value-objects/address.value-object';
+import type { PhoneProps } from '@/modules/onboarding/customer/domain/value-objects/phone.value-object';
 
 export const customersTable = pgTable(
   'customers',

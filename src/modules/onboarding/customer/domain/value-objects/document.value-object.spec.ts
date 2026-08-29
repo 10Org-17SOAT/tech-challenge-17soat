@@ -1,7 +1,7 @@
 /// <reference types="jest" />
-import { Document } from './document.value-object';
-import { PersonType } from './person-type.enum';
-import { InvalidDocumentException } from '../exceptions/customer.exceptions';
+import { Document } from '@/modules/onboarding/customer/domain/value-objects/document.value-object';
+import { PersonType } from '@/modules/onboarding/customer/domain/value-objects/person-type.enum';
+import { InvalidDocumentException } from '@/modules/onboarding/customer/domain/exceptions/customer.exceptions';
 
 describe('Document value object', () => {
   describe('creation', () => {

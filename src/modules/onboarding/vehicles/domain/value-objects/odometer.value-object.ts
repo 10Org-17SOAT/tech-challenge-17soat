@@ -1,4 +1,4 @@
-import { InvalidOdometerException } from '../exceptions/vehicle.exceptions';
+import { InvalidOdometerException } from '@/modules/onboarding/vehicles/domain/exceptions/vehicle.exceptions';
 
 export class Odometer {
   private readonly value: number;

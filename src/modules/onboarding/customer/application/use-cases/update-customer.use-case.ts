@@ -1,14 +1,17 @@
-import { Customer } from '../../domain/customer.entity';
-import { Document } from '../../domain/value-objects/document.value-object';
-import { Email } from '../../domain/value-objects/email.value-object';
-import { Phone } from '../../domain/value-objects/phone.value-object';
-import { Address } from '../../domain/value-objects/address.value-object';
+import { Customer } from '@/modules/onboarding/customer/domain/customer.entity';
+import { Document } from '@/modules/onboarding/customer/domain/value-objects/document.value-object';
+import { Email } from '@/modules/onboarding/customer/domain/value-objects/email.value-object';
+import { Phone } from '@/modules/onboarding/customer/domain/value-objects/phone.value-object';
+import { Address } from '@/modules/onboarding/customer/domain/value-objects/address.value-object';
 import {
   CUSTOMER_REPOSITORY,
   type CustomerRepository,
-} from '../../domain/repository/customer.repository';
-import { UpdateCustomerInput, CustomerResponseDTO } from '../dto/customer.dto';
-import { CustomerNotFoundException } from '../exceptions/customer-application.exception';
+} from '@/modules/onboarding/customer/domain/repository/customer.repository';
+import {
+  UpdateCustomerInput,
+  CustomerResponseDTO,
+} from '@/modules/onboarding/customer/application/dto/customer.dto';
+import { CustomerNotFoundException } from '@/modules/onboarding/customer/application/exceptions/customer-application.exception';
 import { Inject, Injectable } from '@nestjs/common';
 
 @Injectable()

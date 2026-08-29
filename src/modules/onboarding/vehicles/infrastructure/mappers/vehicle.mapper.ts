@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { Vehicle } from '../../domain/entities/vehicle.entity';
-import { VehicleResponseDto } from '../../application/dtos/vehicle-response.dto';
+import { Vehicle } from '@/modules/onboarding/vehicles/domain/entities/vehicle.entity';
+import { VehicleResponseDto } from '@/modules/onboarding/vehicles/application/dtos/vehicle-response.dto';
 
 export interface VehiclePersistenceDTO {
   vehicle_id: string;

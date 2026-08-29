@@ -1,9 +1,9 @@
-import { CreateCustomerUseCase } from './create-customer.use-case';
-import { CustomerRepository } from '../../domain/repository/customer.repository';
-import { PersonType } from '../../domain/value-objects/person-type.enum';
-import { CreateCustomerInput } from '../dto/customer.dto';
-import { InvalidDocumentException } from '../../domain/exceptions/customer.exceptions';
-import { Customer } from '../../domain/customer.entity';
+import { CreateCustomerUseCase } from '@/modules/onboarding/customer/application/use-cases/create-customer.use-case';
+import { CustomerRepository } from '@/modules/onboarding/customer/domain/repository/customer.repository';
+import { PersonType } from '@/modules/onboarding/customer/domain/value-objects/person-type.enum';
+import { CreateCustomerInput } from '@/modules/onboarding/customer/application/dto/customer.dto';
+import { InvalidDocumentException } from '@/modules/onboarding/customer/domain/exceptions/customer.exceptions';
+import { Customer } from '@/modules/onboarding/customer/domain/customer.entity';
 
 describe('CreateCustomerUseCase', () => {
   let useCase: CreateCustomerUseCase;

@@ -1,4 +1,4 @@
-import { InvalidVehicleModelException } from '../exceptions/vehicle.exceptions';
+import { InvalidVehicleModelException } from '@/modules/onboarding/vehicles/domain/exceptions/vehicle.exceptions';
 
 export class VehicleModel {
   private readonly model: string;

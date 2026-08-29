@@ -4,7 +4,7 @@ import type { ArgumentsHost } from '@nestjs/common';
 import {
   Vehicle,
   type CreateVehicleProps,
-} from './domain/entities/vehicle.entity';
+} from '@/modules/onboarding/vehicles/domain/entities/vehicle.entity';
 import {
   VehicleId,
   LicensePlate,
@@ -12,7 +12,7 @@ import {
   VehicleColor,
   FuelType,
   Odometer,
-} from './domain/value-objects';
+} from '@/modules/onboarding/vehicles/domain/value-objects';
 import {
   DuplicateLicensePlateException,
   InvalidFuelTypeException,
@@ -22,24 +22,24 @@ import {
   InvalidVehicleModelException,
   VehicleException,
   VehicleNotFoundException,
-} from './domain/exceptions/vehicle.exceptions';
-import { CreateVehicleUseCase } from './application/use-cases/create-vehicle/create-vehicle.use-case';
-import { FindVehicleByIdUseCase } from './application/use-cases/find-vehicle-by-id/find-vehicle-by-id.use-case';
-import { ListVehiclesUseCase } from './application/use-cases/list-vehicles/list-vehicles.use-case';
-import { UpdateVehicleUseCase } from './application/use-cases/update-vehicle/update-vehicle.use-case';
-import { DeleteVehicleUseCase } from './application/use-cases/delete-vehicle/delete-vehicle.use-case';
-import { VehicleMapper } from './infrastructure/mappers/vehicle.mapper';
-import { VehicleResponseDto } from './application/dtos/vehicle-response.dto';
-import type { IVehicleRepository } from './domain/repositories/vehicle.repository';
-import { VehicleController } from './presentation/controllers/vehicle.controller';
+} from '@/modules/onboarding/vehicles/domain/exceptions/vehicle.exceptions';
+import { CreateVehicleUseCase } from '@/modules/onboarding/vehicles/application/use-cases/create-vehicle/create-vehicle.use-case';
+import { FindVehicleByIdUseCase } from '@/modules/onboarding/vehicles/application/use-cases/find-vehicle-by-id/find-vehicle-by-id.use-case';
+import { ListVehiclesUseCase } from '@/modules/onboarding/vehicles/application/use-cases/list-vehicles/list-vehicles.use-case';
+import { UpdateVehicleUseCase } from '@/modules/onboarding/vehicles/application/use-cases/update-vehicle/update-vehicle.use-case';
+import { DeleteVehicleUseCase } from '@/modules/onboarding/vehicles/application/use-cases/delete-vehicle/delete-vehicle.use-case';
+import { VehicleMapper } from '@/modules/onboarding/vehicles/infrastructure/mappers/vehicle.mapper';
+import { VehicleResponseDto } from '@/modules/onboarding/vehicles/application/dtos/vehicle-response.dto';
+import type { IVehicleRepository } from '@/modules/onboarding/vehicles/domain/repositories/vehicle.repository';
+import { VehicleController } from '@/modules/onboarding/vehicles/presentation/controllers/vehicle.controller';
 import {
   ListVehiclesQueryDto,
   ListVehiclesQuerySchema,
-} from './presentation/dtos/vehicle.dtos';
-import { VehicleErrorsFilter } from './presentation/filters/vehicle-errors.filter';
-import { VehicleManagementModule } from './vehicle-management.module';
-import { DrizzleVehicleRepository } from './infrastructure/repositories/drizzle-vehicle.repository';
-import { vehiclesTable } from './infrastructure/persistence/vehicle.schema';
+} from '@/modules/onboarding/vehicles/presentation/dtos/vehicle.dtos';
+import { VehicleErrorsFilter } from '@/modules/onboarding/vehicles/presentation/filters/vehicle-errors.filter';
+import { VehicleManagementModule } from '@/modules/onboarding/vehicles/vehicle-management.module';
+import { DrizzleVehicleRepository } from '@/modules/onboarding/vehicles/infrastructure/repositories/drizzle-vehicle.repository';
+import { vehiclesTable } from '@/modules/onboarding/vehicles/infrastructure/persistence/vehicle.schema';
 
 describe('Vehicle Management module', () => {
   const vehicleFactory = (overrides: Partial<CreateVehicleProps> = {}) =>

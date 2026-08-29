@@ -3,8 +3,8 @@ import {
   CUSTOMER_REPOSITORY,
   type CustomerRepository,
   FindAllParams,
-} from '../../domain/repository/customer.repository';
-import { CustomerResponseDTO } from '../dto/customer.dto';
+} from '@/modules/onboarding/customer/domain/repository/customer.repository';
+import { CustomerResponseDTO } from '@/modules/onboarding/customer/application/dto/customer.dto';
 
 @Injectable()
 export class FindAllCustomersUseCase {

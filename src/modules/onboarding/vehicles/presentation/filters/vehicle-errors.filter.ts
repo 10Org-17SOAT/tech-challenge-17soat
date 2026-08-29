@@ -11,7 +11,7 @@ import {
   DuplicateLicensePlateException,
   VehicleException,
   VehicleNotFoundException,
-} from '../../domain/exceptions/vehicle.exceptions';
+} from '@/modules/onboarding/vehicles/domain/exceptions/vehicle.exceptions';
 
 @Catch(VehicleException)
 export class VehicleErrorsFilter implements ExceptionFilter {

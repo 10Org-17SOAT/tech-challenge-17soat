@@ -1,5 +1,5 @@
-import { Customer } from '../customer.entity';
-import { PersonType } from '../value-objects/person-type.enum';
+import { Customer } from '@/modules/onboarding/customer/domain/customer.entity';
+import { PersonType } from '@/modules/onboarding/customer/domain/value-objects/person-type.enum';
 
 export interface FindAllFilters {
   personType?: PersonType;

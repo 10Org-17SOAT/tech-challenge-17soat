@@ -1,4 +1,4 @@
-import { InvalidLicensePlateException } from '../exceptions/vehicle.exceptions';
+import { InvalidLicensePlateException } from '@/modules/onboarding/vehicles/domain/exceptions/vehicle.exceptions';
 
 export class LicensePlate {
   private readonly value: string;

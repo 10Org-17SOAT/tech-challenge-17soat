@@ -1,5 +1,5 @@
-import { Address } from './address.value-object';
-import { InvalidAddressException } from '../exceptions/customer.exceptions';
+import { Address } from '@/modules/onboarding/customer/domain/value-objects/address.value-object';
+import { InvalidAddressException } from '@/modules/onboarding/customer/domain/exceptions/customer.exceptions';
 
 describe('Address value object', () => {
   describe('creation', () => {

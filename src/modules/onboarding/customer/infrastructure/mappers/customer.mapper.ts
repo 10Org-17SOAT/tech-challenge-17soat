@@ -1,10 +1,10 @@
-import { customersTable } from '../persistence/customer.schema';
-import { Customer } from '../../domain/customer.entity';
-import { PersonType } from '../../domain/value-objects/person-type.enum';
-import { Document } from '../../domain/value-objects/document.value-object';
-import { Email } from '../../domain/value-objects/email.value-object';
-import { Phone } from '../../domain/value-objects/phone.value-object';
-import { Address } from '../../domain/value-objects/address.value-object';
+import { customersTable } from '@/modules/onboarding/customer/infrastructure/persistence/customer.schema';
+import { Customer } from '@/modules/onboarding/customer/domain/customer.entity';
+import { PersonType } from '@/modules/onboarding/customer/domain/value-objects/person-type.enum';
+import { Document } from '@/modules/onboarding/customer/domain/value-objects/document.value-object';
+import { Email } from '@/modules/onboarding/customer/domain/value-objects/email.value-object';
+import { Phone } from '@/modules/onboarding/customer/domain/value-objects/phone.value-object';
+import { Address } from '@/modules/onboarding/customer/domain/value-objects/address.value-object';
 
 /**
  * Row shape derived from the Drizzle table definition.

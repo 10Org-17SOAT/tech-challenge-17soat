@@ -1,4 +1,4 @@
-import { InvalidEmailException } from '../exceptions/customer.exceptions';
+import { InvalidEmailException } from '@/modules/onboarding/customer/domain/exceptions/customer.exceptions';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

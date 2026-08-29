@@ -1,5 +1,5 @@
-import { Email } from './email.value-object';
-import { InvalidEmailException } from '../exceptions/customer.exceptions';
+import { Email } from '@/modules/onboarding/customer/domain/value-objects/email.value-object';
+import { InvalidEmailException } from '@/modules/onboarding/customer/domain/exceptions/customer.exceptions';
 
 describe('Email value object', () => {
   describe('creation', () => {

@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { IVehicleRepository } from '../../../domain/repositories/vehicle.repository';
-import { VehicleId } from '../../../domain/value-objects';
-import { VehicleNotFoundException } from '../../../domain/exceptions/vehicle.exceptions';
+import type { IVehicleRepository } from '@/modules/onboarding/vehicles/domain/repositories/vehicle.repository';
+import { VehicleId } from '@/modules/onboarding/vehicles/domain/value-objects';
+import { VehicleNotFoundException } from '@/modules/onboarding/vehicles/domain/exceptions/vehicle.exceptions';
 
 @Injectable()
 export class DeleteVehicleUseCase {

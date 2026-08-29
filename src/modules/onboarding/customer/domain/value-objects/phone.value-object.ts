@@ -1,4 +1,4 @@
-import { InvalidPhoneException } from '../exceptions/customer.exceptions';
+import { InvalidPhoneException } from '@/modules/onboarding/customer/domain/exceptions/customer.exceptions';
 
 export interface PhoneProps {
   countryCode: string;

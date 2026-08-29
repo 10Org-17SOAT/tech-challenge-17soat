@@ -1,5 +1,5 @@
-import { InvalidDocumentException } from '../exceptions/customer.exceptions';
-import { PersonType } from './person-type.enum';
+import { InvalidDocumentException } from '@/modules/onboarding/customer/domain/exceptions/customer.exceptions';
+import { PersonType } from '@/modules/onboarding/customer/domain/value-objects/person-type.enum';
 
 const CPF_LENGTH = 11;
 const CNPJ_LENGTH = 14;

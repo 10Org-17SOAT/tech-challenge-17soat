@@ -1,4 +1,4 @@
-import { InvalidAddressException } from '../exceptions/customer.exceptions';
+import { InvalidAddressException } from '@/modules/onboarding/customer/domain/exceptions/customer.exceptions';
 
 const STATE_REGEX = /^[A-Z]{2}$/;
 const ZIPCODE_REGEX = /^\d{8}$/;

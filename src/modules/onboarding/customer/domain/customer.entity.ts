@@ -1,10 +1,10 @@
 import { randomUUID } from 'crypto';
-import { PersonType } from './value-objects/person-type.enum';
-import { Document } from './value-objects/document.value-object';
-import { Email } from './value-objects/email.value-object';
-import { Phone } from './value-objects/phone.value-object';
-import { Address } from './value-objects/address.value-object';
-import { InvalidCustomerException } from './exceptions/customer.exceptions';
+import { PersonType } from '@/modules/onboarding/customer/domain/value-objects/person-type.enum';
+import { Document } from '@/modules/onboarding/customer/domain/value-objects/document.value-object';
+import { Email } from '@/modules/onboarding/customer/domain/value-objects/email.value-object';
+import { Phone } from '@/modules/onboarding/customer/domain/value-objects/phone.value-object';
+import { Address } from '@/modules/onboarding/customer/domain/value-objects/address.value-object';
+import { InvalidCustomerException } from '@/modules/onboarding/customer/domain/exceptions/customer.exceptions';
 
 export interface CustomerProps {
   id?: string;

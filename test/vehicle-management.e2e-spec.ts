@@ -4,13 +4,13 @@ import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { AppModule } from '../src/app.module';
-import { Vehicle } from '../src/modules/onboarding/vehicles/domain/entities/vehicle.entity';
-import type { IVehicleRepository } from '../src/modules/onboarding/vehicles/domain/repositories/vehicle.repository';
+import { AppModule } from '@/app.module';
+import { Vehicle } from '@/modules/onboarding/vehicles/domain/entities/vehicle.entity';
+import type { IVehicleRepository } from '@/modules/onboarding/vehicles/domain/repositories/vehicle.repository';
 import {
   LicensePlate,
   VehicleId,
-} from '../src/modules/onboarding/vehicles/domain/value-objects';
+} from '@/modules/onboarding/vehicles/domain/value-objects';
 
 const FIRST_ID = '11111111-1111-4111-8111-111111111111';
 const MISSING_ID = '22222222-2222-4222-8222-222222222222';

@@ -1,4 +1,4 @@
-import { InvalidVehicleColorException } from '../exceptions/vehicle.exceptions';
+import { InvalidVehicleColorException } from '@/modules/onboarding/vehicles/domain/exceptions/vehicle.exceptions';
 
 export class VehicleColor {
   private readonly value: string;

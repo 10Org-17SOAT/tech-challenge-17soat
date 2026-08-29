@@ -1,6 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { IVehicleRepository } from '../../../domain/repositories/vehicle.repository';
-import { ListVehiclesInput, ListVehiclesOutput } from './list-vehicles.dto';
+import type { IVehicleRepository } from '@/modules/onboarding/vehicles/domain/repositories/vehicle.repository';
+import {
+  ListVehiclesInput,
+  ListVehiclesOutput,
+} from '@/modules/onboarding/vehicles/application/use-cases/list-vehicles/list-vehicles.dto';
 
 @Injectable()
 export class ListVehiclesUseCase {
