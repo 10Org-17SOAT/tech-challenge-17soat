@@ -13,3 +13,10 @@ export class InvalidCpfException extends MechanicException {
     this.name = 'InvalidCpfException';
   }
 }
+
+export class InvalidEmailException extends MechanicException {
+  constructor(email: string) {
+    super(`Invalid email address: "${email}".`);
+    this.name = 'InvalidEmailException';
+  }
+}
