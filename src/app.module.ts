@@ -8,6 +8,7 @@ import { CustomerModule } from './modules/onboarding/customer/customer.module';
 import { VehicleManagementModule } from './modules/onboarding/vehicles/vehicle-management.module';
 import { ServiceOrderModule } from './modules/service-order/service-order.module';
 import { StockModule } from './modules/stock/stock.module';
+import { MechanicModule } from './modules/mechanic/mechanic.module';
 import { DatabaseModule } from './shared/config/database/database.module';
 import { validateEnv } from './shared/config/env/env.validation';
 
@@ -23,6 +24,7 @@ import { validateEnv } from './shared/config/env/env.validation';
     ServiceOrderModule,
     VehicleManagementModule,
     CustomerModule,
+    MechanicModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_PIPE, useClass: ZodValidationPipe }],
