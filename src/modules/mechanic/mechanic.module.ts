@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../../shared/config/database/database.module';
 import { MECHANIC_REPOSITORY } from './domain/repository/mechanic.repository';
 import { DrizzleMechanicRepository } from './infrastructure/repositories/drizzle-mechanic.repository';
-import { MechanicMapper } from './infrastructure/mappers/mechanic.mapper';
 
 @Module({
   imports: [DatabaseModule],
@@ -12,7 +11,6 @@ import { MechanicMapper } from './infrastructure/mappers/mechanic.mapper';
       provide: MECHANIC_REPOSITORY,
       useClass: DrizzleMechanicRepository,
     },
-    MechanicMapper,
   ],
 })
 export class MechanicModule {}
