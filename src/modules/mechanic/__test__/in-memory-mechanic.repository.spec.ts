@@ -1,6 +1,6 @@
 import { describeMechanicRepositoryContract } from './mechanic-repository.contract';
 import { InMemoryMechanicRepository } from './in-memory-mechanic.repository';
 
-describeMechanicRepositoryContract(async () => ({
-  repository: new InMemoryMechanicRepository(),
-}));
+describeMechanicRepositoryContract(() =>
+  Promise.resolve({ repository: new InMemoryMechanicRepository() }),
+);

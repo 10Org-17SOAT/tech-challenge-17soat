@@ -40,7 +40,8 @@ const makeMechanic = (overrides?: {
   availableSince?: Date;
 }): Mechanic => {
   const now = new Date();
-  const availability = overrides?.availability ?? MECHANIC_AVAILABILITY.Available;
+  const availability =
+    overrides?.availability ?? MECHANIC_AVAILABILITY.Available;
   const availableSince = overrides?.availableSince ?? now;
 
   const mechanic = Mechanic.restore({
@@ -170,9 +171,7 @@ export function describeMechanicRepositoryContract(
   describe('findMany', () => {
     it('returns a paginated result with metadata', async () => {
       await repository.save(makeMechanic());
-      await repository.save(
-        makeMechanic({ cpf: validCpf('529982247') }),
-      );
+      await repository.save(makeMechanic({ cpf: validCpf('529982247') }));
 
       const result = await repository.findMany({ page: 1, limit: 10 });
 
@@ -262,9 +261,7 @@ export function describeMechanicRepositoryContract(
       });
 
       expect(claimed?.getId()).toBe(older.getId());
-      expect(claimed?.getAvailability()).toBe(
-        MECHANIC_AVAILABILITY.Allocated,
-      );
+      expect(claimed?.getAvailability()).toBe(MECHANIC_AVAILABILITY.Allocated);
       expect(claimed?.getCurrentServiceOrderId()).toBe('OS-1');
     });
 
@@ -309,9 +306,7 @@ export function describeMechanicRepositoryContract(
       expect(notClaimed).toHaveLength(1);
 
       const stored = await repository.findById(mechanic.getId());
-      expect(stored?.getAvailability()).toBe(
-        MECHANIC_AVAILABILITY.Allocated,
-      );
+      expect(stored?.getAvailability()).toBe(MECHANIC_AVAILABILITY.Allocated);
     });
   });
 
@@ -327,9 +322,7 @@ export function describeMechanicRepositoryContract(
         'OS-0',
       );
 
-      expect(released?.getAvailability()).toBe(
-        MECHANIC_AVAILABILITY.Available,
-      );
+      expect(released?.getAvailability()).toBe(MECHANIC_AVAILABILITY.Available);
       expect(released?.getCurrentServiceOrderId()).toBeNull();
     });
 

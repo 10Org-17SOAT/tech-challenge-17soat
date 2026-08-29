@@ -57,9 +57,7 @@ describe('Mechanic persistence (e2e)', () => {
   };
 
   describe('repository contract', () => {
-    describeMechanicRepositoryContract(() =>
-      Promise.resolve({ repository }),
-    );
+    describeMechanicRepositoryContract(() => Promise.resolve({ repository }));
   });
 
   it('rejects an invalid availability at the database level', async () => {

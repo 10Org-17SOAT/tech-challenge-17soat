@@ -1,7 +1,6 @@
 import { Mechanic } from '../domain/mechanic.entity';
 import { DuplicateCpfException } from '../domain/exceptions/mechanic.exceptions';
 import { MECHANIC_AVAILABILITY } from '../domain/value-objects/mechanic-availability.enum';
-import type { Specialty } from '../domain/value-objects/specialty.enum';
 import type {
   ClaimFilter,
   FindMechanicsParams,
@@ -66,10 +65,7 @@ export class InMemoryMechanicRepository implements MechanicRepository {
         }
         if (
           filters.name &&
-          !mechanic
-            .getName()
-            .toLowerCase()
-            .includes(filters.name.toLowerCase())
+          !mechanic.getName().toLowerCase().includes(filters.name.toLowerCase())
         ) {
           return false;
         }
@@ -112,7 +108,7 @@ export class InMemoryMechanicRepository implements MechanicRepository {
           mechanic.getDeletedAt() === null &&
           mechanic.getAvailability() === MECHANIC_AVAILABILITY.Available &&
           (filter.specialty === undefined ||
-            mechanic.getSpecialties().includes(filter.specialty as Specialty)),
+            mechanic.getSpecialties().includes(filter.specialty)),
       )
       .sort(
         (a, b) =>

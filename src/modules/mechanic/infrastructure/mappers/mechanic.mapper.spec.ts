@@ -74,7 +74,9 @@ describe('MechanicMapper', () => {
       );
       expect(restored.getAvailability()).toBe(MECHANIC_AVAILABILITY.Allocated);
       expect(restored.getCurrentServiceOrderId()).toBe('OS-1');
-      expect(restored.getAvailableSince()).toEqual(mechanic.getAvailableSince());
+      expect(restored.getAvailableSince()).toEqual(
+        mechanic.getAvailableSince(),
+      );
       expect(restored.getCreatedAt()).toEqual(mechanic.getCreatedAt());
       expect(restored.getUpdatedAt()).toEqual(mechanic.getUpdatedAt());
       expect(restored.getDeletedAt()).toBeNull();

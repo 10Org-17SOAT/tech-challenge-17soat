@@ -5,10 +5,7 @@ import {
   type MechanicRepository,
 } from '../../domain/repository/mechanic.repository';
 import { MechanicNotFoundException } from '../exceptions/mechanic-application.exception';
-import {
-  MechanicResponseDTO,
-  UpdateMechanicInput,
-} from '../dto/mechanic.dto';
+import { MechanicResponseDTO, UpdateMechanicInput } from '../dto/mechanic.dto';
 
 @Injectable()
 export class UpdateMechanicProfileUseCase {
