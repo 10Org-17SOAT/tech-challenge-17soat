@@ -4,7 +4,10 @@ import { Cpf } from '../domain/value-objects/cpf.value-object';
 import { Email } from '../domain/value-objects/email.value-object';
 import { Phone } from '../domain/value-objects/phone.value-object';
 import { DuplicateCpfException } from '../domain/exceptions/mechanic.exceptions';
-import { MECHANIC_AVAILABILITY } from '../domain/value-objects/mechanic-availability.enum';
+import {
+  MECHANIC_AVAILABILITY,
+  type MechanicAvailability,
+} from '../domain/value-objects/mechanic-availability.enum';
 import type { Specialty } from '../domain/value-objects/specialty.enum';
 import type { MechanicRepository } from '../domain/repository/mechanic.repository';
 
@@ -33,7 +36,7 @@ const makeMechanic = (overrides?: {
   name?: string;
   cpf?: string;
   specialties?: Specialty[];
-  availability?: string;
+  availability?: MechanicAvailability;
   availableSince?: Date;
 }): Mechanic => {
   const now = new Date();
@@ -44,7 +47,7 @@ const makeMechanic = (overrides?: {
     id: overrides?.id ?? randomUUID(),
     name: overrides?.name ?? 'John Doe',
     cpf: new Cpf(overrides?.cpf ?? validCpf('111444777')),
-    email: 'john.doe@example.com',
+    email: new Email('john.doe@example.com'),
     phone: new Phone({
       countryCode: '55',
       areaCode: '11',
