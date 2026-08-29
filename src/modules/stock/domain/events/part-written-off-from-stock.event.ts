@@ -1,4 +1,4 @@
-import type { DomainEvent } from './domain-event';
+import type { DomainEvent } from '../../../../shared/domain/events/domain-event';
 
 export class PartWrittenOffFromStock implements DomainEvent {
   readonly name = 'stock.part-written-off-from-stock';

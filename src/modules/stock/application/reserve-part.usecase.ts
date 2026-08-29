@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { SupplyNotFoundError } from '../domain/errors/supply-not-found.error';
-import { DOMAIN_EVENT_PUBLISHER } from '../domain/events/domain-event-publisher';
-import type { DomainEventPublisher } from '../domain/events/domain-event-publisher';
+import { DOMAIN_EVENT_PUBLISHER } from '../../../shared/domain/events/domain-event-publisher';
+import type { DomainEventPublisher } from '../../../shared/domain/events/domain-event-publisher';
 import { PartReservedForServiceOrder } from '../domain/events/part-reserved-for-service-order.event';
 import { StockMovement } from '../domain/stock-movement.entity';
 import { STOCK_MOVEMENT_REPOSITORY } from '../domain/stock-movement.repository';
