@@ -1,9 +1,9 @@
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
-import { AppModule } from './app.module';
+import { AppModule } from '@/app.module';
 import { ZodValidationPipe } from 'nestjs-zod';
-import { Env } from './shared/config/env/env.schema';
-import { setupSwagger } from './shared/config/swagger/swagger.config';
+import { Env } from '@/shared/config/env/env.schema';
+import { setupSwagger } from '@/shared/config/swagger/swagger.config';
 
 const _LOCALPORT = 3000;
 

@@ -1,3 +1,3 @@
-export * from './database.constants';
-export * from './drizzle.provider';
-export * from './database.module';
+export * from '@/shared/config/database/database.constants';
+export * from '@/shared/config/database/drizzle.provider';
+export * from '@/shared/config/database/database.module';

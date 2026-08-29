@@ -1,8 +1,8 @@
 import { ConfigService } from '@nestjs/config';
 import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
-import { Env } from '../env/env.schema';
-import * as schema from './schema';
+import { Env } from '@/shared/config/env/env.schema';
+import * as schema from '@/shared/config/database/schema';
 
 export type DrizzleDatabase = NodePgDatabase<typeof schema>;
 
