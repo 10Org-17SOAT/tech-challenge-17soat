@@ -5,9 +5,9 @@ import type { DrizzleDatabase } from '../../../../shared/config/database/drizzle
 import { Mechanic } from '../../domain/mechanic.entity';
 import {
   type ClaimFilter,
-  type FindManyParams,
+  type FindMechanicsParams,
   type MechanicRepository,
-  type PaginatedMechanics,
+  type PaginatedResult,
 } from '../../domain/repository/mechanic.repository';
 import { DuplicateCpfException } from '../../domain/exceptions/mechanic.exceptions';
 import { MECHANIC_AVAILABILITY } from '../../domain/value-objects/mechanic-availability.enum';
@@ -73,7 +73,7 @@ export class DrizzleMechanicRepository implements MechanicRepository {
     return updated[0] ? MechanicMapper.toDomain(updated[0]) : null;
   }
 
-  async findMany(params: FindManyParams): Promise<PaginatedMechanics> {
+  async findMany(params: FindMechanicsParams): Promise<PaginatedResult<Mechanic>> {
     const { page, limit, filters } = params;
     const conditions = [isNull(mechanicsTable.deletedAt)];
 

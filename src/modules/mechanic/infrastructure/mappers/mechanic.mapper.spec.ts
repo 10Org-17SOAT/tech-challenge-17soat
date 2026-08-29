@@ -4,8 +4,6 @@ import { InvalidCpfException } from '../../domain/exceptions/mechanic.exceptions
 import { MECHANIC_AVAILABILITY } from '../../domain/value-objects/mechanic-availability.enum';
 
 describe('MechanicMapper', () => {
-  const mapper = new MechanicMapper();
-
   const makeMechanic = (): Mechanic =>
     Mechanic.create({
       name: 'John Doe',
@@ -20,7 +18,7 @@ describe('MechanicMapper', () => {
     it('maps every field from the entity primitives', () => {
       const mechanic = makeMechanic();
 
-      const row = mapper.toPersistence(mechanic);
+      const row = MechanicMapper.toPersistence(mechanic);
 
       expect(row.id).toBe(mechanic.getId());
       expect(row.name).toBe('John Doe');
@@ -45,7 +43,7 @@ describe('MechanicMapper', () => {
       const mechanic = makeMechanic();
       mechanic.claim('OS-1');
 
-      const row = mapper.toPersistence(mechanic);
+      const row = MechanicMapper.toPersistence(mechanic);
 
       expect(row.availability).toBe(MECHANIC_AVAILABILITY.Allocated);
       expect(row.currentServiceOrderId).toBe('OS-1');
@@ -57,7 +55,9 @@ describe('MechanicMapper', () => {
       const mechanic = makeMechanic();
       mechanic.claim('OS-1');
 
-      const restored = mapper.toDomain(mapper.toPersistence(mechanic));
+      const restored = MechanicMapper.toDomain(
+        MechanicMapper.toPersistence(mechanic),
+      );
 
       expect(restored.getId()).toBe(mechanic.getId());
       expect(restored.getName()).toBe(mechanic.getName());
@@ -82,26 +82,26 @@ describe('MechanicMapper', () => {
 
     it('fails fast on a corrupted cpf', () => {
       const mechanic = makeMechanic();
-      const row = mapper.toPersistence(mechanic);
+      const row = MechanicMapper.toPersistence(mechanic);
       row.cpf = 'not-a-cpf';
 
-      expect(() => mapper.toDomain(row)).toThrow(InvalidCpfException);
+      expect(() => MechanicMapper.toDomain(row)).toThrow(InvalidCpfException);
     });
 
     it('fails fast on a corrupted email', () => {
       const mechanic = makeMechanic();
-      const row = mapper.toPersistence(mechanic);
+      const row = MechanicMapper.toPersistence(mechanic);
       row.email = 'not-an-email';
 
-      expect(() => mapper.toDomain(row)).toThrow();
+      expect(() => MechanicMapper.toDomain(row)).toThrow();
     });
 
     it('fails fast on a corrupted phone', () => {
       const mechanic = makeMechanic();
-      const row = mapper.toPersistence(mechanic);
+      const row = MechanicMapper.toPersistence(mechanic);
       row.phone = { countryCode: '', areaCode: '', number: '' };
 
-      expect(() => mapper.toDomain(row)).toThrow();
+      expect(() => MechanicMapper.toDomain(row)).toThrow();
     });
   });
 });
