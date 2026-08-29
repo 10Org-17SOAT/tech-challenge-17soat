@@ -20,3 +20,10 @@ export class InvalidEmailException extends MechanicException {
     this.name = 'InvalidEmailException';
   }
 }
+
+export class InvalidPhoneException extends MechanicException {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidPhoneException';
+  }
+}
