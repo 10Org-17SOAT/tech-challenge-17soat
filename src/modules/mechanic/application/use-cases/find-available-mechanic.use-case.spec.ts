@@ -30,7 +30,7 @@ describe('FindAvailableMechanicUseCase', () => {
       id,
       name: `Mechanic ${id.slice(0, 4)}`,
       cpf: new Cpf('11144477735'),
-      email: `mechanic-${id.slice(0, 4)}@example.com`,
+      email: new Email(`mechanic-${id.slice(0, 4)}@example.com`),
       phone: new Phone({
         countryCode: '55',
         areaCode: '11',
