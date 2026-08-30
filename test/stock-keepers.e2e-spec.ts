@@ -85,10 +85,7 @@ describe('Stock keepers (e2e)', () => {
   describe('POST /stock-keepers', () => {
     it('creates a stock keeper and returns 201', async () => {
       const body = stockKeeperBody(
-        await http()
-          .post('/stock-keepers')
-          .send(validStockKeeper)
-          .expect(201),
+        await http().post('/stock-keepers').send(validStockKeeper).expect(201),
       );
 
       expect(body).toMatchObject(validStockKeeper);
@@ -239,9 +236,7 @@ describe('Stock keepers (e2e)', () => {
         const after = pageBody(
           await http().get('/stock-keepers?name=mar').expect(200),
         );
-        expect(after.items.map((s) => s.name)).toEqual([
-          'Marcos Almoxarife',
-        ]);
+        expect(after.items.map((s) => s.name)).toEqual(['Marcos Almoxarife']);
         expect(after.total).toBe(1);
       });
 

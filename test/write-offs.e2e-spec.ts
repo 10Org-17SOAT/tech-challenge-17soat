@@ -37,7 +37,11 @@ describe('Write-offs (e2e)', () => {
 
     stockKeeperId = await request(app.getHttpServer())
       .post('/stock-keepers')
-      .send({ name: 'Estoquista de teste', cpf: '22255588846', phone: '11987654321' })
+      .send({
+        name: 'Estoquista de teste',
+        cpf: '22255588846',
+        phone: '11987654321',
+      })
       .expect(201)
       .then((res) => (res.body as { id: string }).id);
   });

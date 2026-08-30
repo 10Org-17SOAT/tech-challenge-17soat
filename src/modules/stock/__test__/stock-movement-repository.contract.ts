@@ -5,7 +5,10 @@ import { ReservationNotFoundError } from '../domain/errors/reservation-not-found
 import { StockMovement } from '../domain/stock-movement.entity';
 import type { StockMovementRepository } from '../domain/stock-movement.repository';
 
-const TEST_PERFORMER = { id: '11111111-1111-1111-1111-111111111111', name: 'Estoquista Teste' };
+const TEST_PERFORMER = {
+  id: '11111111-1111-1111-1111-111111111111',
+  name: 'Estoquista Teste',
+};
 
 export interface StockMovementRepositoryContext {
   repository: StockMovementRepository;

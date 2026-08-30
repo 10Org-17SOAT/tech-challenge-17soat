@@ -23,9 +23,7 @@ export class ListStockKeepersUseCase {
   async execute(
     filter: ListStockKeepersFilter,
   ): Promise<ListStockKeepersOutput> {
-    const { items, total } = await this.stockKeeperRepository.findMany(
-      filter,
-    );
+    const { items, total } = await this.stockKeeperRepository.findMany(filter);
 
     return { items, total, page: filter.page, limit: filter.limit };
   }

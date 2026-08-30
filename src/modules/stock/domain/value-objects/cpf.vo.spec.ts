@@ -23,11 +23,11 @@ describe('Cpf', () => {
   });
 
   it('compares by normalized value', () => {
-    expect(
-      Cpf.create('11144477735').equals(Cpf.create('111.444.777-35')),
-    ).toBe(true);
-    expect(
-      Cpf.create('11144477735').equals(Cpf.create('52998224725')),
-    ).toBe(false);
+    expect(Cpf.create('11144477735').equals(Cpf.create('111.444.777-35'))).toBe(
+      true,
+    );
+    expect(Cpf.create('11144477735').equals(Cpf.create('52998224725'))).toBe(
+      false,
+    );
   });
 });

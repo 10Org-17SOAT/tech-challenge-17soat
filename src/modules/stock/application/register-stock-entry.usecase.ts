@@ -41,9 +41,8 @@ export class RegisterStockEntryUseCase {
       throw new SupplyNotFoundError(supplyId);
     }
 
-    const stockKeeper = await this.stockKeeperRepository.findById(
-      stockKeeperId,
-    );
+    const stockKeeper =
+      await this.stockKeeperRepository.findById(stockKeeperId);
     if (!stockKeeper) {
       throw new StockKeeperNotFoundError(stockKeeperId);
     }

@@ -19,9 +19,7 @@ describe('Phone', () => {
   });
 
   it('rejects a number longer than a mobile number with area code', () => {
-    expect(() => Phone.create('119876543210')).toThrow(
-      InvalidStockKeeperError,
-    );
+    expect(() => Phone.create('119876543210')).toThrow(InvalidStockKeeperError);
   });
 
   it('compares by normalized value', () => {

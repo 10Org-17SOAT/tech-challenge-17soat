@@ -24,8 +24,8 @@ describe('GetStockKeeperUseCase', () => {
   });
 
   it('throws when the stock keeper does not exist', async () => {
-    await expect(
-      useCase.execute(crypto.randomUUID()),
-    ).rejects.toBeInstanceOf(StockKeeperNotFoundError);
+    await expect(useCase.execute(crypto.randomUUID())).rejects.toBeInstanceOf(
+      StockKeeperNotFoundError,
+    );
   });
 });

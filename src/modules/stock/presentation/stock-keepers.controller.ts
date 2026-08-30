@@ -69,9 +69,7 @@ export class StockKeepersController {
   async getById(
     @Param() params: StockKeeperIdParamDto,
   ): Promise<StockKeeperResponseDto> {
-    return toStockKeeperResponse(
-      await this.getStockKeeper.execute(params.id),
-    );
+    return toStockKeeperResponse(await this.getStockKeeper.execute(params.id));
   }
 
   @Patch(':id')

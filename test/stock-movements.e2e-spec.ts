@@ -16,7 +16,10 @@ import {
   supplies,
 } from './../src/modules/stock/infrastructure/persistence/schema';
 
-const TEST_PERFORMER = { id: '11111111-1111-1111-1111-111111111111', name: 'Estoquista Teste' };
+const TEST_PERFORMER = {
+  id: '11111111-1111-1111-1111-111111111111',
+  name: 'Estoquista Teste',
+};
 
 // Exercises the Drizzle adapter against a real Postgres: the balance arithmetic
 // lives in SQL, so the in-memory fake alone cannot prove it.

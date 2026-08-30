@@ -2,7 +2,10 @@ import { randomUUID } from 'node:crypto';
 import { InvalidStockMovementError } from './errors/invalid-stock-movement.error';
 import { MovementType, StockMovement } from './stock-movement.entity';
 
-const TEST_PERFORMER = { id: '11111111-1111-1111-1111-111111111111', name: 'Estoquista Teste' };
+const TEST_PERFORMER = {
+  id: '11111111-1111-1111-1111-111111111111',
+  name: 'Estoquista Teste',
+};
 
 describe('StockMovement', () => {
   const supplyId = randomUUID();
