@@ -38,11 +38,27 @@ export const quotations = pgTable(
     approvedAt: timestamp('approved_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
+    // Only the SHA-256 hex digest of the approval token is kept — the raw
+    // value exists once, in memory, long enough to build the email link.
+    approvalTokenHash: varchar('approval_token_hash', { length: 64 }),
+    approvalTokenExpiresAt: timestamp('approval_token_expires_at', {
+      withTimezone: true,
+    }),
+    // Null after an issued quotation whose email failed to go out: sending is
+    // best-effort and never fails the diagnosis, so the miss must be visible.
+    approvalEmailSentAt: timestamp('approval_email_sent_at', {
+      withTimezone: true,
+    }),
   },
   (table) => [
     // One quotation per service order. Rejection is out of scope, so there is
     // no "live vs superseded" distinction to scope this index to yet.
     uniqueIndex('quotations_service_order_unique').on(table.serviceOrderId),
+    // Partial: resending rotates the token, and quotations never emailed keep
+    // a null hash — which must not collide with each other.
+    uniqueIndex('quotations_approval_token_hash_unique')
+      .on(table.approvalTokenHash)
+      .where(sql`${table.approvalTokenHash} IS NOT NULL`),
   ],
 );
 

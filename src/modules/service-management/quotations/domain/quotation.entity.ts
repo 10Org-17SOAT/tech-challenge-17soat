@@ -1,6 +1,21 @@
-import { randomUUID } from 'node:crypto';
+import {
+  createHash,
+  randomBytes,
+  randomUUID,
+  timingSafeEqual,
+} from 'node:crypto';
+import { ApprovalTokenExpiredError } from './errors/approval-token-expired.error';
+import { ApprovalTokenNotIssuedError } from './errors/approval-token-not-issued.error';
+import { InvalidApprovalTokenError } from './errors/invalid-approval-token.error';
 import { InvalidQuotationError } from './errors/invalid-quotation.error';
 import { QuotationAlreadyApprovedError } from './errors/quotation-already-approved.error';
+
+/**
+ * How long the customer has to click the link in the email. A business rule of
+ * the workshop, not a security knob: a quotation nobody answered in a week is
+ * stale, and its prices were frozen at issue time.
+ */
+export const APPROVAL_TOKEN_TTL_DAYS = 7;
 
 export const QUOTATION_STATUSES = ['issued', 'approved'] as const;
 
@@ -118,6 +133,11 @@ export interface QuotationProps {
   approvedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+  // Only the digest is ever stored. The raw token exists once, returned by
+  // `issueApprovalToken`, long enough to be written into the email.
+  approvalTokenHash: string | null;
+  approvalTokenExpiresAt: Date | null;
+  approvalEmailSentAt: Date | null;
 }
 
 export interface IssueQuotationProps {
@@ -145,6 +165,11 @@ export class Quotation {
       approvedAt: null,
       createdAt: now,
       updatedAt: now,
+      // A quotation is issued before anyone decides to email it. The link is
+      // minted by whoever sends it, not by issuance.
+      approvalTokenHash: null,
+      approvalTokenExpiresAt: null,
+      approvalEmailSentAt: null,
     });
   }
 
@@ -159,6 +184,60 @@ export class Quotation {
     const now = new Date();
     this.props.status = 'approved';
     this.props.approvedAt = now;
+    this.props.updatedAt = now;
+  }
+
+  static hashApprovalToken(rawToken: string): string {
+    return createHash('sha256').update(rawToken).digest('hex');
+  }
+
+  /**
+   * Mints the link the customer clicks, and returns the raw token — the only
+   * moment it exists outside the email. Calling it again rotates: the previous
+   * link stops working, which is what "resend the quotation" has to mean when
+   * the old value is unrecoverable from a hash.
+   */
+  issueApprovalToken(ttlDays: number = APPROVAL_TOKEN_TTL_DAYS): string {
+    const rawToken = randomBytes(32).toString('base64url');
+    const now = new Date();
+    this.props.approvalTokenHash = Quotation.hashApprovalToken(rawToken);
+    this.props.approvalTokenExpiresAt = new Date(
+      now.getTime() + ttlDays * 24 * 60 * 60 * 1000,
+    );
+    this.props.updatedAt = now;
+    return rawToken;
+  }
+
+  /**
+   * The customer accepting from the email. Every reason to refuse lives here,
+   * beside `approve()`'s own — one place answers "is this approval valid".
+   */
+  approveWithToken(rawToken: string): void {
+    if (!this.props.approvalTokenHash || !this.props.approvalTokenExpiresAt) {
+      throw new ApprovalTokenNotIssuedError(this.props.id);
+    }
+
+    const expected = Buffer.from(this.props.approvalTokenHash, 'hex');
+    const actual = Buffer.from(Quotation.hashApprovalToken(rawToken), 'hex');
+    if (
+      expected.length !== actual.length ||
+      !timingSafeEqual(expected, actual)
+    ) {
+      throw new InvalidApprovalTokenError();
+    }
+
+    // Expiry is checked before `approve()` so an expired link on an unapproved
+    // quotation reports the expiry, not a generic refusal.
+    if (this.props.approvalTokenExpiresAt.getTime() <= Date.now()) {
+      throw new ApprovalTokenExpiredError(this.props.approvalTokenExpiresAt);
+    }
+
+    this.approve();
+  }
+
+  markApprovalEmailSent(): void {
+    const now = new Date();
+    this.props.approvalEmailSentAt = now;
     this.props.updatedAt = now;
   }
 
@@ -200,5 +279,17 @@ export class Quotation {
 
   get updatedAt(): Date {
     return this.props.updatedAt;
+  }
+
+  get approvalTokenHash(): string | null {
+    return this.props.approvalTokenHash;
+  }
+
+  get approvalTokenExpiresAt(): Date | null {
+    return this.props.approvalTokenExpiresAt;
+  }
+
+  get approvalEmailSentAt(): Date | null {
+    return this.props.approvalEmailSentAt;
   }
 }
