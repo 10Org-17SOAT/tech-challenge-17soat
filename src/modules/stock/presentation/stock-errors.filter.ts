@@ -30,7 +30,7 @@ import { SupplyNotFoundError } from '../domain/errors/supply-not-found.error';
   StockKeeperCpfAlreadyExistsError,
   InvalidStockKeeperError,
 )
-export class SupplyErrorsFilter implements ExceptionFilter {
+export class StockErrorsFilter implements ExceptionFilter {
   catch(error: Error, host: ArgumentsHost) {
     const response = host.switchToHttp().getResponse<Response>();
     const httpError = this.toHttpException(error);

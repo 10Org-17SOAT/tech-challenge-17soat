@@ -26,11 +26,11 @@ import {
   toStockKeeperResponse,
   UpdateStockKeeperDto,
 } from './dtos/stock-keeper.dtos';
-import { SupplyErrorsFilter } from './supply-errors.filter';
+import { StockErrorsFilter } from './stock-errors.filter';
 
 @ApiTags('stock-keepers')
 @Controller('stock-keepers')
-@UseFilters(SupplyErrorsFilter)
+@UseFilters(StockErrorsFilter)
 export class StockKeepersController {
   constructor(
     private readonly createStockKeeper: CreateStockKeeperUseCase,

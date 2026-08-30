@@ -42,11 +42,11 @@ import {
   toSupplyResponse,
   UpdateSupplyDto,
 } from './dtos/supply.dtos';
-import { SupplyErrorsFilter } from './supply-errors.filter';
+import { StockErrorsFilter } from './stock-errors.filter';
 
 @ApiTags('supplies')
 @Controller('supplies')
-@UseFilters(SupplyErrorsFilter)
+@UseFilters(StockErrorsFilter)
 export class SuppliesController {
   constructor(
     private readonly createSupply: CreateSupplyUseCase,
