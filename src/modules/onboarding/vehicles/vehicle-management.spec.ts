@@ -39,12 +39,16 @@ import {
 import { VehicleErrorsFilter } from './presentation/filters/vehicle-errors.filter';
 import { VehicleManagementModule } from './vehicle-management.module';
 import { DrizzleVehicleRepository } from './infrastructure/repositories/drizzle-vehicle.repository';
+import { InMemoryCustomerContactQuery } from '../customer/__test__/in-memory-customer-contact.query';
 import { vehiclesTable } from './infrastructure/persistence/vehicle.schema';
 
 describe('Vehicle Management module', () => {
+  const CUSTOMER_ID = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
+
   const vehicleFactory = (overrides: Partial<CreateVehicleProps> = {}) =>
     Vehicle.create({
       vehicle_id: '123e4567-e89b-12d3-a456-426614174000',
+      customerId: CUSTOMER_ID,
       licensePlate: 'ABC-1234',
       model: 'Civic',
       year: 2024,
@@ -73,6 +77,7 @@ describe('Vehicle Management module', () => {
       expect(vehicle.getUpdatedAt()).toBeInstanceOf(Date);
       expect(vehicle.toPrimitives()).toMatchObject({
         vehicle_id: '123e4567-e89b-12d3-a456-426614174000',
+        customerId: CUSTOMER_ID,
         licensePlate: 'ABC-1234',
         model: 'Civic',
         year: 2024,
@@ -216,10 +221,14 @@ describe('Vehicle Management module', () => {
         save: jest.fn().mockResolvedValue(undefined),
       };
 
+      const customers = new InMemoryCustomerContactQuery();
+      customers.add({ id: CUSTOMER_ID, name: 'Ana', email: 'ana@example.com' });
       const useCase = new CreateVehicleUseCase(
         repository as any as IVehicleRepository,
+        customers,
       );
       const result = await useCase.execute({
+        customerId: CUSTOMER_ID,
         licensePlate: 'ABC-1234',
         model: 'Civic',
         year: 2024,
@@ -240,12 +249,16 @@ describe('Vehicle Management module', () => {
         findByLicensePlate: jest.fn().mockResolvedValue(vehicleFactory()),
       };
 
+      const customers = new InMemoryCustomerContactQuery();
+      customers.add({ id: CUSTOMER_ID, name: 'Ana', email: 'ana@example.com' });
       const useCase = new CreateVehicleUseCase(
         repository as any as IVehicleRepository,
+        customers,
       );
 
       await expect(
         useCase.execute({
+          customerId: CUSTOMER_ID,
           licensePlate: 'ABC-1234',
           model: 'Civic',
           year: 2024,
@@ -386,6 +399,7 @@ describe('Vehicle Management module', () => {
       const persistence = VehicleMapper.toPersistence(vehicle);
       expect(persistence).toMatchObject({
         vehicle_id: vehicle.getId().getValue(),
+        customerId: CUSTOMER_ID,
         licensePlate: 'ABC-1234',
         model: 'Civic',
       });
@@ -430,6 +444,7 @@ describe('Vehicle Management module', () => {
     it('should create a vehicle successfully', async () => {
       createVehicleUseCase.execute.mockResolvedValue({
         vehicle_id: '11111111-1111-4111-8111-111111111111',
+        customerId: CUSTOMER_ID,
         licensePlate: 'ABC-1234',
         model: 'Civic',
         year: 2024,
@@ -441,6 +456,7 @@ describe('Vehicle Management module', () => {
       });
 
       const result = await controller.create({
+        customerId: CUSTOMER_ID,
         licensePlate: 'ABC-1234',
         model: 'Civic',
         year: 2024,
@@ -462,6 +478,7 @@ describe('Vehicle Management module', () => {
 
       await expect(
         controller.create({
+          customerId: CUSTOMER_ID,
           licensePlate: 'ABC-1234',
           model: 'Civic',
           year: 2024,
@@ -480,6 +497,7 @@ describe('Vehicle Management module', () => {
 
       await expect(
         controller.create({
+          customerId: CUSTOMER_ID,
           licensePlate: 'ABC-1234',
           model: 'Civic',
           year: 2024,
@@ -498,6 +516,7 @@ describe('Vehicle Management module', () => {
 
       await expect(
         controller.create({
+          customerId: CUSTOMER_ID,
           licensePlate: 'ABC-1234',
           model: 'Civic',
           year: 2024,
@@ -704,6 +723,7 @@ describe('Vehicle Management module', () => {
       const vehicle = vehicleFactory();
       const rowOf = (v: Vehicle) => ({
         vehicle_id: v.getId().getValue(),
+        customerId: v.getCustomerId(),
         licensePlate: v.getLicensePlate().getValue(),
         model: v.getVehicleModel().getModel(),
         year: v.getVehicleModel().getYear(),
@@ -748,6 +768,7 @@ describe('Vehicle Management module', () => {
       });
       const rowOf = (v: Vehicle) => ({
         vehicle_id: v.getId().getValue(),
+        customerId: v.getCustomerId(),
         licensePlate: v.getLicensePlate().getValue(),
         model: v.getVehicleModel().getModel(),
         year: v.getVehicleModel().getYear(),
