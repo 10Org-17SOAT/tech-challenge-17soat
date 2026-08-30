@@ -1,0 +1,112 @@
+# CodeRabbit configuration
+# Docs: https://docs.coderabbit.ai/reference/configuration
+
+language: "en-US"
+
+tone_instructions: >
+  Be direct and technical. Point out violations of this repo's Clean
+  Architecture / Modular Monolith rules explicitly, quoting the guideline
+  that was broken.
+
+early_access: false
+
+reviews:
+  profile: assertive
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - main
+      - develop
+
+  path_filters:
+    - "!dist/**"
+    - "!coverage/**"
+    - "!chaos-reports/**"
+    - "!node_modules/**"
+    - "!package-lock.json"
+    - "!skills-lock.json"
+
+  path_instructions:
+    - path: "src/modules/**/domain/**/*.ts"
+      instructions: >
+        This is the domain layer. It must never import from application,
+        infrastructure, or presentation layers of any module, nor from
+        NestJS/HTTP/ORM packages. Entities must be constructed through a
+        static factory (e.g. `Entity.create(...)`), never `new Entity(...)`
+        from outside the entity. Domain invariants expressible as a single
+        value must live in an immutable value object rather than loose
+        validation in use cases. Only domain error classes
+        (`<X>Error extends Error`) may be thrown here — never
+        `HttpException` or other Nest HTTP exceptions.
+
+    - path: "src/modules/**/application/**/*.ts"
+      instructions: >
+        This is the application layer. It may depend on domain but never on
+        infrastructure or presentation. Dependency injection must use tokens
+        (e.g. `@Inject(SUPPLY_REPOSITORY)`), never concrete infrastructure
+        classes injected directly. It throws only domain error classes,
+        never HTTP exceptions.
+
+    - path: "src/modules/**/infrastructure/**/*.ts"
+      instructions: >
+        This is the infrastructure layer. It implements ports (interfaces)
+        defined in domain (e.g. repository interfaces) — the dependency
+        must never point the other way. Flag any infrastructure code that
+        defines new business rules instead of implementing a domain port.
+
+    - path: "src/modules/**/presentation/**/*.ts"
+      instructions: >
+        This is the presentation layer. Each module must translate domain
+        errors to HTTP responses through a single ExceptionFilter (e.g.
+        `SupplyErrorsFilter`) — flag ad-hoc error handling or new domain
+        errors mapped directly in a controller instead of that filter.
+
+    - path: "src/shared/**/*.ts"
+      instructions: >
+        `src/shared` is reserved for cross-cutting infrastructure only.
+        Flag anything here that encodes business rules belonging to a
+        specific module's domain/application layer.
+
+    - path: "**/*.ts"
+      instructions: >
+        Monetary values must always be stored and compared in integer
+        cents (e.g. `priceInCents`), never as floating-point currency —
+        flag any use of floats for money as critical severity. Stock
+        quantities must never be allowed to go negative or become
+        inconsistent. A pure TypeScript type (interface/type alias) must be
+        imported with `import type`, never mixed into the same import
+        statement as a runtime value from the same module. Commits should
+        follow Conventional Commits with the module as scope
+        (`<type>(<module>): <description>`).
+
+    - path: "**/*.spec.ts"
+      instructions: >
+        Tests should follow the existing Jest conventions in this repo.
+        Do not require 100% coverage, but flag missing tests for new
+        domain invariants (e.g. negative stock, non-unique supply name,
+        monetary precision).
+
+    - path: "**/migrations/**"
+      instructions: >
+        Migrations are append-only. Flag any edit to a migration file that
+        was already merged instead of a new migration generated via
+        `drizzle-kit generate`.
+
+  tools:
+    eslint:
+      enabled: true
+    languagetool:
+      enabled: false
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  learnings:
+    scope: auto
