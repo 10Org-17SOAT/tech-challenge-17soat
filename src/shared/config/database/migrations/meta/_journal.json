@@ -78,6 +78,20 @@
       "when": 1787615562281,
       "tag": "20260824235242_moaning_hydra",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1787615563281,
+      "tag": "20260826000000_rename_orders_to_service_orders",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1788123372535,
+      "tag": "20260830205612_add_stock_keepers",
+      "breakpoints": true
     }
   ]
 }
