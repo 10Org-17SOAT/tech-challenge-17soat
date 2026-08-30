@@ -294,4 +294,116 @@ describe('Mechanics (e2e)', () => {
       expect(res.status).toBe(201);
     });
   });
+
+  describe('POST /mechanics/claim', () => {
+    const serviceOrderId = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
+
+    it('claims an available mechanic and marks it ALLOCATED', async () => {
+      const mechanic = await seedMechanic();
+
+      const res = await http()
+        .post('/mechanics/claim')
+        .send({ serviceOrderId });
+
+      expect(res.status).toBe(200);
+      const body = mechanicBody(res);
+      expect(body.id).toBe(mechanic.getId());
+      expect(body.availability).toBe('ALLOCATED');
+      expect(body.currentServiceOrderId).toBeUndefined();
+    });
+
+    it('claims a mechanic matching the requested specialty', async () => {
+      await seedMechanic(); // mechanical
+      const electrical = await seedMechanic({
+        cpf: validCpf('529982247'),
+        specialties: ['electrical'],
+      });
+
+      const res = await http()
+        .post('/mechanics/claim')
+        .send({ serviceOrderId, specialty: 'electrical' });
+
+      expect(res.status).toBe(200);
+      expect(mechanicBody(res).id).toBe(electrical.getId());
+    });
+
+    it('returns 404 when no mechanic is available', async () => {
+      const res = await http()
+        .post('/mechanics/claim')
+        .send({ serviceOrderId });
+
+      expect(res.status).toBe(404);
+    });
+
+    it('rejects an invalid payload with 400', async () => {
+      const res = await http().post('/mechanics/claim').send({});
+
+      expect(res.status).toBe(400);
+    });
+
+    it('rejects unknown fields with 400 (strict schema)', async () => {
+      const res = await http()
+        .post('/mechanics/claim')
+        .send({ serviceOrderId, availability: 'ALLOCATED' });
+
+      expect(res.status).toBe(400);
+    });
+  });
+
+  describe('POST /mechanics/:id/release', () => {
+    const serviceOrderId = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
+
+    it('releases an allocated mechanic and marks it AVAILABLE', async () => {
+      const mechanic = await seedMechanic();
+      mechanic.claim(serviceOrderId);
+
+      const res = await http()
+        .post(`/mechanics/${mechanic.getId()}/release`)
+        .send({ serviceOrderId });
+
+      expect(res.status).toBe(200);
+      const body = mechanicBody(res);
+      expect(body.id).toBe(mechanic.getId());
+      expect(body.availability).toBe('AVAILABLE');
+    });
+
+    it('returns 404 for an unknown id', async () => {
+      const res = await http()
+        .post('/mechanics/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11/release')
+        .send({ serviceOrderId });
+
+      expect(res.status).toBe(404);
+    });
+
+    it('returns 409 when the mechanic is not allocated', async () => {
+      const mechanic = await seedMechanic();
+
+      const res = await http()
+        .post(`/mechanics/${mechanic.getId()}/release`)
+        .send({ serviceOrderId });
+
+      expect(res.status).toBe(409);
+    });
+
+    it('returns 409 when the service order does not match', async () => {
+      const mechanic = await seedMechanic();
+      mechanic.claim(serviceOrderId);
+
+      const res = await http()
+        .post(`/mechanics/${mechanic.getId()}/release`)
+        .send({ serviceOrderId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22' });
+
+      expect(res.status).toBe(409);
+    });
+
+    it('rejects an invalid payload with 400', async () => {
+      const mechanic = await seedMechanic();
+
+      const res = await http()
+        .post(`/mechanics/${mechanic.getId()}/release`)
+        .send({});
+
+      expect(res.status).toBe(400);
+    });
+  });
 });

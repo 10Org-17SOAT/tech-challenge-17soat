@@ -7,6 +7,8 @@ import { GetMechanicByIdUseCase } from './application/use-cases/get-mechanic-by-
 import { ListMechanicsUseCase } from './application/use-cases/list-mechanics.use-case';
 import { UpdateMechanicProfileUseCase } from './application/use-cases/update-mechanic-profile.use-case';
 import { DeactivateMechanicUseCase } from './application/use-cases/deactivate-mechanic.use-case';
+import { FindAvailableMechanicUseCase } from './application/use-cases/find-available-mechanic.use-case';
+import { ReleaseMechanicUseCase } from './application/use-cases/release-mechanic.use-case';
 import { MechanicController } from './presentation/controllers/mechanic.controller';
 
 @Module({
@@ -22,6 +24,8 @@ import { MechanicController } from './presentation/controllers/mechanic.controll
     ListMechanicsUseCase,
     UpdateMechanicProfileUseCase,
     DeactivateMechanicUseCase,
+    FindAvailableMechanicUseCase,
+    ReleaseMechanicUseCase,
   ],
 })
 export class MechanicModule {}

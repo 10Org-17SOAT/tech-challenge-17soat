@@ -80,3 +80,20 @@ export const ListMechanicsQuerySchema = z
 export class ListMechanicsQueryDto extends createZodDto(
   ListMechanicsQuerySchema,
 ) {}
+
+export const ClaimMechanicSchema = z
+  .object({
+    serviceOrderId: z.uuid('Service order id must be a valid UUID'),
+    specialty: z.enum(SPECIALTIES).optional(),
+  })
+  .strict();
+
+export class ClaimMechanicDto extends createZodDto(ClaimMechanicSchema) {}
+
+export const ReleaseMechanicSchema = z
+  .object({
+    serviceOrderId: z.uuid('Service order id must be a valid UUID'),
+  })
+  .strict();
+
+export class ReleaseMechanicDto extends createZodDto(ReleaseMechanicSchema) {}
