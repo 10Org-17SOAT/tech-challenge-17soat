@@ -20,7 +20,9 @@ export class ListServiceOrdersUseCase {
     private readonly orderRepository: ServiceOrderRepository,
   ) {}
 
-  async execute(filter: ListServiceOrdersFilter): Promise<ListServiceOrdersOutput> {
+  async execute(
+    filter: ListServiceOrdersFilter,
+  ): Promise<ListServiceOrdersOutput> {
     const { items, total } = await this.orderRepository.findMany(filter);
     return { items, total, page: filter.page, limit: filter.limit };
   }

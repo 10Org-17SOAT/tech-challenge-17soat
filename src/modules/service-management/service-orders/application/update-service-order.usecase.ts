@@ -17,7 +17,10 @@ export class UpdateServiceOrderUseCase {
     private readonly orderRepository: ServiceOrderRepository,
   ) {}
 
-  async execute(id: string, input: UpdateServiceOrderInput): Promise<ServiceOrder> {
+  async execute(
+    id: string,
+    input: UpdateServiceOrderInput,
+  ): Promise<ServiceOrder> {
     const order = await this.orderRepository.findById(id);
     if (!order) {
       throw new ServiceOrderNotFoundError(id);
