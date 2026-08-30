@@ -8,17 +8,23 @@ import { SoftDeleteCustomerUseCase } from './application/use-cases/soft-delete-c
 import { CUSTOMER_REPOSITORY } from './domain/repository/customer.repository';
 import { DrizzleCustomerRepository } from './infrastructure/repositories/drizzle-customer.repository';
 import { CustomerController } from './presentation/controllers/customer.controller';
+import { CUSTOMER_CONTACT_QUERY } from './public/customer-contact.query';
+import { DrizzleCustomerContactQuery } from './public/customer-contact.query.impl';
 
 @Module({
   imports: [DatabaseModule],
   controllers: [CustomerController],
   providers: [
     { provide: CUSTOMER_REPOSITORY, useClass: DrizzleCustomerRepository },
+    { provide: CUSTOMER_CONTACT_QUERY, useClass: DrizzleCustomerContactQuery },
     CreateCustomerUseCase,
     FindCustomerByIdUseCase,
     FindAllCustomersUseCase,
     UpdateCustomerUseCase,
     SoftDeleteCustomerUseCase,
   ],
+  // The only thing that leaves this module. Repositories, use cases and the
+  // Customer aggregate stay private.
+  exports: [CUSTOMER_CONTACT_QUERY],
 })
 export class CustomerModule {}
