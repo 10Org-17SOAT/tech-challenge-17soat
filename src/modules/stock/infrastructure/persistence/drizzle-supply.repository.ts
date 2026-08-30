@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, eq, ilike, isNull } from 'drizzle-orm';
+import { and, count, eq, ilike, inArray, isNull } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../../../../shared/config/database/database.constants';
 import type { DrizzleDatabase } from '../../../../shared/config/database/drizzle.provider';
 import { SupplyNameAlreadyExistsError } from '../../domain/errors/supply-name-already-exists.error';
@@ -32,6 +32,18 @@ export class DrizzleSupplyRepository implements SupplyRepository {
       .where(and(eq(supplies.id, id), isNull(supplies.deletedAt)))
       .limit(1);
     return rows[0] ? toEntity(rows[0]) : null;
+  }
+
+  // Single round trip for the whole batch; soft-deleted supplies are filtered
+  // out here so callers see absence, not a tombstone.
+  async findManyByIds(ids: string[]): Promise<Supply[]> {
+    if (ids.length === 0) return [];
+
+    const rows = await this.db
+      .select()
+      .from(supplies)
+      .where(and(inArray(supplies.id, ids), isNull(supplies.deletedAt)));
+    return rows.map(toEntity);
   }
 
   async findByName(name: string): Promise<Supply | null> {

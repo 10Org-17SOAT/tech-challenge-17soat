@@ -13,6 +13,8 @@ import { SUPPLY_REPOSITORY } from './domain/supply.repository';
 import { DrizzleStockMovementRepository } from './infrastructure/persistence/drizzle-stock-movement.repository';
 import { DrizzleSupplyRepository } from './infrastructure/persistence/drizzle-supply.repository';
 import { SuppliesController } from './presentation/supplies.controller';
+import { SUPPLY_CATALOG_QUERY } from './public/supply-catalog.query';
+import { SupplyCatalogQueryImpl } from './public/supply-catalog.query.impl';
 
 @Module({
   controllers: [SuppliesController],
@@ -31,7 +33,10 @@ import { SuppliesController } from './presentation/supplies.controller';
     LookupStockUseCase,
     ReservePartUseCase,
     WriteOffReservedPartUseCase,
+    { provide: SUPPLY_CATALOG_QUERY, useClass: SupplyCatalogQueryImpl },
   ],
-  exports: [],
+  // The published contract, and nothing else. Other modules inject
+  // SUPPLY_CATALOG_QUERY; the repositories and use cases stay private.
+  exports: [SUPPLY_CATALOG_QUERY],
 })
 export class StockModule {}

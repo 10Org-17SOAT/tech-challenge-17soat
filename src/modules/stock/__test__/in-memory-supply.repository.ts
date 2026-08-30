@@ -13,6 +13,15 @@ export class InMemorySupplyRepository implements SupplyRepository {
     return Promise.resolve(supply && !supply.deletedAt ? supply : null);
   }
 
+  findManyByIds(ids: string[]): Promise<Supply[]> {
+    const wanted = new Set(ids);
+    return Promise.resolve(
+      [...this.supplies.values()].filter(
+        (supply) => wanted.has(supply.id) && !supply.deletedAt,
+      ),
+    );
+  }
+
   findByName(name: string): Promise<Supply | null> {
     for (const supply of this.supplies.values()) {
       if (supply.name === name && !supply.deletedAt) {

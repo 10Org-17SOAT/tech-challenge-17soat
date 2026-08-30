@@ -16,6 +16,7 @@ export interface PaginatedSupplies {
 
 export interface SupplyRepository {
   findById(id: string): Promise<Supply | null>;
+  findManyByIds(ids: string[]): Promise<Supply[]>;
   findByName(name: string): Promise<Supply | null>;
   findMany(filter: ListSuppliesFilter): Promise<PaginatedSupplies>;
   save(supply: Supply): Promise<void>;
