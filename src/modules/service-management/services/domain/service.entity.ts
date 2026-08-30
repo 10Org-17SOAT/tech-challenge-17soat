@@ -21,7 +21,7 @@ export interface ServiceProps {
   name: string;
   description: string | null;
   category: ServiceCategory;
-  priceInCents: number;
+  laborPriceInCents: number;
   estimatedDuration: number | null;
   warrantyDays: number | null;
   active: boolean;
@@ -34,7 +34,7 @@ export interface CreateServiceProps {
   name: string;
   description?: string | null;
   category: ServiceCategory;
-  priceInCents: number;
+  laborPriceInCents: number;
   estimatedDuration?: number | null;
   warrantyDays?: number | null;
 }
@@ -49,7 +49,7 @@ export class Service {
       name: Service.validateName(props.name),
       description: props.description ?? null,
       category: props.category,
-      priceInCents: Service.validatePrice(props.priceInCents),
+      laborPriceInCents: Service.validateLaborPrice(props.laborPriceInCents),
       estimatedDuration: Service.validatePositiveIntOrNull(
         props.estimatedDuration ?? null,
         'Estimated duration',
@@ -73,7 +73,7 @@ export class Service {
     name?: string;
     description?: string | null;
     category?: ServiceCategory;
-    priceInCents?: number;
+    laborPriceInCents?: number;
     estimatedDuration?: number | null;
     warrantyDays?: number | null;
     active?: boolean;
@@ -87,8 +87,10 @@ export class Service {
     if (changes.category !== undefined) {
       this.props.category = changes.category;
     }
-    if (changes.priceInCents !== undefined) {
-      this.props.priceInCents = Service.validatePrice(changes.priceInCents);
+    if (changes.laborPriceInCents !== undefined) {
+      this.props.laborPriceInCents = Service.validateLaborPrice(
+        changes.laborPriceInCents,
+      );
     }
     if (changes.estimatedDuration !== undefined) {
       this.props.estimatedDuration = Service.validatePositiveIntOrNull(
@@ -121,13 +123,13 @@ export class Service {
     return trimmed;
   }
 
-  private static validatePrice(priceInCents: number): number {
-    if (!Number.isInteger(priceInCents) || priceInCents < 0) {
+  private static validateLaborPrice(laborPriceInCents: number): number {
+    if (!Number.isInteger(laborPriceInCents) || laborPriceInCents < 0) {
       throw new InvalidServiceError(
-        'Service price must be a non-negative integer amount of cents',
+        'Service labor price must be a non-negative integer amount of cents',
       );
     }
-    return priceInCents;
+    return laborPriceInCents;
   }
 
   private static validatePositiveIntOrNull(
@@ -159,8 +161,8 @@ export class Service {
     return this.props.category;
   }
 
-  get priceInCents(): number {
-    return this.props.priceInCents;
+  get laborPriceInCents(): number {
+    return this.props.laborPriceInCents;
   }
 
   get estimatedDuration(): number | null {

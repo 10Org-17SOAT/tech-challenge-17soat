@@ -8,12 +8,15 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   UseFilters,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateServiceUseCase } from '../application/create-service.usecase';
 import { DeleteServiceUseCase } from '../application/delete-service.usecase';
+import { GetServiceSuppliesUseCase } from '../application/get-service-supplies.usecase';
+import { ReplaceServiceSuppliesUseCase } from '../application/replace-service-supplies.usecase';
 import { GetServiceUseCase } from '../application/get-service.usecase';
 import { ListServicesUseCase } from '../application/list-services.usecase';
 import { UpdateServiceUseCase } from '../application/update-service.usecase';
@@ -24,6 +27,8 @@ import {
   ServiceIdParamDto,
   ServiceResponseDto,
   toServiceResponse,
+  ReplaceServiceSuppliesDto,
+  ServiceSuppliesResponseDto,
   UpdateServiceDto,
 } from './dtos/service.dtos';
 import { ServiceErrorsFilter } from './service-errors.filter';
@@ -38,6 +43,8 @@ export class ServicesController {
     private readonly listServices: ListServicesUseCase,
     private readonly updateService: UpdateServiceUseCase,
     private readonly deleteService: DeleteServiceUseCase,
+    private readonly getServiceSupplies: GetServiceSuppliesUseCase,
+    private readonly replaceServiceSupplies: ReplaceServiceSuppliesUseCase,
   ) {}
 
   @Get()
@@ -92,5 +99,36 @@ export class ServicesController {
   @ApiResponse({ status: 404, description: 'Serviço não encontrado' })
   async remove(@Param() params: ServiceIdParamDto): Promise<void> {
     await this.deleteService.execute(params.id);
+  }
+
+  @Get(':id/supplies')
+  @ApiOperation({
+    summary: 'Lista as peças que este serviço consome (lista de materiais)',
+  })
+  @ApiResponse({ status: 200, type: ServiceSuppliesResponseDto })
+  @ApiResponse({ status: 404, description: 'Serviço não encontrado' })
+  async getSupplies(
+    @Param() params: ServiceIdParamDto,
+  ): Promise<ServiceSuppliesResponseDto> {
+    return { supplies: await this.getServiceSupplies.execute(params.id) };
+  }
+
+  @Put(':id/supplies')
+  @ApiOperation({
+    summary: 'Substitui a lista de materiais do serviço',
+  })
+  @ApiResponse({ status: 200, type: ServiceSuppliesResponseDto })
+  @ApiResponse({ status: 404, description: 'Serviço não encontrado' })
+  @ApiResponse({ status: 400, description: 'Peça repetida na lista' })
+  async replaceSupplies(
+    @Param() params: ServiceIdParamDto,
+    @Body() body: ReplaceServiceSuppliesDto,
+  ): Promise<ServiceSuppliesResponseDto> {
+    return {
+      supplies: await this.replaceServiceSupplies.execute(
+        params.id,
+        body.supplies,
+      ),
+    };
   }
 }

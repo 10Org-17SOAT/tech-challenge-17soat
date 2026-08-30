@@ -9,7 +9,7 @@ export const createServiceSchema = z.object({
   name: z.string().trim().min(1).max(255),
   description: z.string().trim().min(1).max(2000).optional(),
   category: z.enum(serviceCategoryValues),
-  priceInCents: z.number().int().nonnegative(),
+  laborPriceInCents: z.number().int().nonnegative(),
   estimatedDuration: z.number().int().positive().optional(),
   warrantyDays: z.number().int().positive().optional(),
 });
@@ -21,7 +21,7 @@ export const updateServiceSchema = z
     name: z.string().trim().min(1).max(255),
     description: z.string().trim().min(1).max(2000).nullable(),
     category: z.enum(serviceCategoryValues),
-    priceInCents: z.number().int().nonnegative(),
+    laborPriceInCents: z.number().int().nonnegative(),
     estimatedDuration: z.number().int().positive().nullable(),
     warrantyDays: z.number().int().positive().nullable(),
     active: z.boolean(),
@@ -41,7 +41,7 @@ export const serviceResponseSchema = z.object({
   name: z.string(),
   description: z.string().nullable(),
   category: z.enum(serviceCategoryValues),
-  priceInCents: z.number().int(),
+  laborPriceInCents: z.number().int(),
   estimatedDuration: z.number().int().nullable(),
   warrantyDays: z.number().int().nullable(),
   active: z.boolean(),
@@ -77,7 +77,7 @@ export function toServiceResponse(service: Service): ServiceResponseDto {
     name: service.name,
     description: service.description,
     category: service.category,
-    priceInCents: service.priceInCents,
+    laborPriceInCents: service.laborPriceInCents,
     estimatedDuration: service.estimatedDuration,
     warrantyDays: service.warrantyDays,
     active: service.active,
@@ -85,3 +85,26 @@ export function toServiceResponse(service: Service): ServiceResponseDto {
     updatedAt: service.updatedAt.toISOString(),
   };
 }
+
+export const serviceSupplySchema = z.object({
+  supplyId: z.uuid(),
+  quantity: z.number().int().positive(),
+});
+
+// The bill of materials is replaced wholesale, so an empty array is a valid
+// payload: it means "this service consumes no parts".
+export const replaceServiceSuppliesSchema = z.object({
+  supplies: z.array(serviceSupplySchema),
+});
+
+export class ReplaceServiceSuppliesDto extends createZodDto(
+  replaceServiceSuppliesSchema,
+) {}
+
+export const serviceSuppliesResponseSchema = z.object({
+  supplies: z.array(serviceSupplySchema),
+});
+
+export class ServiceSuppliesResponseDto extends createZodDto(
+  serviceSuppliesResponseSchema,
+) {}
