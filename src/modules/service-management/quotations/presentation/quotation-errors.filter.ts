@@ -14,6 +14,7 @@ import { InvalidQuotationError } from '../domain/errors/invalid-quotation.error'
 import { PartUnavailableForQuotationError } from '../domain/errors/part-unavailable-for-quotation.error';
 import { QuotationAlreadyApprovedError } from '../domain/errors/quotation-already-approved.error';
 import { QuotationNotFoundError } from '../domain/errors/quotation-not-found.error';
+import { RecipientUnreachableError } from '../domain/errors/recipient-unreachable.error';
 import { ServiceUnavailableForQuotationError } from '../domain/errors/service-unavailable-for-quotation.error';
 
 @Catch(
@@ -24,6 +25,7 @@ import { ServiceUnavailableForQuotationError } from '../domain/errors/service-un
   ServiceUnavailableForQuotationError,
   ServiceOrderNotFoundError,
   InvalidServiceOrderTransitionError,
+  RecipientUnreachableError,
 )
 export class QuotationErrorsFilter implements ExceptionFilter {
   catch(error: Error, host: ArgumentsHost) {
@@ -45,11 +47,13 @@ export class QuotationErrorsFilter implements ExceptionFilter {
     ) {
       return new ConflictException(error.message);
     }
-    // The catalogue moved under a scope of work that was already agreed: the
-    // request is well-formed, the data behind it is not.
+    // The catalogue moved under a scope of work that was already agreed, or
+    // there is nobody left to email it to: the request is well-formed, the
+    // data behind it is not.
     if (
       error instanceof PartUnavailableForQuotationError ||
-      error instanceof ServiceUnavailableForQuotationError
+      error instanceof ServiceUnavailableForQuotationError ||
+      error instanceof RecipientUnreachableError
     ) {
       return new UnprocessableEntityException(error.message);
     }

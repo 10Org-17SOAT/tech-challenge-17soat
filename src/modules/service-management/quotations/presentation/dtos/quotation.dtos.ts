@@ -37,6 +37,9 @@ export const quotationResponseSchema = z.object({
   totalInCents: z.number().int(),
   issuedAt: z.iso.datetime(),
   approvedAt: z.iso.datetime().nullable(),
+  // Null on a quotation whose approval email never went out — sending is
+  // best-effort and only logs on failure, so this is how the miss is noticed.
+  approvalEmailSentAt: z.iso.datetime().nullable(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 });
@@ -64,6 +67,7 @@ export function toQuotationResponse(
     totalInCents: quotation.totalInCents,
     issuedAt: quotation.issuedAt.toISOString(),
     approvedAt: quotation.approvedAt?.toISOString() ?? null,
+    approvalEmailSentAt: quotation.approvalEmailSentAt?.toISOString() ?? null,
     createdAt: quotation.createdAt.toISOString(),
     updatedAt: quotation.updatedAt.toISOString(),
   };
