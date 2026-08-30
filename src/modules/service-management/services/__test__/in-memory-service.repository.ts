@@ -3,10 +3,12 @@ import {
   PaginatedServices,
   Pagination,
   ServiceRepository,
+  ServiceSupply,
 } from '../domain/service.repository';
 
 export class InMemoryServiceRepository implements ServiceRepository {
   readonly services = new Map<string, Service>();
+  readonly supplies = new Map<string, ServiceSupply[]>();
 
   findById(id: string): Promise<Service | null> {
     const service = this.services.get(id);
@@ -32,6 +34,31 @@ export class InMemoryServiceRepository implements ServiceRepository {
 
   save(service: Service): Promise<void> {
     this.services.set(service.id, service);
+    return Promise.resolve();
+  }
+
+  findManyByIds(ids: string[]): Promise<Service[]> {
+    const wanted = new Set(ids);
+    return Promise.resolve(
+      [...this.services.values()].filter(
+        (service) => wanted.has(service.id) && !service.deletedAt,
+      ),
+    );
+  }
+
+  findSuppliesFor(serviceIds: string[]): Promise<Map<string, ServiceSupply[]>> {
+    return Promise.resolve(
+      new Map(
+        serviceIds.map((serviceId) => [
+          serviceId,
+          this.supplies.get(serviceId) ?? [],
+        ]),
+      ),
+    );
+  }
+
+  replaceSupplies(serviceId: string, supplies: ServiceSupply[]): Promise<void> {
+    this.supplies.set(serviceId, [...supplies]);
     return Promise.resolve();
   }
 }

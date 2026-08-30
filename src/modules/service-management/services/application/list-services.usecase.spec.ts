@@ -17,7 +17,7 @@ describe('ListServicesUseCase', () => {
         Service.create({
           name: `Service ${i}`,
           category: 'mechanical',
-          priceInCents: 100 * i,
+          laborPriceInCents: 100 * i,
         }),
       );
     }

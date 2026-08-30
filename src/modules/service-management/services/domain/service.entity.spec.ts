@@ -7,7 +7,7 @@ describe('Service', () => {
       name: 'Troca de óleo',
       description: 'Inclui filtro',
       category: 'mechanical',
-      priceInCents: 9990,
+      laborPriceInCents: 9990,
     });
 
     expect(service.id).toMatch(
@@ -16,7 +16,7 @@ describe('Service', () => {
     expect(service.name).toBe('Troca de óleo');
     expect(service.description).toBe('Inclui filtro');
     expect(service.category).toBe('mechanical');
-    expect(service.priceInCents).toBe(9990);
+    expect(service.laborPriceInCents).toBe(9990);
     expect(service.estimatedDuration).toBeNull();
     expect(service.warrantyDays).toBeNull();
     expect(service.active).toBe(true);
@@ -27,23 +27,35 @@ describe('Service', () => {
 
   it('trims the name and rejects empty names', () => {
     expect(() =>
-      Service.create({ name: '   ', category: 'mechanical', priceInCents: 100 }),
+      Service.create({
+        name: '   ',
+        category: 'mechanical',
+        laborPriceInCents: 100,
+      }),
     ).toThrow(InvalidServiceError);
 
     const service = Service.create({
       name: '  Alinhamento  ',
       category: 'tire',
-      priceInCents: 100,
+      laborPriceInCents: 100,
     });
     expect(service.name).toBe('Alinhamento');
   });
 
   it('rejects negative or non-integer prices', () => {
     expect(() =>
-      Service.create({ name: 'X', category: 'mechanical', priceInCents: -1 }),
+      Service.create({
+        name: 'X',
+        category: 'mechanical',
+        laborPriceInCents: -1,
+      }),
     ).toThrow(InvalidServiceError);
     expect(() =>
-      Service.create({ name: 'X', category: 'mechanical', priceInCents: 10.5 }),
+      Service.create({
+        name: 'X',
+        category: 'mechanical',
+        laborPriceInCents: 10.5,
+      }),
     ).toThrow(InvalidServiceError);
   });
 
@@ -52,7 +64,7 @@ describe('Service', () => {
       Service.create({
         name: 'X',
         category: 'mechanical',
-        priceInCents: 100,
+        laborPriceInCents: 100,
         estimatedDuration: 0,
       }),
     ).toThrow(InvalidServiceError);
@@ -60,7 +72,7 @@ describe('Service', () => {
       Service.create({
         name: 'X',
         category: 'mechanical',
-        priceInCents: 100,
+        laborPriceInCents: 100,
         estimatedDuration: 30.5,
       }),
     ).toThrow(InvalidServiceError);
@@ -68,7 +80,7 @@ describe('Service', () => {
       Service.create({
         name: 'X',
         category: 'mechanical',
-        priceInCents: 100,
+        laborPriceInCents: 100,
         warrantyDays: -1,
       }),
     ).toThrow(InvalidServiceError);
@@ -78,7 +90,7 @@ describe('Service', () => {
     const service = Service.create({
       name: 'Revisão',
       category: 'mechanical',
-      priceInCents: 20000,
+      laborPriceInCents: 20000,
       estimatedDuration: 120,
       warrantyDays: 30,
     });
@@ -90,18 +102,20 @@ describe('Service', () => {
     const service = Service.create({
       name: 'Alinhamento',
       category: 'tire',
-      priceInCents: 5000,
+      laborPriceInCents: 5000,
     });
     const before = service.updatedAt;
 
-    service.update({ priceInCents: 7000, active: false });
+    service.update({ laborPriceInCents: 7000, active: false });
 
     expect(service.name).toBe('Alinhamento');
-    expect(service.priceInCents).toBe(7000);
+    expect(service.laborPriceInCents).toBe(7000);
     expect(service.active).toBe(false);
-    expect(service.updatedAt.getTime()).toBeGreaterThanOrEqual(before.getTime());
+    expect(service.updatedAt.getTime()).toBeGreaterThanOrEqual(
+      before.getTime(),
+    );
     expect(() => service.update({ name: '  ' })).toThrow(InvalidServiceError);
-    expect(() => service.update({ priceInCents: -1 })).toThrow(
+    expect(() => service.update({ laborPriceInCents: -1 })).toThrow(
       InvalidServiceError,
     );
   });
@@ -110,7 +124,7 @@ describe('Service', () => {
     const service = Service.create({
       name: 'Balanceamento',
       category: 'tire',
-      priceInCents: 3000,
+      laborPriceInCents: 3000,
     });
 
     service.delete();

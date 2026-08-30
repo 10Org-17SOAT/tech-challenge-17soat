@@ -15,7 +15,7 @@ describe('CreateServiceUseCase', () => {
     const service = await useCase.execute({
       name: 'Troca de óleo',
       category: 'mechanical',
-      priceInCents: 9990,
+      laborPriceInCents: 9990,
     });
 
     await expect(repository.findById(service.id)).resolves.toBe(service);
@@ -25,14 +25,14 @@ describe('CreateServiceUseCase', () => {
     await useCase.execute({
       name: 'Troca de óleo',
       category: 'mechanical',
-      priceInCents: 9990,
+      laborPriceInCents: 9990,
     });
 
     await expect(
       useCase.execute({
         name: 'Troca de óleo',
         category: 'electrical',
-        priceInCents: 5000,
+        laborPriceInCents: 5000,
       }),
     ).rejects.toBeInstanceOf(ServiceNameAlreadyExistsError);
   });

@@ -16,23 +16,21 @@ describe('DeleteServiceUseCase', () => {
     const service = Service.create({
       name: 'Balanceamento',
       category: 'tire',
-      priceInCents: 3000,
+      laborPriceInCents: 3000,
     });
     await repository.save(service);
 
     await useCase.execute(service.id);
 
     await expect(repository.findById(service.id)).resolves.toBeNull();
-    expect(
-      repository.services.get(service.id)?.deletedAt,
-    ).toBeInstanceOf(Date);
+    expect(repository.services.get(service.id)?.deletedAt).toBeInstanceOf(Date);
   });
 
   it('throws for an unknown or already deleted service', async () => {
     const service = Service.create({
       name: 'Balanceamento',
       category: 'tire',
-      priceInCents: 3000,
+      laborPriceInCents: 3000,
     });
     await repository.save(service);
     await useCase.execute(service.id);
