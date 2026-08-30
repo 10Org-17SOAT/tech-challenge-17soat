@@ -92,6 +92,13 @@
       "when": 1787961600000,
       "tag": "20260829000000_add_quotation_management",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1788127633500,
+      "tag": "20260830220713_overconfident_warpath",
+      "breakpoints": true
     }
   ]
 }
