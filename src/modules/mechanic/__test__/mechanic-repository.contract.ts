@@ -291,6 +291,39 @@ export function describeMechanicRepositoryContract(
       ).resolves.toBeNull();
     });
 
+    it('skips deactivated mechanics and returns null', async () => {
+      await repository.save(
+        makeMechanic({ availability: MECHANIC_AVAILABILITY.Inactive }),
+      );
+
+      await expect(
+        repository.claimIfAvailable({ serviceOrderId: 'OS-1' }),
+      ).resolves.toBeNull();
+    });
+
+    it('claims the available mechanic in a mixed pool', async () => {
+      await repository.save(
+        makeMechanic({ availability: MECHANIC_AVAILABILITY.Allocated }),
+      );
+      await repository.save(
+        makeMechanic({
+          cpf: validCpf('529982247'),
+          availability: MECHANIC_AVAILABILITY.Inactive,
+        }),
+      );
+      const available = makeMechanic({
+        cpf: validCpf('987654321'),
+        availableSince: new Date('2024-03-01T00:00:00.000Z'),
+      });
+      await repository.save(available);
+
+      const claimed = await repository.claimIfAvailable({
+        serviceOrderId: 'OS-1',
+      });
+
+      expect(claimed?.getId()).toBe(available.getId());
+    });
+
     it('accepts exactly one of two concurrent claims on a single mechanic', async () => {
       const mechanic = makeMechanic();
       await repository.save(mechanic);
@@ -345,6 +378,26 @@ export function describeMechanicRepositoryContract(
         repository.releaseIfAllocated(mechanic.getId(), 'OS-other'),
       ).resolves.toBeNull();
     });
+
+    it('returns null for a deactivated mechanic', async () => {
+      const mechanic = makeMechanic({
+        availability: MECHANIC_AVAILABILITY.Inactive,
+      });
+      await repository.save(mechanic);
+
+      await expect(
+        repository.releaseIfAllocated(mechanic.getId(), 'OS-0'),
+      ).resolves.toBeNull();
+    });
+
+    it('returns null for an unknown id', async () => {
+      await expect(
+        repository.releaseIfAllocated(
+          'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+          'OS-1',
+        ),
+      ).resolves.toBeNull();
+    });
   });
 
   describe('deactivateIfNotAllocated', () => {
@@ -370,6 +423,14 @@ export function describeMechanicRepositoryContract(
 
       await expect(
         repository.deactivateIfNotAllocated(mechanic.getId()),
+      ).resolves.toBeNull();
+    });
+
+    it('returns null for an unknown id', async () => {
+      await expect(
+        repository.deactivateIfNotAllocated(
+          'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+        ),
       ).resolves.toBeNull();
     });
   });

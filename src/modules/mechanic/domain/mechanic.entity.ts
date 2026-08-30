@@ -48,6 +48,23 @@ export interface UpdateMechanicProfileProps {
   hireDate?: Date;
 }
 
+/**
+ * Mechanic aggregate root.
+ *
+ * The state machine lives in two places by design:
+ *
+ * - **Production (source of truth): the SQL layer.** Transitions are executed
+ *   atomically by the repository (`claimIfAvailable`, `releaseIfAllocated`,
+ *   `deactivateIfNotAllocated`) using conditional UPDATEs with row locking
+ *   (`FOR UPDATE SKIP LOCKED`), which is what makes concurrent claims safe.
+ * - **Reference semantics: the entity methods below.** `claim()`, `release()`
+ *   and `deactivate()` encode the same transition rules for the in-memory fake
+ *   and for test seeding. They are NOT used by the Drizzle adapter.
+ *
+ * The parity between the two is guarded by the repository contract test
+ * (`__test__/mechanic-repository.contract.ts`), which runs against both the
+ * fake and the Drizzle adapter.
+ */
 export class Mechanic {
   private readonly id: string;
   private readonly cpf: Cpf;

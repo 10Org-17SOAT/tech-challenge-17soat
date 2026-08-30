@@ -27,6 +27,21 @@ export interface PaginatedResult<T> {
   totalPages: number;
 }
 
+/**
+ * Mechanic persistence contract.
+ *
+ * The transition methods (`claimIfAvailable`, `releaseIfAllocated`,
+ * `deactivateIfNotAllocated`) are the **production source of truth** for the
+ * availability state machine: they must execute the transition atomically in
+ * the storage (conditional UPDATE with row locking) so concurrent claims and
+ * releases stay safe. The entity methods (`Mechanic.claim()`, `release()`,
+ * `deactivate()`) are reference semantics for the in-memory fake and test
+ * seeding only.
+ *
+ * Parity between the two is enforced by the repository contract test
+ * (`__test__/mechanic-repository.contract.ts`), which runs against both the
+ * fake and the Drizzle adapter.
+ */
 export interface MechanicRepository {
   save(mechanic: Mechanic): Promise<Mechanic>;
   updateProfile(id: string, mechanic: Mechanic): Promise<Mechanic | null>;
