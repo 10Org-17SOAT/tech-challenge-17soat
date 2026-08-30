@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../../../shared/config/database/database.module';
+import { VehicleManagementModule } from '../../onboarding/vehicles/vehicle-management.module';
 import { CreateServiceOrderUseCase } from './application/create-service-order.usecase';
 import { DeleteServiceOrderUseCase } from './application/delete-service-order.usecase';
 import { ExecutionCompletedHandler } from './application/event-handlers/execution-completed.handler';
@@ -14,7 +15,9 @@ import { DrizzleServiceOrderRepository } from './infrastructure/persistence/driz
 import { ServiceOrdersController } from './presentation/service-orders.controller';
 
 @Module({
-  imports: [DatabaseModule],
+  // VehicleManagementModule exports only VEHICLE_CATALOG_QUERY, used to reject
+  // an order opened for a vehicle that does not exist.
+  imports: [DatabaseModule, VehicleManagementModule],
   controllers: [ServiceOrdersController],
   providers: [
     {

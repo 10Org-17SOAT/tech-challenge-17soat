@@ -34,6 +34,7 @@ const OPERATIONAL_LOCKED_STATUSES = new Set<ServiceOrderStatus>([
 
 export interface ServiceOrderProps {
   id: string;
+  vehicleId: string;
   status: ServiceOrderStatus;
   approvedByCustomer: boolean;
   notes: string | null;
@@ -47,6 +48,7 @@ export interface ServiceOrderProps {
 }
 
 export interface CreateServiceOrderProps {
+  vehicleId: string;
   notes?: string | null;
   vehicleMileageAtEntry?: number | null;
   scheduledAt?: Date | null;
@@ -65,6 +67,7 @@ export class ServiceOrder {
     const now = new Date();
     return new ServiceOrder({
       id: randomUUID(),
+      vehicleId: ServiceOrder.validateVehicleId(props.vehicleId),
       status: 'received',
       approvedByCustomer: false,
       notes: ServiceOrder.normalizeNotes(props.notes ?? null),
@@ -147,6 +150,19 @@ export class ServiceOrder {
     this.props.updatedAt = now;
   }
 
+  // The car the order is about. Never edited: an order opened for the wrong
+  // vehicle is cancelled and reopened, not repointed — the diagnosis, the
+  // quotation and the customer it was emailed to all hang off this.
+  private static validateVehicleId(vehicleId: string): string {
+    const trimmed = (vehicleId ?? '').trim();
+    if (trimmed.length === 0) {
+      throw new InvalidServiceOrderError(
+        'Service order must reference a vehicle',
+      );
+    }
+    return trimmed;
+  }
+
   private static normalizeNotes(notes: string | null): string | null {
     if (notes === null) return null;
     const trimmed = notes.trim();
@@ -165,6 +181,10 @@ export class ServiceOrder {
 
   get id(): string {
     return this.props.id;
+  }
+
+  get vehicleId(): string {
+    return this.props.vehicleId;
   }
 
   get status(): ServiceOrderStatus {
