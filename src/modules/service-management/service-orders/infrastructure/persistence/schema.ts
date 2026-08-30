@@ -1,15 +1,23 @@
+import { sql } from 'drizzle-orm';
 import {
   boolean,
+  check,
+  foreignKey,
   integer,
   pgEnum,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uuid,
 } from 'drizzle-orm/pg-core';
+import { services } from '../../../services/infrastructure/persistence/schema';
 import { ORDER_STATUSES } from '../../domain/service-order.entity';
 
-export const serviceOrderStatusEnum = pgEnum('service_order_status', ORDER_STATUSES);
+export const serviceOrderStatusEnum = pgEnum(
+  'service_order_status',
+  ORDER_STATUSES,
+);
 
 export const serviceOrders = pgTable('service_orders', {
   id: uuid('service_order_id').primaryKey(),
@@ -24,3 +32,28 @@ export const serviceOrders = pgTable('service_orders', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
 });
+
+// The scope of work an order carries: catalogue services, with the parts each
+// one consumes derived from `service_supplies` at quotation time. There is no
+// standalone part line — every part reaches an order through a service.
+export const serviceItems = pgTable(
+  'service_items',
+  {
+    serviceOrderId: uuid('service_order_id').notNull(),
+    serviceId: uuid('service_id')
+      .notNull()
+      .references(() => services.id),
+    quantity: integer('quantity').notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.serviceOrderId, table.serviceId] }),
+    // Named explicitly: the convention-generated name would exceed Postgres'
+    // 63-character identifier limit and be silently truncated.
+    foreignKey({
+      columns: [table.serviceOrderId],
+      foreignColumns: [serviceOrders.id],
+      name: 'service_items_service_order_id_fk',
+    }),
+    check('service_items_quantity_positive', sql`${table.quantity} > 0`),
+  ],
+);
