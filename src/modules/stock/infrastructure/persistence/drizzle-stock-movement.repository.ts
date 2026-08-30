@@ -27,6 +27,8 @@ export class DrizzleStockMovementRepository implements StockMovementRepository {
       type: movement.type,
       quantity: movement.quantity,
       serviceOrderReference: movement.serviceOrderReference,
+      performedById: movement.performedById,
+      performedByName: movement.performedByName,
       createdAt: movement.createdAt,
     };
 
@@ -84,6 +86,8 @@ export class DrizzleStockMovementRepository implements StockMovementRepository {
         type: movement.type,
         quantity: movement.quantity,
         serviceOrderReference: movement.serviceOrderReference,
+        performedById: movement.performedById,
+        performedByName: movement.performedByName,
         createdAt: movement.createdAt,
       };
       await tx.insert(stockMovements).values(insertRow);
@@ -141,6 +145,8 @@ export class DrizzleStockMovementRepository implements StockMovementRepository {
         type: movement.type,
         quantity: movement.quantity,
         serviceOrderReference: movement.serviceOrderReference,
+        performedById: movement.performedById,
+        performedByName: movement.performedByName,
         createdAt: movement.createdAt,
       };
       await tx.insert(stockMovements).values(insertRow);

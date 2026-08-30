@@ -127,7 +127,10 @@ export class SuppliesController {
   @ApiOperation({ summary: 'Registra a entrada de peças no estoque' })
   @ApiResponse({ status: 201, type: StockEntryResponseDto })
   @ApiResponse({ status: 400, description: 'Quantidade inválida' })
-  @ApiResponse({ status: 404, description: 'Supply não encontrado' })
+  @ApiResponse({
+    status: 404,
+    description: 'Supply ou estoquista não encontrado',
+  })
   async createStockEntry(
     @Param() params: SupplyIdParamDto,
     @Body() body: RegisterStockEntryDto,
@@ -136,6 +139,7 @@ export class SuppliesController {
       await this.registerStockEntry.execute({
         supplyId: params.id,
         quantity: body.quantity,
+        stockKeeperId: body.stockKeeperId,
       });
     return toStockEntryResponse(movement, availableBalance);
   }

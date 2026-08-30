@@ -65,6 +65,11 @@ export const stockMovements = pgTable(
     type: varchar('type', { length: 16 }).notNull(),
     quantity: integer('quantity').notNull(),
     serviceOrderReference: varchar('service_order_reference', { length: 255 }),
+    // Snapshot, not a FK: the ledger must stay truthful even if the stock
+    // keeper is later renamed or deleted. Required only for IN movements —
+    // RESERVE/CONSUME are triggered by the Service Order, not by a person.
+    performedById: uuid('performed_by_id'),
+    performedByName: varchar('performed_by_name', { length: 255 }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
   },
   (table) => [
@@ -73,6 +78,10 @@ export const stockMovements = pgTable(
     check(
       'stock_movements_type_valid',
       sql`${table.type} in ('IN', 'RESERVE', 'CONSUME')`,
+    ),
+    check(
+      'stock_movements_in_requires_performer',
+      sql`${table.type} <> 'IN' or ${table.performedById} is not null`,
     ),
   ],
 );

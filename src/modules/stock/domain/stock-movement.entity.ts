@@ -16,7 +16,14 @@ interface InternalProps {
   type: MovementType;
   quantity: Quantity;
   serviceOrderReference: string | null;
+  performedById: string | null;
+  performedByName: string | null;
   createdAt: Date;
+}
+
+export interface Performer {
+  id: string;
+  name: string;
 }
 
 /**
@@ -27,8 +34,21 @@ interface InternalProps {
 export class StockMovement {
   private constructor(private readonly props: InternalProps) {}
 
-  static in(supplyId: string, quantity: number): StockMovement {
-    return StockMovement.open(MovementType.In, supplyId, quantity, null);
+  // An IN movement must always be attributable to the stock keeper who
+  // registered it — RESERVE/CONSUME are triggered by the Service Order, not
+  // by a person, so they carry no performer.
+  static in(
+    supplyId: string,
+    quantity: number,
+    performedBy: Performer,
+  ): StockMovement {
+    return StockMovement.open(
+      MovementType.In,
+      supplyId,
+      quantity,
+      null,
+      performedBy,
+    );
   }
 
   static reserve(
@@ -41,6 +61,7 @@ export class StockMovement {
       supplyId,
       quantity,
       serviceOrderReference,
+      null,
     );
   }
 
@@ -54,6 +75,7 @@ export class StockMovement {
       supplyId,
       quantity,
       serviceOrderReference,
+      null,
     );
   }
 
@@ -62,6 +84,7 @@ export class StockMovement {
     supplyId: string,
     quantity: number,
     serviceOrderReference: string | null,
+    performedBy: Performer | null,
   ): StockMovement {
     return new StockMovement({
       id: randomUUID(),
@@ -69,6 +92,8 @@ export class StockMovement {
       type,
       quantity: Quantity.create(quantity),
       serviceOrderReference: normalizeReference(type, serviceOrderReference),
+      performedById: performedBy?.id ?? null,
+      performedByName: performedBy?.name ?? null,
       createdAt: new Date(),
     });
   }
@@ -91,6 +116,14 @@ export class StockMovement {
 
   get serviceOrderReference(): string | null {
     return this.props.serviceOrderReference;
+  }
+
+  get performedById(): string | null {
+    return this.props.performedById;
+  }
+
+  get performedByName(): string | null {
+    return this.props.performedByName;
   }
 
   get createdAt(): Date {
