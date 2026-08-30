@@ -5,6 +5,7 @@ import { ZodValidationPipe } from 'nestjs-zod';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { StockModule } from './modules/stock/stock.module';
+import { UsersModule } from './modules/users/user.module';
 import { DatabaseModule } from './shared/config/database/database.module';
 import { validateEnv } from './shared/config/env/env.validation';
 
@@ -17,6 +18,7 @@ import { validateEnv } from './shared/config/env/env.validation';
     }),
     DatabaseModule,
     StockModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_PIPE, useClass: ZodValidationPipe }],
