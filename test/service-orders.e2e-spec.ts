@@ -5,11 +5,8 @@ import { Pool } from 'pg';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
-import { DiagnosisCompleted } from './../src/modules/service-management/service-orders/domain/events/diagnosis-completed.event';
-import { DiagnosisStarted } from './../src/modules/service-management/service-orders/domain/events/diagnosis-started.event';
 import { ExecutionCompleted } from './../src/modules/service-management/service-orders/domain/events/execution-completed.event';
 import { ExecutionStarted } from './../src/modules/service-management/service-orders/domain/events/execution-started.event';
-import { QuotationApproved } from './../src/modules/service-management/service-orders/domain/events/quotation-approved.event';
 import type { DomainEvent } from './../src/shared/domain/events/domain-event';
 
 describe('ServiceOrders (e2e)', () => {
@@ -36,7 +33,16 @@ describe('ServiceOrders (e2e)', () => {
     });
   });
 
-  beforeEach(() => pool.query('DELETE FROM service_orders'));
+  // quotations, diagnostics and service_items all point at service_orders by
+  // foreign key, so they have to go first.
+  beforeEach(async () => {
+    await pool.query('DELETE FROM quotation_items');
+    await pool.query('DELETE FROM quotations');
+    await pool.query('DELETE FROM diagnostics');
+    await pool.query('DELETE FROM service_items');
+    await pool.query('DELETE FROM service_orders');
+    await pool.query('DELETE FROM services');
+  });
 
   afterAll(async () => {
     await pool.end();
@@ -77,40 +83,58 @@ describe('ServiceOrders (e2e)', () => {
     await emitter.emitAsync(event.name, event);
   }
 
-  // Status now only advances in response to domain events published by other
-  // modules (mechanic, quotation) — this mirrors that by emitting the events
-  // directly on the app's event bus, the same way a future publisher would.
+  interface CompleteDiagnosisResponse {
+    quotation: { id: string; totalInCents: number };
+  }
+
+  async function givenService(laborPriceInCents = 15000): Promise<string> {
+    const res = await http()
+      .post('/services')
+      .send({
+        name: `Servico ${Math.random().toString(36).slice(2, 10)}`,
+        category: 'mechanical',
+        laborPriceInCents,
+      })
+      .expect(201);
+    return (res.body as { id: string }).id;
+  }
+
+  // Up to awaiting_execution the order advances through this module's own
+  // endpoints — diagnosis and quotation live here, so they are direct calls.
+  // Execution still belongs to the mechanic module, which does not exist yet,
+  // so those two transitions are still driven by the domain events it will
+  // eventually publish.
   async function advanceTo(id: string, target: string): Promise<void> {
-    const path: Record<string, DomainEvent[]> = {
-      in_diagnosis: [new DiagnosisStarted(id)],
-      awaiting_approval: [new DiagnosisStarted(id), new DiagnosisCompleted(id)],
-      awaiting_execution: [
-        new DiagnosisStarted(id),
-        new DiagnosisCompleted(id),
-        new QuotationApproved(id),
-      ],
-      in_execution: [
-        new DiagnosisStarted(id),
-        new DiagnosisCompleted(id),
-        new QuotationApproved(id),
-        new ExecutionStarted(id),
-      ],
-      finished: [
-        new DiagnosisStarted(id),
-        new DiagnosisCompleted(id),
-        new QuotationApproved(id),
-        new ExecutionStarted(id),
-        new ExecutionCompleted(id),
-      ],
-    };
-    for (const event of path[target] ?? []) {
-      await emit(event);
-    }
+    if (target === 'received') return;
+
+    await http().post(`/service-orders/${id}/diagnosis/start`).expect(200);
+    if (target === 'in_diagnosis') return;
+
+    const serviceId = await givenService();
+    const diagnosed = await http()
+      .post(`/service-orders/${id}/diagnosis`)
+      .send({
+        findings: 'Pastilhas de freio gastas',
+        serviceItems: [{ serviceId, quantity: 1 }],
+      })
+      .expect(201);
+    if (target === 'awaiting_approval') return;
+
+    const { quotation } = diagnosed.body as CompleteDiagnosisResponse;
+    await http().post(`/quotations/${quotation.id}/approve`).expect(200);
+    if (target === 'awaiting_execution') return;
+
+    await emit(new ExecutionStarted(id));
+    if (target === 'in_execution') return;
+
+    await emit(new ExecutionCompleted(id));
   }
 
   describe('POST /service-orders', () => {
     it('creates an order in status received with defaults', async () => {
-      const body = orderBody(await http().post('/service-orders').send({}).expect(201));
+      const body = orderBody(
+        await http().post('/service-orders').send({}).expect(201),
+      );
 
       expect(body.id).toMatch(/^[0-9a-f-]{36}$/i);
       expect(body.status).toBe('received');
@@ -248,18 +272,36 @@ describe('ServiceOrders (e2e)', () => {
       expect(status.status).toBe('received');
     });
 
-    it('reflects the status advanced by domain events, stamping timestamps + approval', async () => {
+    it('walks the whole lifecycle, stamping timestamps + approval', async () => {
       const created = orderBody(await http().post('/service-orders').send({}));
 
-      await emit(new DiagnosisStarted(created.id));
+      await http()
+        .post(`/service-orders/${created.id}/diagnosis/start`)
+        .expect(200);
       expect(
         statusBody(
           await http().get(`/service-orders/${created.id}/status`).expect(200),
         ).status,
       ).toBe('in_diagnosis');
 
-      await emit(new DiagnosisCompleted(created.id));
-      await emit(new QuotationApproved(created.id));
+      const serviceId = await givenService(15000);
+      const diagnosed = await http()
+        .post(`/service-orders/${created.id}/diagnosis`)
+        .send({
+          findings: 'Pastilhas de freio gastas',
+          serviceItems: [{ serviceId, quantity: 1 }],
+        })
+        .expect(201);
+      expect(
+        statusBody(
+          await http().get(`/service-orders/${created.id}/status`).expect(200),
+        ).status,
+      ).toBe('awaiting_approval');
+
+      const { quotation } = diagnosed.body as CompleteDiagnosisResponse;
+      expect(quotation.totalInCents).toBe(15000);
+
+      await http().post(`/quotations/${quotation.id}/approve`).expect(200);
       const approved = orderBody(
         await http().get(`/service-orders/${created.id}`).expect(200),
       );

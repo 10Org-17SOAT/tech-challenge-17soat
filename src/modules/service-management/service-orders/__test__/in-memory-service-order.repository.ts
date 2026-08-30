@@ -1,3 +1,4 @@
+import { ServiceItem } from '../domain/service-item';
 import { ServiceOrder } from '../domain/service-order.entity';
 import {
   ListServiceOrdersFilter,
@@ -7,6 +8,7 @@ import {
 
 export class InMemoryServiceOrderRepository implements ServiceOrderRepository {
   readonly orders = new Map<string, ServiceOrder>();
+  readonly items = new Map<string, ServiceItem[]>();
 
   findById(id: string): Promise<ServiceOrder | null> {
     const order = this.orders.get(id);
@@ -31,6 +33,15 @@ export class InMemoryServiceOrderRepository implements ServiceOrderRepository {
 
   save(order: ServiceOrder): Promise<void> {
     this.orders.set(order.id, order);
+    return Promise.resolve();
+  }
+
+  findItems(serviceOrderId: string): Promise<ServiceItem[]> {
+    return Promise.resolve(this.items.get(serviceOrderId) ?? []);
+  }
+
+  replaceItems(serviceOrderId: string, items: ServiceItem[]): Promise<void> {
+    this.items.set(serviceOrderId, [...items]);
     return Promise.resolve();
   }
 }

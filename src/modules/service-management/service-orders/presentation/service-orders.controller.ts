@@ -57,7 +57,9 @@ export class ServiceOrdersController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Abre uma OS em status received' })
   @ApiResponse({ status: 201, type: ServiceOrderResponseDto })
-  async create(@Body() body: CreateServiceOrderDto): Promise<ServiceOrderResponseDto> {
+  async create(
+    @Body() body: CreateServiceOrderDto,
+  ): Promise<ServiceOrderResponseDto> {
     const order = await this.createOrder.execute(body);
     return toServiceOrderResponse(order);
   }
@@ -66,7 +68,9 @@ export class ServiceOrdersController {
   @ApiOperation({ summary: 'Consulta uma OS por ID' })
   @ApiResponse({ status: 200, type: ServiceOrderResponseDto })
   @ApiResponse({ status: 404, description: 'OS não encontrada' })
-  async getById(@Param() params: ServiceOrderIdParamDto): Promise<ServiceOrderResponseDto> {
+  async getById(
+    @Param() params: ServiceOrderIdParamDto,
+  ): Promise<ServiceOrderResponseDto> {
     const order = await this.getOrder.execute(params.id);
     return toServiceOrderResponse(order);
   }

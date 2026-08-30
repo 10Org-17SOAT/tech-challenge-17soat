@@ -16,7 +16,7 @@ describe('GetServiceUseCase', () => {
     const service = Service.create({
       name: 'Alinhamento',
       category: 'tire',
-      priceInCents: 5000,
+      laborPriceInCents: 5000,
     });
     await repository.save(service);
 
@@ -24,8 +24,8 @@ describe('GetServiceUseCase', () => {
   });
 
   it('throws when the service does not exist', async () => {
-    await expect(
-      useCase.execute(crypto.randomUUID()),
-    ).rejects.toBeInstanceOf(ServiceNotFoundError);
+    await expect(useCase.execute(crypto.randomUUID())).rejects.toBeInstanceOf(
+      ServiceNotFoundError,
+    );
   });
 });

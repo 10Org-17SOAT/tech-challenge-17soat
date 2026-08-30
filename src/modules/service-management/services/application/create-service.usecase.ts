@@ -8,7 +8,7 @@ export interface CreateServiceInput {
   name: string;
   description?: string | null;
   category: ServiceCategory;
-  priceInCents: number;
+  laborPriceInCents: number;
   estimatedDuration?: number | null;
   warrantyDays?: number | null;
 }

@@ -17,21 +17,23 @@ describe('UpdateServiceUseCase', () => {
     const service = Service.create({
       name: 'Alinhamento',
       category: 'tire',
-      priceInCents: 5000,
+      laborPriceInCents: 5000,
     });
     await repository.save(service);
 
-    const updated = await useCase.execute(service.id, { priceInCents: 7000 });
+    const updated = await useCase.execute(service.id, {
+      laborPriceInCents: 7000,
+    });
 
     expect(updated.name).toBe('Alinhamento');
-    expect(updated.priceInCents).toBe(7000);
+    expect(updated.laborPriceInCents).toBe(7000);
   });
 
   it('can deactivate a service via active flag', async () => {
     const service = Service.create({
       name: 'Revisão',
       category: 'mechanical',
-      priceInCents: 20000,
+      laborPriceInCents: 20000,
     });
     await repository.save(service);
 
@@ -50,12 +52,12 @@ describe('UpdateServiceUseCase', () => {
     const a = Service.create({
       name: 'Troca de óleo',
       category: 'mechanical',
-      priceInCents: 9990,
+      laborPriceInCents: 9990,
     });
     const b = Service.create({
       name: 'Balanceamento',
       category: 'tire',
-      priceInCents: 4000,
+      laborPriceInCents: 4000,
     });
     await repository.save(a);
     await repository.save(b);
@@ -69,12 +71,15 @@ describe('UpdateServiceUseCase', () => {
     const service = Service.create({
       name: 'Alinhamento',
       category: 'tire',
-      priceInCents: 5000,
+      laborPriceInCents: 5000,
     });
     await repository.save(service);
 
     await expect(
-      useCase.execute(service.id, { name: 'Alinhamento', priceInCents: 6000 }),
-    ).resolves.toMatchObject({ priceInCents: 6000 });
+      useCase.execute(service.id, {
+        name: 'Alinhamento',
+        laborPriceInCents: 6000,
+      }),
+    ).resolves.toMatchObject({ laborPriceInCents: 6000 });
   });
 });

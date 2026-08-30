@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, eq, isNull } from 'drizzle-orm';
+import { and, count, eq, inArray, isNull } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../../../../../shared/config/database/database.constants';
 import type { DrizzleDatabase } from '../../../../../shared/config/database/drizzle.provider';
 import { ServiceNameAlreadyExistsError } from '../../domain/errors/service-name-already-exists.error';
@@ -8,8 +8,9 @@ import {
   PaginatedServices,
   Pagination,
   ServiceRepository,
+  ServiceSupply,
 } from '../../domain/service.repository';
-import { services } from './schema';
+import { services, serviceSupplies } from './schema';
 
 const PG_UNIQUE_VIOLATION = '23505';
 
@@ -66,7 +67,7 @@ export class DrizzleServiceRepository implements ServiceRepository {
       name: service.name,
       description: service.description,
       category: service.category,
-      priceInCents: service.priceInCents,
+      laborPriceInCents: service.laborPriceInCents,
       estimatedDuration: service.estimatedDuration,
       warrantyDays: service.warrantyDays,
       active: service.active,
@@ -86,6 +87,58 @@ export class DrizzleServiceRepository implements ServiceRepository {
       }
       throw error;
     }
+  }
+
+  async findManyByIds(ids: string[]): Promise<Service[]> {
+    if (ids.length === 0) return [];
+
+    const rows = await this.db
+      .select()
+      .from(services)
+      .where(and(inArray(services.id, ids), isNull(services.deletedAt)));
+    return rows.map(toEntity);
+  }
+
+  // One query for every service's bill of materials; the caller's ids are
+  // seeded to an empty list first so a service with no parts is still present.
+  async findSuppliesFor(
+    serviceIds: string[],
+  ): Promise<Map<string, ServiceSupply[]>> {
+    const billsOfMaterials = new Map<string, ServiceSupply[]>(
+      serviceIds.map((serviceId) => [serviceId, []]),
+    );
+    if (serviceIds.length === 0) return billsOfMaterials;
+
+    const rows = await this.db
+      .select()
+      .from(serviceSupplies)
+      .where(inArray(serviceSupplies.serviceId, serviceIds));
+
+    for (const row of rows) {
+      billsOfMaterials
+        .get(row.serviceId)
+        ?.push({ supplyId: row.supplyId, quantity: row.quantity });
+    }
+    return billsOfMaterials;
+  }
+
+  async replaceSupplies(
+    serviceId: string,
+    supplies: ServiceSupply[],
+  ): Promise<void> {
+    await this.db
+      .delete(serviceSupplies)
+      .where(eq(serviceSupplies.serviceId, serviceId));
+
+    if (supplies.length === 0) return;
+
+    await this.db.insert(serviceSupplies).values(
+      supplies.map((supply) => ({
+        serviceId,
+        supplyId: supply.supplyId,
+        quantity: supply.quantity,
+      })),
+    );
   }
 }
 

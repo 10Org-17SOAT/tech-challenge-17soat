@@ -11,7 +11,9 @@ export const createServiceOrderSchema = z.object({
   scheduledAt: z.coerce.date().optional(),
 });
 
-export class CreateServiceOrderDto extends createZodDto(createServiceOrderSchema) {}
+export class CreateServiceOrderDto extends createZodDto(
+  createServiceOrderSchema,
+) {}
 
 export const updateServiceOrderSchema = z
   .object({
@@ -21,13 +23,17 @@ export const updateServiceOrderSchema = z
   })
   .partial();
 
-export class UpdateServiceOrderDto extends createZodDto(updateServiceOrderSchema) {}
+export class UpdateServiceOrderDto extends createZodDto(
+  updateServiceOrderSchema,
+) {}
 
 export const serviceOrderIdParamSchema = z.object({
   id: z.uuid(),
 });
 
-export class ServiceOrderIdParamDto extends createZodDto(serviceOrderIdParamSchema) {}
+export class ServiceOrderIdParamDto extends createZodDto(
+  serviceOrderIdParamSchema,
+) {}
 
 export const serviceOrderResponseSchema = z.object({
   id: z.uuid(),
@@ -42,7 +48,9 @@ export const serviceOrderResponseSchema = z.object({
   updatedAt: z.iso.datetime(),
 });
 
-export class ServiceOrderResponseDto extends createZodDto(serviceOrderResponseSchema) {}
+export class ServiceOrderResponseDto extends createZodDto(
+  serviceOrderResponseSchema,
+) {}
 
 export const serviceOrderStatusResponseSchema = z.object({
   status: z.enum(serviceOrderStatusValues),
@@ -58,7 +66,9 @@ export const listServiceOrdersQuerySchema = z.object({
   status: z.enum(serviceOrderStatusValues).optional(),
 });
 
-export class ListServiceOrdersQueryDto extends createZodDto(listServiceOrdersQuerySchema) {}
+export class ListServiceOrdersQueryDto extends createZodDto(
+  listServiceOrdersQuerySchema,
+) {}
 
 export const paginatedServiceOrdersResponseSchema = z.object({
   items: z.array(serviceOrderResponseSchema),
@@ -71,7 +81,9 @@ export class PaginatedServiceOrdersResponseDto extends createZodDto(
   paginatedServiceOrdersResponseSchema,
 ) {}
 
-export function toServiceOrderResponse(order: ServiceOrder): ServiceOrderResponseDto {
+export function toServiceOrderResponse(
+  order: ServiceOrder,
+): ServiceOrderResponseDto {
   return {
     id: order.id,
     status: order.status,

@@ -14,7 +14,10 @@ export const ORDER_STATUSES = [
 
 export type ServiceOrderStatus = (typeof ORDER_STATUSES)[number];
 
-const STATUS_TRANSITIONS: Record<ServiceOrderStatus, ServiceOrderStatus | null> = {
+const STATUS_TRANSITIONS: Record<
+  ServiceOrderStatus,
+  ServiceOrderStatus | null
+> = {
   received: 'in_diagnosis',
   in_diagnosis: 'awaiting_approval',
   awaiting_approval: 'awaiting_execution',

@@ -2,13 +2,14 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, count, desc, eq, isNull } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../../../../../shared/config/database/database.constants';
 import type { DrizzleDatabase } from '../../../../../shared/config/database/drizzle.provider';
+import { ServiceItem } from '../../domain/service-item';
 import { ServiceOrder } from '../../domain/service-order.entity';
 import type {
   ListServiceOrdersFilter,
   ServiceOrderRepository,
   PaginatedServiceOrders,
 } from '../../domain/service-order.repository';
-import { serviceOrders } from './schema';
+import { serviceItems, serviceOrders } from './schema';
 
 type ServiceOrderRow = typeof serviceOrders.$inferSelect;
 
@@ -73,5 +74,36 @@ export class DrizzleServiceOrderRepository implements ServiceOrderRepository {
       .insert(serviceOrders)
       .values(row)
       .onConflictDoUpdate({ target: serviceOrders.id, set: row });
+  }
+
+  async findItems(serviceOrderId: string): Promise<ServiceItem[]> {
+    const rows = await this.db
+      .select()
+      .from(serviceItems)
+      .where(eq(serviceItems.serviceOrderId, serviceOrderId));
+    return rows.map((row) =>
+      ServiceItem.create({ serviceId: row.serviceId, quantity: row.quantity }),
+    );
+  }
+
+  // The scope of work is replaced wholesale, never patched line by line: a
+  // diagnosis states what the order needs, it does not amend a previous list.
+  async replaceItems(
+    serviceOrderId: string,
+    items: ServiceItem[],
+  ): Promise<void> {
+    await this.db
+      .delete(serviceItems)
+      .where(eq(serviceItems.serviceOrderId, serviceOrderId));
+
+    if (items.length === 0) return;
+
+    await this.db.insert(serviceItems).values(
+      items.map((item) => ({
+        serviceOrderId,
+        serviceId: item.serviceId,
+        quantity: item.quantity,
+      })),
+    );
   }
 }

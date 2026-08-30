@@ -99,7 +99,10 @@ describe('ServiceOrder', () => {
 
   describe('update()', () => {
     it('updates only the provided fields', () => {
-      const order = ServiceOrder.create({ notes: 'old', vehicleMileageAtEntry: 100 });
+      const order = ServiceOrder.create({
+        notes: 'old',
+        vehicleMileageAtEntry: 100,
+      });
       order.update({ notes: 'new', vehicleMileageAtEntry: 200 });
 
       expect(order.notes).toBe('new');

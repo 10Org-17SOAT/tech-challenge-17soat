@@ -40,7 +40,7 @@ describe('Services (e2e)', () => {
     name: string;
     description: string | null;
     category: string;
-    priceInCents: number;
+    laborPriceInCents: number;
     estimatedDuration: number | null;
     warrantyDays: number | null;
     active: boolean;
@@ -62,7 +62,7 @@ describe('Services (e2e)', () => {
     name: 'Troca de óleo',
     description: 'Inclui filtro',
     category: 'mechanical',
-    priceInCents: 9990,
+    laborPriceInCents: 9990,
   };
 
   describe('POST /services', () => {
@@ -94,19 +94,23 @@ describe('Services (e2e)', () => {
     it('rejects invalid payloads', async () => {
       await http()
         .post('/services')
-        .send({ name: '', category: 'mechanical', priceInCents: 100 })
+        .send({ name: '', category: 'mechanical', laborPriceInCents: 100 })
         .expect(400);
       await http()
         .post('/services')
-        .send({ name: 'X', category: 'mechanical', priceInCents: -5 })
+        .send({ name: 'X', category: 'mechanical', laborPriceInCents: -5 })
         .expect(400);
       await http()
         .post('/services')
-        .send({ name: 'X', category: 'invalid_category', priceInCents: 100 })
+        .send({
+          name: 'X',
+          category: 'invalid_category',
+          laborPriceInCents: 100,
+        })
         .expect(400);
       await http()
         .post('/services')
-        .send({ name: 'X', priceInCents: 100 })
+        .send({ name: 'X', laborPriceInCents: 100 })
         .expect(400);
     });
 
@@ -134,7 +138,7 @@ describe('Services (e2e)', () => {
           .send({
             name: `Service ${i}`,
             category: 'mechanical',
-            priceInCents: 100,
+            laborPriceInCents: 100,
           })
           .expect(201);
       }
@@ -185,11 +189,14 @@ describe('Services (e2e)', () => {
       const body = serviceBody(
         await http()
           .patch(`/services/${created.id}`)
-          .send({ priceInCents: 12000 })
+          .send({ laborPriceInCents: 12000 })
           .expect(200),
       );
 
-      expect(body).toMatchObject({ name: validService.name, priceInCents: 12000 });
+      expect(body).toMatchObject({
+        name: validService.name,
+        laborPriceInCents: 12000,
+      });
     });
 
     it('deactivates a service via active flag', async () => {
@@ -217,7 +224,11 @@ describe('Services (e2e)', () => {
       const other = serviceBody(
         await http()
           .post('/services')
-          .send({ name: 'Alinhamento', category: 'tire', priceInCents: 4000 })
+          .send({
+            name: 'Alinhamento',
+            category: 'tire',
+            laborPriceInCents: 4000,
+          })
           .expect(201),
       );
 
@@ -234,7 +245,7 @@ describe('Services (e2e)', () => {
 
       await http()
         .patch(`/services/${created.id}`)
-        .send({ priceInCents: -1 })
+        .send({ laborPriceInCents: -1 })
         .expect(400);
 
       const body = serviceBody(

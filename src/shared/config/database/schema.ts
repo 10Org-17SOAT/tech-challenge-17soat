@@ -4,3 +4,5 @@ export * from '../../../modules/service-management/services/infrastructure/persi
 export * from '../../../modules/stock/infrastructure/persistence/schema';
 export { vehiclesTable } from '../../../modules/onboarding/vehicles/infrastructure/persistence/vehicle.schema';
 export * from '../../../modules/service-management/service-orders/infrastructure/persistence/schema';
+export * from '../../../modules/service-management/diagnostics/infrastructure/persistence/schema';
+export * from '../../../modules/service-management/quotations/infrastructure/persistence/schema';
