@@ -38,6 +38,7 @@ export class UpdateVehicleUseCase {
     const primitives = vehicle.toPrimitives();
     return {
       vehicle_id: primitives.vehicle_id,
+      customerId: primitives.customerId,
       licensePlate: primitives.licensePlate,
       model: primitives.model,
       year: primitives.year,

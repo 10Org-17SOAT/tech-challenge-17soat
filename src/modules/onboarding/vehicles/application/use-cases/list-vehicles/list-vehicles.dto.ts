@@ -6,6 +6,7 @@ export interface ListVehiclesInput {
 export interface ListVehiclesOutput {
   data: Array<{
     vehicle_id: string;
+    customerId: string;
     licensePlate: string;
     model: string;
     year: number;

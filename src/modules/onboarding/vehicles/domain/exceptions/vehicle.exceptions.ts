@@ -61,3 +61,12 @@ export class InvalidVehicleColorException extends VehicleException {
     this.name = 'InvalidVehicleColorException';
   }
 }
+
+export class VehicleOwnerNotFoundException extends VehicleException {
+  constructor(customerId: string) {
+    super(
+      `Customer "${customerId}" was not found, so no vehicle can be registered to them.`,
+    );
+    this.name = 'VehicleOwnerNotFoundException';
+  }
+}

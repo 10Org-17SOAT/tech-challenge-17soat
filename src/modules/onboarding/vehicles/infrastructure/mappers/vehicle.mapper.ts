@@ -4,6 +4,7 @@ import { VehicleResponseDto } from '../../application/dtos/vehicle-response.dto'
 
 export interface VehiclePersistenceDTO {
   vehicle_id: string;
+  customerId: string;
   licensePlate: string;
   model: string;
   year: number;
@@ -25,6 +26,7 @@ export class VehicleMapper {
     const primitives = vehicle.toPrimitives();
     return {
       vehicle_id: primitives.vehicle_id,
+      customerId: primitives.customerId,
       licensePlate: primitives.licensePlate,
       model: primitives.model,
       year: primitives.year,
@@ -40,6 +42,7 @@ export class VehicleMapper {
   static toDomain(raw: VehiclePersistenceDTO): Vehicle {
     return new Vehicle({
       vehicle_id: raw.vehicle_id,
+      customerId: raw.customerId,
       licensePlate: raw.licensePlate,
       model: raw.model,
       year: raw.year,
@@ -58,6 +61,7 @@ export class VehicleMapper {
     const primitives = vehicle.toPrimitives();
     return new VehicleResponseDto({
       vehicle_id: primitives.vehicle_id,
+      customerId: primitives.customerId,
       licensePlate: primitives.licensePlate,
       model: primitives.model,
       year: primitives.year,

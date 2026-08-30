@@ -11,6 +11,7 @@ export interface UpdateVehicleInput {
 
 export interface UpdateVehicleOutput {
   vehicle_id: string;
+  customerId: string;
   licensePlate: string;
   model: string;
   year: number;

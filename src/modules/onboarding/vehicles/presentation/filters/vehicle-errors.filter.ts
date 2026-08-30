@@ -11,6 +11,7 @@ import {
   DuplicateLicensePlateException,
   VehicleException,
   VehicleNotFoundException,
+  VehicleOwnerNotFoundException,
 } from '../../domain/exceptions/vehicle.exceptions';
 
 @Catch(VehicleException)
@@ -22,7 +23,10 @@ export class VehicleErrorsFilter implements ExceptionFilter {
   }
 
   private toHttpException(error: VehicleException) {
-    if (error instanceof VehicleNotFoundException) {
+    if (
+      error instanceof VehicleNotFoundException ||
+      error instanceof VehicleOwnerNotFoundException
+    ) {
       return new NotFoundException(error.message);
     }
     if (error instanceof DuplicateLicensePlateException) {

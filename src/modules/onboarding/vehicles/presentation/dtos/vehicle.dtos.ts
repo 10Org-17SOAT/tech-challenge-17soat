@@ -5,6 +5,8 @@ const LICENSE_PLATE_REGEX = /^[A-Z]{3}-?[0-9]{4}$|^[A-Z]{3}[0-9][A-Z][0-9]{2}$/;
 
 export const CreateVehicleSchema = z
   .object({
+    customerId: z.uuid('customerId must be a valid UUID'),
+
     licensePlate: z
       .string()
       .trim()
@@ -29,8 +31,11 @@ export const CreateVehicleSchema = z
 
 export class CreateVehicleDto extends createZodDto(CreateVehicleSchema) {}
 
+// Neither the plate nor the owner is editable: re-plating and transferring
+// ownership are business acts, not field edits.
 export const UpdateVehicleSchema = CreateVehicleSchema.omit({
   licensePlate: true,
+  customerId: true,
 })
   .partial()
   .strict();
