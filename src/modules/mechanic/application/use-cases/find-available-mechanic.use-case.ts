@@ -8,7 +8,7 @@ import {
 import {
   DOMAIN_EVENT_PUBLISHER,
   type DomainEventPublisher,
-} from '../../domain/events/domain-event-publisher';
+} from '../../../../shared/domain/events/domain-event-publisher';
 import { MechanicAllocated } from '../../domain/events/mechanic-allocated.event';
 import { InvalidMechanicException } from '../../domain/exceptions/mechanic.exceptions';
 import { SPECIALTIES } from '../../domain/value-objects/specialty.enum';

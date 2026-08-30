@@ -1,4 +1,4 @@
-import type { DomainEvent } from './domain-event';
+import type { DomainEvent } from '../../../../shared/domain/events/domain-event';
 
 /**
  * Raised when a mechanic is released from a service order. Published by the

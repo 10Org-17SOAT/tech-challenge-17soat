@@ -7,7 +7,7 @@ import {
 import {
   DOMAIN_EVENT_PUBLISHER,
   type DomainEventPublisher,
-} from '../../domain/events/domain-event-publisher';
+} from '../../../../shared/domain/events/domain-event-publisher';
 import { MechanicReleased } from '../../domain/events/mechanic-released.event';
 import {
   MechanicNotAllocatedException,
