@@ -405,17 +405,16 @@ export function describeMechanicRepositoryContract(
       const mechanic = makeMechanic();
       await repository.save(mechanic);
 
-      const deactivated = await repository.deactivateIfNotAllocated(
+      const result = await repository.deactivateIfNotAllocated(
         mechanic.getId(),
       );
 
-      expect(deactivated?.getAvailability()).toBe(
-        MECHANIC_AVAILABILITY.Inactive,
-      );
-      expect(deactivated?.getDeletedAt()).toBeInstanceOf(Date);
+      expect(result.status).toBe('deactivated');
+      const stored = await repository.findById(mechanic.getId());
+      expect(stored).toBeNull();
     });
 
-    it('returns null for an allocated mechanic', async () => {
+    it('returns allocated for an allocated mechanic', async () => {
       const mechanic = makeMechanic({
         availability: MECHANIC_AVAILABILITY.Allocated,
       });
@@ -423,15 +422,25 @@ export function describeMechanicRepositoryContract(
 
       await expect(
         repository.deactivateIfNotAllocated(mechanic.getId()),
-      ).resolves.toBeNull();
+      ).resolves.toEqual({ status: 'allocated' });
     });
 
-    it('returns null for an unknown id', async () => {
+    it('returns not-found for an unknown id', async () => {
       await expect(
         repository.deactivateIfNotAllocated(
           'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         ),
-      ).resolves.toBeNull();
+      ).resolves.toEqual({ status: 'not-found' });
+    });
+
+    it('returns not-found for an already deactivated mechanic', async () => {
+      const mechanic = makeMechanic();
+      await repository.save(mechanic);
+      await repository.deactivateIfNotAllocated(mechanic.getId());
+
+      await expect(
+        repository.deactivateIfNotAllocated(mechanic.getId()),
+      ).resolves.toEqual({ status: 'not-found' });
     });
   });
 }

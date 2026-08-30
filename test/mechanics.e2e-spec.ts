@@ -285,6 +285,15 @@ describe('Mechanics (e2e)', () => {
       expect(res.status).toBe(404);
     });
 
+    it('returns 404 for an already deactivated mechanic', async () => {
+      const mechanic = await seedMechanic();
+      await http().delete(`/mechanics/${mechanic.getId()}`);
+
+      const res = await http().delete(`/mechanics/${mechanic.getId()}`);
+
+      expect(res.status).toBe(404);
+    });
+
     it('frees the CPF for re-registration after deactivation', async () => {
       const mechanic = await seedMechanic();
       await http().delete(`/mechanics/${mechanic.getId()}`);

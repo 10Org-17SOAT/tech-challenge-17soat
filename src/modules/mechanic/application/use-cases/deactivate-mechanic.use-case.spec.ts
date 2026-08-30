@@ -50,6 +50,15 @@ describe('DeactivateMechanicUseCase', () => {
     ).rejects.toBeInstanceOf(MechanicNotFoundException);
   });
 
+  it('throws MechanicNotFoundException for an already deactivated mechanic', async () => {
+    const mechanic = await seedMechanic();
+    await useCase.execute({ id: mechanic.getId() });
+
+    await expect(
+      useCase.execute({ id: mechanic.getId() }),
+    ).rejects.toBeInstanceOf(MechanicNotFoundException);
+  });
+
   it('throws AllocatedMechanicException for an allocated mechanic', async () => {
     const mechanic = await seedMechanic();
     mechanic.claim('OS-1');

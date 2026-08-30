@@ -28,6 +28,16 @@ export interface PaginatedResult<T> {
 }
 
 /**
+ * Discriminated outcome of `deactivateIfNotAllocated`. The plain `null` could
+ * not distinguish "allocated" from "not found / already deactivated", which
+ * made the use case map both to 409 (false 409 on the find-then-update race).
+ */
+export type DeactivateResult =
+  | { status: 'deactivated' }
+  | { status: 'not-found' }
+  | { status: 'allocated' };
+
+/**
  * Mechanic persistence contract.
  *
  * The transition methods (`claimIfAvailable`, `releaseIfAllocated`,
@@ -52,7 +62,7 @@ export interface MechanicRepository {
     mechanicId: string,
     serviceOrderId: string,
   ): Promise<Mechanic | null>;
-  deactivateIfNotAllocated(id: string): Promise<Mechanic | null>;
+  deactivateIfNotAllocated(id: string): Promise<DeactivateResult>;
 }
 
 export const MECHANIC_REPOSITORY = Symbol('MECHANIC_REPOSITORY');

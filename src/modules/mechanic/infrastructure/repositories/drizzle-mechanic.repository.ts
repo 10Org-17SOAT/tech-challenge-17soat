@@ -5,6 +5,7 @@ import type { DrizzleDatabase } from '../../../../shared/config/database/drizzle
 import { Mechanic } from '../../domain/mechanic.entity';
 import {
   type ClaimFilter,
+  type DeactivateResult,
   type FindMechanicsParams,
   type MechanicRepository,
   type PaginatedResult,
@@ -189,8 +190,12 @@ export class DrizzleMechanicRepository implements MechanicRepository {
   }
 
   // Atomic deactivation: conditional update prevents deactivating a mechanic
-  // claimed in between (deactivate-vs-claim race).
-  async deactivateIfNotAllocated(mechanicId: string): Promise<Mechanic | null> {
+  // claimed in between (deactivate-vs-claim race). When the update touches 0
+  // rows, a follow-up SELECT distinguishes "allocated" from "not found /
+  // already deactivated" so the use case can map them to 409 and 404.
+  async deactivateIfNotAllocated(
+    mechanicId: string,
+  ): Promise<DeactivateResult> {
     const deactivated = await this.db
       .update(mechanicsTable)
       .set({
@@ -207,7 +212,21 @@ export class DrizzleMechanicRepository implements MechanicRepository {
       )
       .returning();
 
-    return deactivated[0] ? MechanicMapper.toDomain(deactivated[0]) : null;
+    if (deactivated[0]) {
+      return { status: 'deactivated' };
+    }
+
+    const [row] = await this.db
+      .select()
+      .from(mechanicsTable)
+      .where(eq(mechanicsTable.id, mechanicId))
+      .limit(1);
+
+    if (!row || row.deletedAt !== null) {
+      return { status: 'not-found' };
+    }
+
+    return { status: 'allocated' };
   }
 }
 

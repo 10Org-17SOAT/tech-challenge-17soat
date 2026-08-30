@@ -14,17 +14,13 @@ export class DeactivateMechanicUseCase {
   ) {}
 
   async execute(input: { id: string }): Promise<void> {
-    const mechanic = await this.repository.findById(input.id);
+    const result = await this.repository.deactivateIfNotAllocated(input.id);
 
-    if (mechanic === null) {
+    if (result.status === 'not-found') {
       throw new MechanicNotFoundException(input.id);
     }
 
-    const deactivated = await this.repository.deactivateIfNotAllocated(
-      input.id,
-    );
-
-    if (deactivated === null) {
+    if (result.status === 'allocated') {
       throw new AllocatedMechanicException(input.id);
     }
   }

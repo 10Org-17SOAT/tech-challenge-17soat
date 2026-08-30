@@ -3,6 +3,7 @@ import { DuplicateCpfException } from '../domain/exceptions/mechanic.exceptions'
 import { MECHANIC_AVAILABILITY } from '../domain/value-objects/mechanic-availability.enum';
 import type {
   ClaimFilter,
+  DeactivateResult,
   FindMechanicsParams,
   MechanicRepository,
   PaginatedResult,
@@ -144,17 +145,16 @@ export class InMemoryMechanicRepository implements MechanicRepository {
   }
 
   // Atomic deactivation: eligibility check and mutation in one microtask.
-  deactivateIfNotAllocated(id: string): Promise<Mechanic | null> {
+  deactivateIfNotAllocated(id: string): Promise<DeactivateResult> {
     const mechanic = this.mechanics.get(id);
-    if (
-      mechanic === undefined ||
-      mechanic.getDeletedAt() !== null ||
-      mechanic.getAvailability() === MECHANIC_AVAILABILITY.Allocated
-    ) {
-      return Promise.resolve(null);
+    if (mechanic === undefined || mechanic.getDeletedAt() !== null) {
+      return Promise.resolve({ status: 'not-found' });
+    }
+    if (mechanic.getAvailability() === MECHANIC_AVAILABILITY.Allocated) {
+      return Promise.resolve({ status: 'allocated' });
     }
 
     mechanic.deactivate();
-    return Promise.resolve(mechanic);
+    return Promise.resolve({ status: 'deactivated' });
   }
 }
