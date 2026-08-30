@@ -64,7 +64,7 @@ export class Phone {
       );
     }
 
-    if (phone.areaCode !== null && !/^\d{2,3}$/.test(phone.areaCode)) {
+    if (phone.areaCode != null && !/^\d{2,3}$/.test(phone.areaCode)) {
       throw new InvalidPhoneException('Area code must contain 2 to 3 digits.');
     }
 

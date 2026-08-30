@@ -1,5 +1,14 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
+import {
+  MECHANIC_AVAILABILITY,
+  type MechanicAvailability,
+} from '../../domain/value-objects/mechanic-availability.enum';
+
+const AVAILABILITY_VALUES = Object.values(MECHANIC_AVAILABILITY) as [
+  MechanicAvailability,
+  ...MechanicAvailability[],
+];
 
 export const mechanicIdParamSchema = z.object({
   id: z.uuid(),
@@ -21,7 +30,7 @@ export const mechanicResponseSchema = z.object({
   phone: phoneResponseSchema,
   specialties: z.array(z.string()),
   hireDate: z.iso.datetime(),
-  availability: z.enum(['AVAILABLE', 'ALLOCATED', 'OFF_DUTY', 'INACTIVE']),
+  availability: z.enum(AVAILABILITY_VALUES),
   availableSince: z.iso.datetime(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),

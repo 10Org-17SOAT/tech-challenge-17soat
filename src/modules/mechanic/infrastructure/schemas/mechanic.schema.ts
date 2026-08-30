@@ -1,5 +1,15 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
+import { SPECIALTIES } from '../../domain/value-objects/specialty.enum';
+import {
+  MECHANIC_AVAILABILITY,
+  type MechanicAvailability,
+} from '../../domain/value-objects/mechanic-availability.enum';
+
+const AVAILABILITY_VALUES = Object.values(MECHANIC_AVAILABILITY) as [
+  MechanicAvailability,
+  ...MechanicAvailability[],
+];
 
 const PhoneSchema = z
   .object({
@@ -19,19 +29,6 @@ const PhoneSchema = z
       .regex(/^\d{7,15}$/, 'Phone number must contain 7 to 15 digits'),
   })
   .strict();
-
-const SPECIALTIES = [
-  'mechanical',
-  'electrical',
-  'bodywork',
-  'painting',
-  'tire',
-  'glass',
-  'upholstery',
-  'air_conditioning',
-  'inspection',
-  'other',
-] as const;
 
 export const CreateMechanicSchema = z
   .object({
@@ -82,9 +79,7 @@ export const ListMechanicsQuerySchema = z
     limit: z.coerce.number().int().positive().max(100).default(10),
     name: z.string().trim().optional(),
     specialty: z.enum(SPECIALTIES).optional(),
-    availability: z
-      .enum(['AVAILABLE', 'ALLOCATED', 'OFF_DUTY', 'INACTIVE'])
-      .optional(),
+    availability: z.enum(AVAILABILITY_VALUES).optional(),
   })
   .strict();
 

@@ -11,6 +11,11 @@ import {
 } from 'drizzle-orm/pg-core';
 import type { PhoneProps } from '../../domain/value-objects/phone.value-object';
 import type { Specialty } from '../../domain/value-objects/specialty.enum';
+import { MECHANIC_AVAILABILITY } from '../../domain/value-objects/mechanic-availability.enum';
+
+const AVAILABILITY_VALUES = Object.values(MECHANIC_AVAILABILITY)
+  .map((value) => `'${value}'`)
+  .join(', ');
 
 export const mechanicsTable = pgTable(
   'mechanics',
