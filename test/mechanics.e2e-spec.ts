@@ -144,6 +144,18 @@ describe('Mechanics (e2e)', () => {
       expect(res.status).toBe(400);
     });
 
+    it('rejects an invalid phone with 400', async () => {
+      const res = await http()
+        .post('/mechanics')
+        .send(
+          createPayload({
+            phone: { countryCode: '55', areaCode: '1', number: '123' },
+          }),
+        );
+
+      expect(res.status).toBe(400);
+    });
+
     it('rejects a duplicate active CPF with 409', async () => {
       await seedMechanic();
 

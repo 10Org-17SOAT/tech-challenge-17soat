@@ -58,12 +58,20 @@ export class Phone {
   }
 
   private validate(phone: PhoneProps): void {
-    if (phone.countryCode.length === 0) {
-      throw new InvalidPhoneException('Country code is required.');
+    if (!/^\d{1,3}$/.test(phone.countryCode)) {
+      throw new InvalidPhoneException(
+        'Country code must contain 1 to 3 digits.',
+      );
     }
 
-    if (phone.number.length === 0) {
-      throw new InvalidPhoneException('Phone number is required.');
+    if (phone.areaCode !== null && !/^\d{2,3}$/.test(phone.areaCode)) {
+      throw new InvalidPhoneException('Area code must contain 2 to 3 digits.');
+    }
+
+    if (!/^\d{7,15}$/.test(phone.number)) {
+      throw new InvalidPhoneException(
+        'Phone number must contain 7 to 15 digits.',
+      );
     }
   }
 }

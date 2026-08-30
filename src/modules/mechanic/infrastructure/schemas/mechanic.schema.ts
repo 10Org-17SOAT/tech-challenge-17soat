@@ -3,9 +3,20 @@ import { z } from 'zod';
 
 const PhoneSchema = z
   .object({
-    countryCode: z.string().trim().min(1, 'Country code is required'),
-    areaCode: z.string().trim().optional(),
-    number: z.string().trim().min(1, 'Phone number is required'),
+    countryCode: z
+      .string()
+      .trim()
+      .regex(/^\d{1,3}$/, 'Country code must contain 1 to 3 digits'),
+    areaCode: z
+      .string()
+      .trim()
+      .regex(/^\d{2,3}$/, 'Area code must contain 2 to 3 digits')
+      .nullable()
+      .optional(),
+    number: z
+      .string()
+      .trim()
+      .regex(/^\d{7,15}$/, 'Phone number must contain 7 to 15 digits'),
   })
   .strict();
 
