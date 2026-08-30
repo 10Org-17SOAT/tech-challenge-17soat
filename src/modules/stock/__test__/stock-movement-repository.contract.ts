@@ -5,6 +5,8 @@ import { ReservationNotFoundError } from '../domain/errors/reservation-not-found
 import { StockMovement } from '../domain/stock-movement.entity';
 import type { StockMovementRepository } from '../domain/stock-movement.repository';
 
+const TEST_PERFORMER = { id: '11111111-1111-1111-1111-111111111111', name: 'Estoquista Teste' };
+
 export interface StockMovementRepositoryContext {
   repository: StockMovementRepository;
   /** Registers a supply the movements may reference, returning its id. */
@@ -39,15 +41,15 @@ export function describeStockMovementRepositoryContract(
   });
 
   it('computes the available balance as SUM(IN) - SUM(RESERVE)', async () => {
-    await repository.save(StockMovement.in(supplyId, 10));
-    await repository.save(StockMovement.in(supplyId, 5));
+    await repository.save(StockMovement.in(supplyId, 10, TEST_PERFORMER));
+    await repository.save(StockMovement.in(supplyId, 5, TEST_PERFORMER));
     await repository.save(StockMovement.reserve(supplyId, 4, 'OS-1'));
 
     await expect(repository.getAvailableBalance(supplyId)).resolves.toBe(11);
   });
 
   it('does not credit the available balance back when a reservation is consumed', async () => {
-    await repository.save(StockMovement.in(supplyId, 10));
+    await repository.save(StockMovement.in(supplyId, 10, TEST_PERFORMER));
     await repository.save(StockMovement.reserve(supplyId, 4, 'OS-1'));
     await repository.save(StockMovement.consume(supplyId, 4, 'OS-1'));
 
@@ -55,7 +57,7 @@ export function describeStockMovementRepositoryContract(
   });
 
   it('computes the reserved quantity as SUM(RESERVE) - SUM(CONSUME)', async () => {
-    await repository.save(StockMovement.in(supplyId, 10));
+    await repository.save(StockMovement.in(supplyId, 10, TEST_PERFORMER));
     await repository.save(StockMovement.reserve(supplyId, 4, 'OS-1'));
     await repository.save(StockMovement.reserve(supplyId, 3, 'OS-2'));
     await repository.save(StockMovement.consume(supplyId, 4, 'OS-1'));
@@ -64,7 +66,7 @@ export function describeStockMovementRepositoryContract(
   });
 
   it('scopes the reserved quantity to a single service order reference when given', async () => {
-    await repository.save(StockMovement.in(supplyId, 10));
+    await repository.save(StockMovement.in(supplyId, 10, TEST_PERFORMER));
     await repository.save(StockMovement.reserve(supplyId, 4, 'OS-1'));
     await repository.save(StockMovement.reserve(supplyId, 3, 'OS-2'));
     await repository.save(StockMovement.consume(supplyId, 1, 'OS-1'));
@@ -82,7 +84,7 @@ export function describeStockMovementRepositoryContract(
 
   it('keeps the balances of different supplies isolated', async () => {
     const otherSupplyId = await context.createSupply();
-    await repository.save(StockMovement.in(supplyId, 10));
+    await repository.save(StockMovement.in(supplyId, 10, TEST_PERFORMER));
 
     await expect(repository.getAvailableBalance(otherSupplyId)).resolves.toBe(
       0,
@@ -96,9 +98,9 @@ export function describeStockMovementRepositoryContract(
   describe('batch balances', () => {
     it('aggregates the balance of several supplies in one call', async () => {
       const otherSupplyId = await context.createSupply();
-      await repository.save(StockMovement.in(supplyId, 10));
+      await repository.save(StockMovement.in(supplyId, 10, TEST_PERFORMER));
       await repository.save(StockMovement.reserve(supplyId, 4, 'OS-1'));
-      await repository.save(StockMovement.in(otherSupplyId, 3));
+      await repository.save(StockMovement.in(otherSupplyId, 3, TEST_PERFORMER));
 
       const balances = await repository.getAvailableBalances([
         supplyId,
@@ -124,7 +126,7 @@ export function describeStockMovementRepositoryContract(
     });
 
     it('returns an empty map for an empty id list', async () => {
-      await repository.save(StockMovement.in(supplyId, 10));
+      await repository.save(StockMovement.in(supplyId, 10, TEST_PERFORMER));
 
       const balances = await repository.getAvailableBalances([]);
 
@@ -132,7 +134,7 @@ export function describeStockMovementRepositoryContract(
     });
 
     it('reserveIfAvailable does not disappear from the batch balance', async () => {
-      await repository.save(StockMovement.in(supplyId, 10));
+      await repository.save(StockMovement.in(supplyId, 10, TEST_PERFORMER));
       await repository.reserveIfAvailable(
         StockMovement.reserve(supplyId, 4, 'OS-batch'),
       );
@@ -143,7 +145,7 @@ export function describeStockMovementRepositoryContract(
     });
 
     it('agrees with the single-supply balance query', async () => {
-      await repository.save(StockMovement.in(supplyId, 9));
+      await repository.save(StockMovement.in(supplyId, 9, TEST_PERFORMER));
       await repository.save(StockMovement.reserve(supplyId, 2, 'OS-7'));
 
       const [single, batch] = await Promise.all([
@@ -157,7 +159,7 @@ export function describeStockMovementRepositoryContract(
 
   describe('reserveIfAvailable', () => {
     it('reserves a quantity within the available balance, lowering available and raising reserved', async () => {
-      await repository.save(StockMovement.in(supplyId, 10));
+      await repository.save(StockMovement.in(supplyId, 10, TEST_PERFORMER));
 
       await repository.reserveIfAvailable(
         StockMovement.reserve(supplyId, 6, 'OS-1'),
@@ -168,7 +170,7 @@ export function describeStockMovementRepositoryContract(
     });
 
     it('rejects a reservation that exceeds the available balance, changing no balance', async () => {
-      await repository.save(StockMovement.in(supplyId, 5));
+      await repository.save(StockMovement.in(supplyId, 5, TEST_PERFORMER));
 
       await expect(
         repository.reserveIfAvailable(
@@ -192,7 +194,7 @@ export function describeStockMovementRepositoryContract(
     // racing the same supply where only one fits must never both succeed —
     // a plain check-then-insert passes a single-process test and fails here.
     it('accepts exactly one of two concurrent reservations where only one fits, and the available balance never goes negative', async () => {
-      await repository.save(StockMovement.in(supplyId, 10));
+      await repository.save(StockMovement.in(supplyId, 10, TEST_PERFORMER));
 
       const attempts = await Promise.allSettled([
         repository.reserveIfAvailable(
@@ -217,7 +219,7 @@ export function describeStockMovementRepositoryContract(
 
   describe('writeOffIfReserved', () => {
     it('writes off a quantity within what is reserved, lowering the reserved quantity by that amount', async () => {
-      await repository.save(StockMovement.in(supplyId, 10));
+      await repository.save(StockMovement.in(supplyId, 10, TEST_PERFORMER));
       await repository.save(StockMovement.reserve(supplyId, 6, 'OS-1'));
 
       await repository.writeOffIfReserved(
@@ -231,7 +233,7 @@ export function describeStockMovementRepositoryContract(
     });
 
     it('rejects a write-off that exceeds the reserved quantity, changing no balance', async () => {
-      await repository.save(StockMovement.in(supplyId, 10));
+      await repository.save(StockMovement.in(supplyId, 10, TEST_PERFORMER));
       await repository.save(StockMovement.reserve(supplyId, 4, 'OS-2'));
 
       await expect(
@@ -246,7 +248,7 @@ export function describeStockMovementRepositoryContract(
     });
 
     it('rejects a write-off against a reference with no reservation at all', async () => {
-      await repository.save(StockMovement.in(supplyId, 10));
+      await repository.save(StockMovement.in(supplyId, 10, TEST_PERFORMER));
 
       await expect(
         repository.writeOffIfReserved(
@@ -256,7 +258,7 @@ export function describeStockMovementRepositoryContract(
     });
 
     it('accepts exactly one of two concurrent write-offs where only one fits, and the reserved quantity never goes negative', async () => {
-      await repository.save(StockMovement.in(supplyId, 10));
+      await repository.save(StockMovement.in(supplyId, 10, TEST_PERFORMER));
       await repository.save(StockMovement.reserve(supplyId, 10, 'OS-race'));
 
       const attempts = await Promise.allSettled([

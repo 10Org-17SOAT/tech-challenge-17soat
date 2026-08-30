@@ -7,6 +7,8 @@ import { InMemorySupplyRepository } from '../__test__/in-memory-supply.repositor
 import { RecordingDomainEventPublisher } from '../__test__/recording-domain-event.publisher';
 import { LookupStockUseCase } from './lookup-stock.usecase';
 
+const TEST_PERFORMER = { id: '11111111-1111-1111-1111-111111111111', name: 'Estoquista Teste' };
+
 describe('LookupStockUseCase', () => {
   let supplyRepository: InMemorySupplyRepository;
   let movementRepository: InMemoryStockMovementRepository;
@@ -35,7 +37,7 @@ describe('LookupStockUseCase', () => {
 
   it('returns the available balance of a supply with movements', async () => {
     const supply = await givenSupply();
-    await movementRepository.save(StockMovement.in(supply.id, 10));
+    await movementRepository.save(StockMovement.in(supply.id, 10, TEST_PERFORMER));
     await movementRepository.save(StockMovement.reserve(supply.id, 4, 'OS-1'));
 
     await expect(useCase.execute(supply.id)).resolves.toEqual({
@@ -59,7 +61,7 @@ describe('LookupStockUseCase', () => {
 
   it('publishes PurchaseRequestNeeded when every unit is reserved away', async () => {
     const supply = await givenSupply();
-    await movementRepository.save(StockMovement.in(supply.id, 5));
+    await movementRepository.save(StockMovement.in(supply.id, 5, TEST_PERFORMER));
     await movementRepository.save(StockMovement.reserve(supply.id, 5, 'OS-2'));
 
     const result = await useCase.execute(supply.id);
@@ -70,7 +72,7 @@ describe('LookupStockUseCase', () => {
 
   it('does not publish PurchaseRequestNeeded when the balance is positive', async () => {
     const supply = await givenSupply();
-    await movementRepository.save(StockMovement.in(supply.id, 1));
+    await movementRepository.save(StockMovement.in(supply.id, 1, TEST_PERFORMER));
 
     await useCase.execute(supply.id);
 

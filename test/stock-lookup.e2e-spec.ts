@@ -66,9 +66,17 @@ describe('Stock lookup (e2e)', () => {
   ) =>
     pool.query(
       `insert into stock_movements
-         (movement_id, supply_id, type, quantity, service_order_reference, created_at)
-       values ($1, $2, $3, $4, $5, now())`,
-      [randomUUID(), supplyId, type, quantity, type === 'IN' ? null : 'OS-e2e'],
+         (movement_id, supply_id, type, quantity, service_order_reference, performed_by_id, performed_by_name, created_at)
+       values ($1, $2, $3, $4, $5, $6, $7, now())`,
+      [
+        randomUUID(),
+        supplyId,
+        type,
+        quantity,
+        type === 'IN' ? null : 'OS-e2e',
+        type === 'IN' ? randomUUID() : null,
+        type === 'IN' ? 'Estoquista de teste' : null,
+      ],
     );
 
   describe('GET /supplies/:id/stock', () => {

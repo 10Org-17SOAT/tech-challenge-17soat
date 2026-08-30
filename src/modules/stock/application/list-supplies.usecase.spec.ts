@@ -6,6 +6,8 @@ import { RecordingDomainEventPublisher } from '../__test__/recording-domain-even
 import { LookupStockUseCase } from './lookup-stock.usecase';
 import { ListSuppliesUseCase } from './list-supplies.usecase';
 
+const TEST_PERFORMER = { id: '11111111-1111-1111-1111-111111111111', name: 'Estoquista Teste' };
+
 describe('ListSuppliesUseCase', () => {
   let repository: InMemorySupplyRepository;
   let movementRepository: InMemoryStockMovementRepository;
@@ -26,9 +28,9 @@ describe('ListSuppliesUseCase', () => {
       const filter = Supply.create({ name: 'Filtro', priceInCents: 3200 });
       await repository.save(oil);
       await repository.save(filter);
-      await movementRepository.save(StockMovement.in(oil.id, 10));
+      await movementRepository.save(StockMovement.in(oil.id, 10, TEST_PERFORMER));
       await movementRepository.save(StockMovement.reserve(oil.id, 4, 'OS-1'));
-      await movementRepository.save(StockMovement.in(filter.id, 2));
+      await movementRepository.save(StockMovement.in(filter.id, 2, TEST_PERFORMER));
 
       const result = await useCase.execute({ page: 1, limit: 20 });
 

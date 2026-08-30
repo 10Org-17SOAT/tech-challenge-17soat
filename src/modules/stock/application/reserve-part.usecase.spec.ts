@@ -9,6 +9,8 @@ import { InMemorySupplyRepository } from '../__test__/in-memory-supply.repositor
 import { RecordingDomainEventPublisher } from '../__test__/recording-domain-event.publisher';
 import { ReservePartUseCase } from './reserve-part.usecase';
 
+const TEST_PERFORMER = { id: '11111111-1111-1111-1111-111111111111', name: 'Estoquista Teste' };
+
 describe('ReservePartUseCase', () => {
   let supplyRepository: InMemorySupplyRepository;
   let movementRepository: InMemoryStockMovementRepository;
@@ -18,7 +20,7 @@ describe('ReservePartUseCase', () => {
   const givenSupplyWithBalance = async (quantity: number): Promise<string> => {
     const supply = Supply.create({ name: 'Amortecedor', priceInCents: 12000 });
     await supplyRepository.save(supply);
-    await movementRepository.save(StockMovement.in(supply.id, quantity));
+    await movementRepository.save(StockMovement.in(supply.id, quantity, TEST_PERFORMER));
     return supply.id;
   };
 

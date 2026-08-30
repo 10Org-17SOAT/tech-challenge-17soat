@@ -6,6 +6,8 @@ import { InMemoryStockMovementRepository } from '../__test__/in-memory-stock-mov
 import { InMemorySupplyRepository } from '../__test__/in-memory-supply.repository';
 import { UpdateSupplyUseCase } from './update-supply.usecase';
 
+const TEST_PERFORMER = { id: '11111111-1111-1111-1111-111111111111', name: 'Estoquista Teste' };
+
 describe('UpdateSupplyUseCase', () => {
   let repository: InMemorySupplyRepository;
   let movementRepository: InMemoryStockMovementRepository;
@@ -20,7 +22,7 @@ describe('UpdateSupplyUseCase', () => {
   it('returns the updated supply together with its available balance', async () => {
     const supply = Supply.create({ name: 'Filtro', priceInCents: 100 });
     await repository.save(supply);
-    await movementRepository.save(StockMovement.in(supply.id, 4));
+    await movementRepository.save(StockMovement.in(supply.id, 4, TEST_PERFORMER));
 
     const result = await useCase.execute(supply.id, { priceInCents: 250 });
 
