@@ -1,5 +1,6 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { IssueQuotationUseCase } from '../../quotations/application/issue-quotation.usecase';
+import { SendQuotationApprovalEmailUseCase } from '../../quotations/application/send-quotation-approval-email.usecase';
 import { Quotation } from '../../quotations/domain/quotation.entity';
 import { ServiceOrderNotFoundError } from '../../service-orders/domain/errors/service-order-not-found.error';
 import { ServiceItem } from '../../service-orders/domain/service-item';
@@ -25,6 +26,10 @@ export interface CompleteDiagnosisOutput {
  * quotation falls out of it automatically. Because the two happen together,
  * `awaiting_approval` never means "waiting on a quotation that does not exist
  * yet" — by the time the order reaches that status the customer has a price.
+ *
+ * The approval email goes out from here too, but on a different footing: it is
+ * I/O against a third party and is allowed to fail on its own. See the catch
+ * at the end.
  */
 @Injectable()
 export class CompleteDiagnosisUseCase {
@@ -34,7 +39,10 @@ export class CompleteDiagnosisUseCase {
     @Inject(SERVICE_ORDER_REPOSITORY)
     private readonly orderRepository: ServiceOrderRepository,
     private readonly issueQuotation: IssueQuotationUseCase,
+    private readonly sendApprovalEmail: SendQuotationApprovalEmailUseCase,
   ) {}
+
+  private readonly logger = new Logger(CompleteDiagnosisUseCase.name);
 
   async execute(
     input: CompleteDiagnosisInput,
@@ -58,10 +66,32 @@ export class CompleteDiagnosisUseCase {
 
     await this.diagnosisRepository.save(diagnosis);
     await this.orderRepository.replaceItems(input.serviceOrderId, serviceItems);
-    const quotation = await this.issueQuotation.execute(input.serviceOrderId);
+    let quotation = await this.issueQuotation.execute(input.serviceOrderId);
     // Status last: if pricing fails above, the order stays in `in_diagnosis`
     // and the whole act can simply be retried.
     await this.orderRepository.save(order);
+
+    // Deliberately swallowed. Everything above has been written and the
+    // diagnosis is complete and correct; letting a mail provider's outage
+    // throw here would return a 500 on work that succeeded, and the retry
+    // would then die on `awaiting_approval -> awaiting_approval` with the
+    // mechanic unable to close the order at all.
+    //
+    // The cost is that a failed send is only a log line. `approvalEmailSentAt`
+    // stays null so the miss is visible, and
+    // `POST /quotations/:id/send-approval-email` recovers it.
+    try {
+      // Reassigned, not discarded: sending reloads the quotation and stamps
+      // `approvalEmailSentAt` on that copy. Returning the pre-send instance
+      // would report null on the very response that should say the email went
+      // out. On failure the original stays, and null is then the truth.
+      quotation = await this.sendApprovalEmail.execute(quotation.id);
+    } catch (error) {
+      this.logger.error(
+        `Quotation ${quotation.id} was issued but its approval email failed to send`,
+        error instanceof Error ? error.stack : String(error),
+      );
+    }
 
     return { diagnosis, quotation };
   }
