@@ -49,8 +49,9 @@ describe('UpdateAnamnesisUseCase', () => {
 const anamnesisResult = (result as any).anamnesis ?? result;
 expect(anamnesisResult.mainComplaint).toBe('Barulho na suspensão');
 expect(anamnesisResult.updatedBy).toBe(updatedBy);
-if ((result as any).vehicleId !== undefined) {
-  expect((result as any).vehicleId).toBe(vehicleId);
+const actualVehicleId = (result as any).vehicleId ?? (anamnesisResult as any).vehicleId;
+if (actualVehicleId !== undefined) {
+  expect(actualVehicleId).toBe(vehicleId);
 }
     expect(anamnesisRepository.save).toHaveBeenCalledWith(anamnesis);
   });
