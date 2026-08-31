@@ -1,4 +1,5 @@
 export * from '../../../modules/onboarding/customer/infrastructure/persistence/customer.schema';
+export * from '../../../modules/onboarding/consultant/infrastructure/persistence/schema';
 // Aggregator for drizzle-kit: each module owns its own tables.
 export * from '../../../modules/service-management/services/infrastructure/persistence/schema';
 export * from '../../../modules/stock/infrastructure/persistence/schema';

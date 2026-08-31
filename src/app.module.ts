@@ -4,6 +4,7 @@ import { APP_PIPE } from '@nestjs/core';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { ConsultantModule } from './modules/onboarding/consultant/consultant.module';
 import { CustomerModule } from './modules/onboarding/customer/customer.module';
 import { VehicleManagementModule } from './modules/onboarding/vehicles/vehicle-management.module';
 import { ServiceOrderModule } from './modules/service-management/service-order.module';
@@ -26,6 +27,7 @@ import { SharedEventsModule } from './shared/events/events.module';
     ServiceOrderModule,
     VehicleManagementModule,
     CustomerModule,
+    ConsultantModule,
     MechanicModule,
   ],
   controllers: [AppController],
