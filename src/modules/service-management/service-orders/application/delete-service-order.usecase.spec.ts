@@ -4,8 +4,7 @@ import { ServiceOrder } from '../domain/service-order.entity';
 import { InMemoryServiceOrderRepository } from '../__test__/in-memory-service-order.repository';
 import { DeleteServiceOrderUseCase } from './delete-service-order.usecase';
 
-// Orders always reference a vehicle; which one is irrelevant here.
-const VEHICLE_ID = '9f1d3c40-5f0e-4a1e-9a1b-6c2d7e8f0a11';
+const vehicleId = '11111111-1111-1111-1111-111111111111';
 
 describe('DeleteServiceOrderUseCase', () => {
   let repository: InMemoryServiceOrderRepository;
@@ -17,7 +16,7 @@ describe('DeleteServiceOrderUseCase', () => {
   });
 
   it('soft deletes an order in status received', async () => {
-    const order = ServiceOrder.create({ vehicleId: VEHICLE_ID });
+    const order = ServiceOrder.create({ vehicleId });
     await repository.save(order);
 
     await useCase.execute(order.id);
@@ -32,7 +31,7 @@ describe('DeleteServiceOrderUseCase', () => {
   });
 
   it('rejects deleting orders past received', async () => {
-    const order = ServiceOrder.create({ vehicleId: VEHICLE_ID });
+    const order = ServiceOrder.create({ vehicleId });
     order.transitionTo('in_diagnosis');
     await repository.save(order);
 

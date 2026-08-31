@@ -4,8 +4,7 @@ import { ExecutionStarted } from '../../domain/events/execution-started.event';
 import { InMemoryServiceOrderRepository } from '../../__test__/in-memory-service-order.repository';
 import { ExecutionStartedHandler } from './execution-started.handler';
 
-// Orders always reference a vehicle; which one is irrelevant here.
-const VEHICLE_ID = '9f1d3c40-5f0e-4a1e-9a1b-6c2d7e8f0a11';
+const vehicleId = '11111111-1111-1111-1111-111111111111';
 
 describe('ExecutionStartedHandler', () => {
   let repository: InMemoryServiceOrderRepository;
@@ -17,7 +16,7 @@ describe('ExecutionStartedHandler', () => {
   });
 
   it('advances an awaiting_execution order to in_execution and stamps startedAt', async () => {
-    const order = ServiceOrder.create({ vehicleId: VEHICLE_ID });
+    const order = ServiceOrder.create({ vehicleId });
     order.transitionTo('in_diagnosis');
     order.transitionTo('awaiting_approval');
     order.transitionTo('awaiting_execution');
@@ -37,7 +36,7 @@ describe('ExecutionStartedHandler', () => {
   });
 
   it('ignores the event when the transition is invalid', async () => {
-    const order = ServiceOrder.create({ vehicleId: VEHICLE_ID });
+    const order = ServiceOrder.create({ vehicleId });
     await repository.save(order);
 
     await expect(

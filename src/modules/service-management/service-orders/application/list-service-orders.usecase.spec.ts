@@ -2,8 +2,7 @@ import { ServiceOrder } from '../domain/service-order.entity';
 import { InMemoryServiceOrderRepository } from '../__test__/in-memory-service-order.repository';
 import { ListServiceOrdersUseCase } from './list-service-orders.usecase';
 
-// Orders always reference a vehicle; which one is irrelevant here.
-const VEHICLE_ID = '9f1d3c40-5f0e-4a1e-9a1b-6c2d7e8f0a11';
+const vehicleId = '11111111-1111-1111-1111-111111111111';
 
 describe('ListServiceOrdersUseCase', () => {
   let repository: InMemoryServiceOrderRepository;
@@ -16,7 +15,7 @@ describe('ListServiceOrdersUseCase', () => {
 
   it('paginates and reports total', async () => {
     for (let i = 0; i < 5; i++) {
-      await repository.save(ServiceOrder.create({ vehicleId: VEHICLE_ID }));
+      await repository.save(ServiceOrder.create({ vehicleId }));
     }
 
     const first = await useCase.execute({ page: 1, limit: 2 });
@@ -30,8 +29,8 @@ describe('ListServiceOrdersUseCase', () => {
   });
 
   it('filters by status', async () => {
-    const a = ServiceOrder.create({ vehicleId: VEHICLE_ID });
-    const b = ServiceOrder.create({ vehicleId: VEHICLE_ID });
+    const a = ServiceOrder.create({ vehicleId });
+    const b = ServiceOrder.create({ vehicleId });
     b.transitionTo('in_diagnosis');
     await repository.save(a);
     await repository.save(b);
@@ -46,7 +45,7 @@ describe('ListServiceOrdersUseCase', () => {
   });
 
   it('excludes soft-deleted orders', async () => {
-    const order = ServiceOrder.create({ vehicleId: VEHICLE_ID });
+    const order = ServiceOrder.create({ vehicleId });
     await repository.save(order);
     order.delete();
     await repository.save(order);

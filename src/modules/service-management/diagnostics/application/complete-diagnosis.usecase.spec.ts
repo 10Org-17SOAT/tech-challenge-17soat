@@ -19,8 +19,7 @@ import { InvalidDiagnosisError } from '../domain/errors/invalid-diagnosis.error'
 import { InMemoryDiagnosisRepository } from '../__test__/in-memory-diagnosis.repository';
 import { CompleteDiagnosisUseCase } from './complete-diagnosis.usecase';
 
-// Orders always reference a vehicle; which one is irrelevant here.
-const VEHICLE_ID = '9f1d3c40-5f0e-4a1e-9a1b-6c2d7e8f0a11';
+const vehicleId = '11111111-1111-1111-1111-111111111111';
 
 const oilId = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 
@@ -70,7 +69,7 @@ describe('CompleteDiagnosisUseCase', () => {
   });
 
   const givenOrderInDiagnosis = async (): Promise<ServiceOrder> => {
-    const order = ServiceOrder.create({ vehicleId: VEHICLE_ID });
+    const order = ServiceOrder.create({ vehicleId });
     order.transitionTo('in_diagnosis');
     await orders.save(order);
     recipients.set(order.id, aRecipient());
@@ -146,7 +145,7 @@ describe('CompleteDiagnosisUseCase', () => {
   });
 
   it('refuses when the order is not in diagnosis', async () => {
-    const order = ServiceOrder.create({ vehicleId: VEHICLE_ID });
+    const order = ServiceOrder.create({ vehicleId });
     await orders.save(order);
     const saveDiagnosis = jest.spyOn(diagnoses, 'save');
 
