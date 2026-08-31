@@ -1,8 +1,6 @@
 import { Anamnesis } from './anamnesis.entity';
-import {
-  AnamnesisLockedException,
-  InvalidAnamnesisException,
-} from './exceptions/anamnesis.exceptions';
+import { AnamnesisLockedError } from './errors/anamnesis-locked.error';
+import { InvalidAnamnesisError } from './errors/invalid-anamnesis.error';
 
 describe('Anamnesis', () => {
   const validProps = {
@@ -76,19 +74,19 @@ describe('Anamnesis', () => {
     it('rejects a missing mainComplaint', () => {
       expect(() =>
         Anamnesis.create({ ...validProps, mainComplaint: '   ' }),
-      ).toThrow(InvalidAnamnesisException);
+).toThrow(InvalidAnamnesisError);
     });
 
     it('rejects a missing problemDescription', () => {
       expect(() =>
         Anamnesis.create({ ...validProps, problemDescription: '' }),
-      ).toThrow(InvalidAnamnesisException);
+).toThrow(InvalidAnamnesisError);
     });
 
     it('rejects mainComplaint longer than 500 characters', () => {
       expect(() =>
         Anamnesis.create({ ...validProps, mainComplaint: 'a'.repeat(501) }),
-      ).toThrow(InvalidAnamnesisException);
+).toThrow(InvalidAnamnesisError);
     });
 
     it('rejects problemDescription longer than 4000 characters', () => {
@@ -97,31 +95,31 @@ describe('Anamnesis', () => {
           ...validProps,
           problemDescription: 'a'.repeat(4001),
         }),
-      ).toThrow(InvalidAnamnesisException);
+).toThrow(InvalidAnamnesisError);
     });
 
     it('rejects optional text longer than 2000 characters', () => {
       expect(() =>
         Anamnesis.create({ ...validProps, evolution: 'a'.repeat(2001) }),
-      ).toThrow(InvalidAnamnesisException);
+).toThrow(InvalidAnamnesisError);
     });
 
     it('rejects an invalid howStarted value', () => {
       expect(() =>
         Anamnesis.create({ ...validProps, howStarted: 'overnight' as never }),
-      ).toThrow(InvalidAnamnesisException);
+).toThrow(InvalidAnamnesisError);
     });
 
     it('rejects an invalid frequency value', () => {
       expect(() =>
         Anamnesis.create({ ...validProps, frequency: 'always' as never }),
-      ).toThrow(InvalidAnamnesisException);
+).toThrow(InvalidAnamnesisError);
     });
 
     it('rejects an invalid severity value', () => {
       expect(() =>
         Anamnesis.create({ ...validProps, severity: 'critical' as never }),
-      ).toThrow(InvalidAnamnesisException);
+).toThrow(InvalidAnamnesisError);
     });
   });
 
@@ -176,7 +174,7 @@ describe('Anamnesis', () => {
       expect(anamnesis.updatedAt.getTime()).toBeGreaterThanOrEqual(before);
     });
 
-    it('throws AnamnesisLockedException once the order leaves received', () => {
+it('throws AnamnesisLockedError once the order leaves received', () => {
       const anamnesis = Anamnesis.create(validProps);
 
       expect(() =>
@@ -185,7 +183,7 @@ describe('Anamnesis', () => {
           '55555555-5555-5555-5555-555555555555',
           'in_diagnosis',
         ),
-      ).toThrow(AnamnesisLockedException);
+).toThrow(AnamnesisLockedError);
     });
 
     it('rejects an empty updatedBy', () => {
@@ -193,7 +191,7 @@ describe('Anamnesis', () => {
 
       expect(() =>
         anamnesis.update({ mainComplaint: 'x' }, '   ', 'received'),
-      ).toThrow(InvalidAnamnesisException);
+).toThrow(InvalidAnamnesisError);
     });
 
     it('rejects an invalid enum on update', () => {
@@ -205,7 +203,7 @@ describe('Anamnesis', () => {
           '55555555-5555-5555-5555-555555555555',
           'received',
         ),
-      ).toThrow(InvalidAnamnesisException);
+).toThrow(InvalidAnamnesisError);
     });
   });
 
@@ -218,11 +216,11 @@ describe('Anamnesis', () => {
       expect(anamnesis.deletedAt).toBeInstanceOf(Date);
     });
 
-    it('throws AnamnesisLockedException once the order leaves received', () => {
+it('throws AnamnesisLockedError once the order leaves received', () => {
       const anamnesis = Anamnesis.create(validProps);
 
       expect(() => anamnesis.delete('awaiting_approval')).toThrow(
-        AnamnesisLockedException,
+        AnamnesisLockedError,
       );
     });
 
@@ -230,7 +228,7 @@ describe('Anamnesis', () => {
       const anamnesis = Anamnesis.create(validProps);
       anamnesis.delete('received');
 
-      expect(() => anamnesis.delete('received')).toThrow(InvalidAnamnesisException);
+).toThrow(InvalidAnamnesisError);
     });
   });
 });
