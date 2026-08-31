@@ -5,6 +5,7 @@ import {
   type MechanicRepository,
 } from '../../domain/repository/mechanic.repository';
 import { CreateMechanicInput, MechanicResponseDTO } from '../dto/mechanic.dto';
+import { MechanicResponseMapper } from '../mappers/mechanic-response.mapper';
 
 @Injectable()
 export class CreateMechanicUseCase {
@@ -18,23 +19,6 @@ export class CreateMechanicUseCase {
 
     const saved = await this.repository.save(mechanic);
 
-    return this.toResponseDTO(saved);
-  }
-
-  private toResponseDTO(mechanic: Mechanic): MechanicResponseDTO {
-    const primitives = mechanic.toPrimitives();
-    return {
-      id: primitives.id,
-      name: primitives.name,
-      cpf: primitives.cpf,
-      email: primitives.email,
-      phone: primitives.phone,
-      specialties: primitives.specialties,
-      hireDate: primitives.hireDate,
-      availability: primitives.availability,
-      availableSince: primitives.availableSince,
-      createdAt: primitives.createdAt,
-      updatedAt: primitives.updatedAt,
-    };
+    return MechanicResponseMapper.toResponseDTO(saved);
   }
 }

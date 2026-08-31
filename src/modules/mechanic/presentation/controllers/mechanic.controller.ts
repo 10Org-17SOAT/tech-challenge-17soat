@@ -19,7 +19,7 @@ import { UpdateMechanicProfileUseCase } from '../../application/use-cases/update
 import { DeactivateMechanicUseCase } from '../../application/use-cases/deactivate-mechanic.use-case';
 import { FindAvailableMechanicUseCase } from '../../application/use-cases/find-available-mechanic.use-case';
 import { ReleaseMechanicUseCase } from '../../application/use-cases/release-mechanic.use-case';
-import { Mechanic } from '../../domain/mechanic.entity';
+import { MechanicResponseMapper } from '../../application/mappers/mechanic-response.mapper';
 import {
   ClaimMechanicDto,
   CreateMechanicDto,
@@ -133,7 +133,7 @@ export class MechanicController {
       serviceOrderId: body.serviceOrderId,
       specialty: body.specialty,
     });
-    return this.toResponseDTO(mechanic);
+    return MechanicResponseMapper.toResponseDTO(mechanic);
   }
 
   @Post(':id/release')
@@ -154,23 +154,6 @@ export class MechanicController {
       mechanicId: params.id,
       serviceOrderId: body.serviceOrderId,
     });
-    return this.toResponseDTO(mechanic);
-  }
-
-  private toResponseDTO(mechanic: Mechanic): MechanicResponseDTO {
-    const primitives = mechanic.toPrimitives();
-    return {
-      id: primitives.id,
-      name: primitives.name,
-      cpf: primitives.cpf,
-      email: primitives.email,
-      phone: primitives.phone,
-      specialties: primitives.specialties,
-      hireDate: primitives.hireDate,
-      availability: primitives.availability,
-      availableSince: primitives.availableSince,
-      createdAt: primitives.createdAt,
-      updatedAt: primitives.updatedAt,
-    };
+    return MechanicResponseMapper.toResponseDTO(mechanic);
   }
 }
