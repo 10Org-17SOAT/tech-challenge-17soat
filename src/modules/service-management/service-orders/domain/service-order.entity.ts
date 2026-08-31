@@ -10,6 +10,7 @@ export const ORDER_STATUSES = [
   'awaiting_execution',
   'in_execution',
   'finished',
+  'delivered',
 ] as const;
 
 export type ServiceOrderStatus = (typeof ORDER_STATUSES)[number];
@@ -23,13 +24,17 @@ const STATUS_TRANSITIONS: Record<
   awaiting_approval: 'awaiting_execution',
   awaiting_execution: 'in_execution',
   in_execution: 'finished',
-  finished: null,
+  // Payment is what closes an order: the payment context publishes
+  // `payment.received` and this is the transition its handler drives.
+  finished: 'delivered',
+  delivered: null,
 };
 
 // Once execution starts, mileage and schedule become historical facts.
 const OPERATIONAL_LOCKED_STATUSES = new Set<ServiceOrderStatus>([
   'in_execution',
   'finished',
+  'delivered',
 ]);
 
 export interface ServiceOrderProps {
@@ -42,6 +47,7 @@ export interface ServiceOrderProps {
   scheduledAt: Date | null;
   startedAt: Date | null;
   completedAt: Date | null;
+  deliveredAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
@@ -77,6 +83,7 @@ export class ServiceOrder {
       scheduledAt: props.scheduledAt ?? null,
       startedAt: null,
       completedAt: null,
+      deliveredAt: null,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
@@ -136,6 +143,9 @@ export class ServiceOrder {
     }
     if (next === 'finished') {
       this.props.completedAt = now;
+    }
+    if (next === 'delivered') {
+      this.props.deliveredAt = now;
     }
 
     this.props.updatedAt = now;
@@ -213,6 +223,10 @@ export class ServiceOrder {
 
   get completedAt(): Date | null {
     return this.props.completedAt;
+  }
+
+  get deliveredAt(): Date | null {
+    return this.props.deliveredAt;
   }
 
   get createdAt(): Date {

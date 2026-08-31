@@ -46,6 +46,7 @@ export const serviceOrderResponseSchema = z.object({
   scheduledAt: z.iso.datetime().nullable(),
   startedAt: z.iso.datetime().nullable(),
   completedAt: z.iso.datetime().nullable(),
+  deliveredAt: z.iso.datetime().nullable(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 });
@@ -96,6 +97,7 @@ export function toServiceOrderResponse(
     scheduledAt: order.scheduledAt ? order.scheduledAt.toISOString() : null,
     startedAt: order.startedAt ? order.startedAt.toISOString() : null,
     completedAt: order.completedAt ? order.completedAt.toISOString() : null,
+    deliveredAt: order.deliveredAt ? order.deliveredAt.toISOString() : null,
     createdAt: order.createdAt.toISOString(),
     updatedAt: order.updatedAt.toISOString(),
   };

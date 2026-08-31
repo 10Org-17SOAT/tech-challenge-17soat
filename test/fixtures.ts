@@ -105,6 +105,7 @@ export async function givenOwnedVehicle(
  * customers they belong to.
  */
 export const CLEANUP_TABLES = [
+  'payments',
   'quotation_items',
   'quotations',
   'diagnostics',
