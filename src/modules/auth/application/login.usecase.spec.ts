@@ -5,8 +5,10 @@ jest.mock('@nestjs/jwt', () => ({
 }));
 
 import { UnauthorizedException } from '@nestjs/common';
+import type { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { User } from '../domain/user.entity';
+import type { UserRepository } from '../domain/user.repository';
 import { LoginUseCase } from './login.usecase';
 
 describe('LoginUseCase', () => {
@@ -18,7 +20,7 @@ describe('LoginUseCase', () => {
       role_id: 1,
     });
 
-    const repository = {
+    const repository: UserRepository = {
       findByEmail: jest.fn().mockResolvedValue(user),
       findById: jest.fn(),
       findMany: jest.fn(),
@@ -26,14 +28,11 @@ describe('LoginUseCase', () => {
       delete: jest.fn(),
     };
 
-    const jwtService = {
+    const jwtService: Pick<JwtService, 'sign'> = {
       sign: jest.fn().mockReturnValue('signed-jwt-token'),
     };
 
-    const useCase = new LoginUseCase(
-      repository as any,
-      jwtService as any,
-    );
+    const useCase = new LoginUseCase(repository, jwtService as JwtService);
 
     await expect(
       useCase.execute({ email: 'maria@email.com', password: '12345678' }),
@@ -62,7 +61,7 @@ describe('LoginUseCase', () => {
       role_id: 1,
     });
 
-    const repository = {
+    const repository: UserRepository = {
       findByEmail: jest.fn().mockResolvedValue(user),
       findById: jest.fn(),
       findMany: jest.fn(),
@@ -70,9 +69,9 @@ describe('LoginUseCase', () => {
       delete: jest.fn(),
     };
 
-    const useCase = new LoginUseCase(repository as any, {
-      sign: jest.fn(),
-    } as any);
+    const jwtService: Pick<JwtService, 'sign'> = { sign: jest.fn() };
+
+    const useCase = new LoginUseCase(repository, jwtService as JwtService);
 
     await expect(
       useCase.execute({ email: 'maria@email.com', password: 'wrong-password' }),
@@ -80,7 +79,7 @@ describe('LoginUseCase', () => {
   });
 
   it('throws unauthorized when the user does not exist', async () => {
-    const repository = {
+    const repository: UserRepository = {
       findByEmail: jest.fn().mockResolvedValue(null),
       findById: jest.fn(),
       findMany: jest.fn(),
@@ -88,9 +87,9 @@ describe('LoginUseCase', () => {
       delete: jest.fn(),
     };
 
-    const useCase = new LoginUseCase(repository as any, {
-      sign: jest.fn(),
-    } as any);
+    const jwtService: Pick<JwtService, 'sign'> = { sign: jest.fn() };
+
+    const useCase = new LoginUseCase(repository, jwtService as JwtService);
 
     await expect(
       useCase.execute({ email: 'missing@email.com', password: '12345678' }),
