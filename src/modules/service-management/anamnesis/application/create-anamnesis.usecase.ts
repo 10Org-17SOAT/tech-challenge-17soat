@@ -30,6 +30,11 @@ export interface CreateAnamnesisInput {
   customerObservations?: string | null;
 }
 
+export interface CreateAnamnesisResult {
+  anamnesis: Anamnesis;
+  vehicleId: string;
+}
+
 @Injectable()
 export class CreateAnamnesisUseCase {
   constructor(
@@ -38,7 +43,7 @@ export class CreateAnamnesisUseCase {
     private readonly createOrder: CreateServiceOrderUseCase,
   ) {}
 
-  async execute(input: CreateAnamnesisInput): Promise<Anamnesis> {
+  async execute(input: CreateAnamnesisInput): Promise<CreateAnamnesisResult> {
     // The anamnesis is the entry point of the flow: it opens the service
     // order (validating the vehicle via VEHICLE_LOOKUP) and attaches itself
     // to it. Simple orchestration — no cross-aggregate transaction.
@@ -68,6 +73,7 @@ export class CreateAnamnesisUseCase {
 
     const anamnesis = Anamnesis.create(props);
     await this.anamnesisRepository.save(anamnesis);
-    return anamnesis;
+    // vehicleId is derived from the OS (join), not stored on the anamnesis.
+    return { anamnesis, vehicleId: order.vehicleId };
   }
 }
