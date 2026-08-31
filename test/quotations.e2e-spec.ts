@@ -110,8 +110,16 @@ describe('Quotations (e2e)', () => {
   }
 
   async function givenOrderInDiagnosis(): Promise<string> {
-    const res = await http().post('/service-orders').send({ vehicleId }).expect(201);
-    const id = (res.body as { id: string }).id;
+    const res = await http()
+      .post('/anamnesis')
+      .send({
+        vehicleId,
+        consultantId: '22222222-2222-4222-8222-222222222222',
+        mainComplaint: 'Barulho na suspensão',
+        problemDescription: 'Estalo ao passar em lombadas',
+      })
+      .expect(201);
+    const id = (res.body as { serviceOrderId: string }).serviceOrderId;
     await http().post(`/service-orders/${id}/diagnosis/start`).expect(200);
     return id;
   }
@@ -181,7 +189,15 @@ describe('Quotations (e2e)', () => {
 
     it('rejects a diagnosis on an order that is not in diagnosis', async () => {
       const serviceId = await givenService(9990);
-      const created = await http().post('/service-orders').send({ vehicleId }).expect(201);
+      const created = await http()
+        .post('/anamnesis')
+        .send({
+          vehicleId,
+          consultantId: '22222222-2222-4222-8222-222222222222',
+          mainComplaint: 'Barulho na suspensão',
+          problemDescription: 'Estalo ao passar em lombadas',
+        })
+        .expect(201);
 
       await http()
         .post(

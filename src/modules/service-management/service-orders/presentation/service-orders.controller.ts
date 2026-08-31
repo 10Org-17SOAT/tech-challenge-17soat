@@ -61,8 +61,8 @@ export class ServiceOrdersController {
     summary: 'Tempo médio de execução das OSs finalizadas',
     description:
       'Média entre a entrada em in_execution (startedAt) e a finalização ' +
-      '(completedAt). Não inclui a espera por diagnóstico nem pela aprovação ' +
-      'do cliente. A janela from/to recorta por completedAt.',
+      "(completedAt). Não inclui a espera por diagnóstico nem pela aprovação " +
+      "do cliente. A janela from/to recorta por completedAt.",
   })
   @ApiResponse({ status: 200, type: AverageExecutionTimeResponseDto })
   @ApiResponse({ status: 400, description: '"from" posterior a "to"' })
@@ -71,7 +71,6 @@ export class ServiceOrdersController {
   ): Promise<AverageExecutionTimeResponseDto> {
     return this.getAverageExecutionTime.execute(query);
   }
-
   @Get(':id')
   @ApiOperation({ summary: 'Consulta uma OS por ID' })
   @ApiResponse({ status: 200, type: ServiceOrderResponseDto })
