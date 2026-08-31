@@ -60,7 +60,8 @@ describe('User use cases', () => {
     );
     expect(user.name).toBe('Maria Silva');
     expect(user.email).toBe('maria@email.com');
-    expect(user.password_hash).toBe('hashed_password_123');
+    expect(user.password_hash).not.toBe('hashed_password_123');
+    expect(user.password_hash).toMatch(/^\$2[aby]\$\d{2}\$/);
     expect(user.role_id).toBe(2);
   });
 
