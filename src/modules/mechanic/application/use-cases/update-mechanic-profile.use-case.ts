@@ -23,7 +23,7 @@ export class UpdateMechanicProfileUseCase {
 
     mechanic.updateProfile(input.data);
 
-    const updated = await this.repository.updateProfile(input.id, mechanic);
+    const updated = await this.repository.updateProfile(mechanic);
 
     if (updated === null) {
       throw new MechanicNotFoundException(input.id);

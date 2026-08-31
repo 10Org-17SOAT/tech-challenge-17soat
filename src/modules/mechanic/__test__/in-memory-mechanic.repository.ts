@@ -39,13 +39,13 @@ export class InMemoryMechanicRepository implements MechanicRepository {
     return Promise.resolve(mechanic);
   }
 
-  updateProfile(id: string, mechanic: Mechanic): Promise<Mechanic | null> {
-    const existing = this.mechanics.get(id);
+  updateProfile(mechanic: Mechanic): Promise<Mechanic | null> {
+    const existing = this.mechanics.get(mechanic.getId());
     if (existing === undefined || existing.getDeletedAt() !== null) {
       return Promise.resolve(null);
     }
 
-    this.mechanics.set(id, mechanic);
+    this.mechanics.set(mechanic.getId(), mechanic);
     return Promise.resolve(mechanic);
   }
 

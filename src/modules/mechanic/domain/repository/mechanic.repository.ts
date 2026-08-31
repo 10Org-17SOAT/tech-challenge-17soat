@@ -54,7 +54,7 @@ export type DeactivateResult =
  */
 export interface MechanicRepository {
   save(mechanic: Mechanic): Promise<Mechanic>;
-  updateProfile(id: string, mechanic: Mechanic): Promise<Mechanic | null>;
+  updateProfile(mechanic: Mechanic): Promise<Mechanic | null>;
   findById(id: string): Promise<Mechanic | null>;
   findMany(params: FindMechanicsParams): Promise<PaginatedResult<Mechanic>>;
   claimIfAvailable(filter: ClaimFilter): Promise<Mechanic | null>;

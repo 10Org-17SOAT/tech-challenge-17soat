@@ -52,10 +52,7 @@ export class DrizzleMechanicRepository implements MechanicRepository {
     return rows[0] ? MechanicMapper.toDomain(rows[0]) : null;
   }
 
-  async updateProfile(
-    id: string,
-    mechanic: Mechanic,
-  ): Promise<Mechanic | null> {
+  async updateProfile(mechanic: Mechanic): Promise<Mechanic | null> {
     const row = MechanicMapper.toPersistence(mechanic);
 
     const updated = await this.db
@@ -68,7 +65,12 @@ export class DrizzleMechanicRepository implements MechanicRepository {
         hireDate: row.hireDate,
         updatedAt: new Date(),
       })
-      .where(and(eq(mechanicsTable.id, id), isNull(mechanicsTable.deletedAt)))
+      .where(
+        and(
+          eq(mechanicsTable.id, mechanic.getId()),
+          isNull(mechanicsTable.deletedAt),
+        ),
+      )
       .returning();
 
     return updated[0] ? MechanicMapper.toDomain(updated[0]) : null;

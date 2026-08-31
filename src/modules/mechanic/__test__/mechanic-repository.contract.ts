@@ -148,10 +148,7 @@ export function describeMechanicRepositoryContract(
       await repository.save(mechanic);
       mechanic.updateProfile({ name: 'Jane Doe' });
 
-      const updated = await repository.updateProfile(
-        mechanic.getId(),
-        mechanic,
-      );
+      const updated = await repository.updateProfile(mechanic);
 
       expect(updated?.getName()).toBe('Jane Doe');
     });
@@ -159,12 +156,7 @@ export function describeMechanicRepositoryContract(
     it('returns null for an unknown id', async () => {
       const mechanic = makeMechanic();
 
-      await expect(
-        repository.updateProfile(
-          'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-          mechanic,
-        ),
-      ).resolves.toBeNull();
+      await expect(repository.updateProfile(mechanic)).resolves.toBeNull();
     });
   });
 
