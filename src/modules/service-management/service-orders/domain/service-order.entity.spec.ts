@@ -5,10 +5,16 @@ import { ServiceOrder } from './service-order.entity';
 
 // Orders always reference a vehicle; which one is irrelevant here.
 const VEHICLE_ID = '9f1d3c40-5f0e-4a1e-9a1b-6c2d7e8f0a11';
+const OPENED_BY_ID = '3a6e9f2b-1c4d-4e5a-8f6b-2d9c0e1f3a5b';
+const OPENED_BY_NAME = 'Consultant Fixture';
 
 describe('ServiceOrder', () => {
   it('creates an order with defaults', () => {
-    const order = ServiceOrder.create({ vehicleId: VEHICLE_ID });
+    const order = ServiceOrder.create({
+      vehicleId: VEHICLE_ID,
+      openedById: OPENED_BY_ID,
+      openedByName: OPENED_BY_NAME,
+    });
 
     expect(order.id).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
@@ -27,21 +33,37 @@ describe('ServiceOrder', () => {
 
   it('normalizes notes on create (trims, empty becomes null)', () => {
     expect(
-      ServiceOrder.create({ vehicleId: VEHICLE_ID, notes: '  keep me  ' })
-        .notes,
+      ServiceOrder.create({
+        vehicleId: VEHICLE_ID,
+        openedById: OPENED_BY_ID,
+        openedByName: OPENED_BY_NAME,
+        notes: '  keep me  ',
+      }).notes,
     ).toBe('keep me');
     expect(
-      ServiceOrder.create({ vehicleId: VEHICLE_ID, notes: '   ' }).notes,
+      ServiceOrder.create({
+        vehicleId: VEHICLE_ID,
+        openedById: OPENED_BY_ID,
+        openedByName: OPENED_BY_NAME,
+        notes: '   ',
+      }).notes,
     ).toBeNull();
   });
 
   it('rejects negative or non-integer mileage', () => {
     expect(() =>
-      ServiceOrder.create({ vehicleId: VEHICLE_ID, vehicleMileageAtEntry: -1 }),
+      ServiceOrder.create({
+        vehicleId: VEHICLE_ID,
+        openedById: OPENED_BY_ID,
+        openedByName: OPENED_BY_NAME,
+        vehicleMileageAtEntry: -1,
+      }),
     ).toThrow(InvalidServiceOrderError);
     expect(() =>
       ServiceOrder.create({
         vehicleId: VEHICLE_ID,
+        openedById: OPENED_BY_ID,
+        openedByName: OPENED_BY_NAME,
         vehicleMileageAtEntry: 10.5,
       }),
     ).toThrow(InvalidServiceOrderError);
@@ -49,7 +71,11 @@ describe('ServiceOrder', () => {
 
   describe('state machine', () => {
     it('walks the happy path and stamps timestamps + approval', () => {
-      const order = ServiceOrder.create({ vehicleId: VEHICLE_ID });
+      const order = ServiceOrder.create({
+        vehicleId: VEHICLE_ID,
+        openedById: OPENED_BY_ID,
+        openedByName: OPENED_BY_NAME,
+      });
 
       order.transitionTo('in_diagnosis');
       expect(order.status).toBe('in_diagnosis');
@@ -73,14 +99,22 @@ describe('ServiceOrder', () => {
     });
 
     it('rejects skipping steps', () => {
-      const order = ServiceOrder.create({ vehicleId: VEHICLE_ID });
+      const order = ServiceOrder.create({
+        vehicleId: VEHICLE_ID,
+        openedById: OPENED_BY_ID,
+        openedByName: OPENED_BY_NAME,
+      });
       expect(() => order.transitionTo('in_execution')).toThrow(
         InvalidServiceOrderTransitionError,
       );
     });
 
     it('rejects going backwards', () => {
-      const order = ServiceOrder.create({ vehicleId: VEHICLE_ID });
+      const order = ServiceOrder.create({
+        vehicleId: VEHICLE_ID,
+        openedById: OPENED_BY_ID,
+        openedByName: OPENED_BY_NAME,
+      });
       order.transitionTo('in_diagnosis');
       expect(order.status).toBe('in_diagnosis');
       expect(() => order.transitionTo('received')).toThrow(
@@ -89,14 +123,22 @@ describe('ServiceOrder', () => {
     });
 
     it('rejects transitioning to the same status', () => {
-      const order = ServiceOrder.create({ vehicleId: VEHICLE_ID });
+      const order = ServiceOrder.create({
+        vehicleId: VEHICLE_ID,
+        openedById: OPENED_BY_ID,
+        openedByName: OPENED_BY_NAME,
+      });
       expect(() => order.transitionTo('received')).toThrow(
         InvalidServiceOrderTransitionError,
       );
     });
 
     it('rejects transitioning out of the terminal status', () => {
-      const order = ServiceOrder.create({ vehicleId: VEHICLE_ID });
+      const order = ServiceOrder.create({
+        vehicleId: VEHICLE_ID,
+        openedById: OPENED_BY_ID,
+        openedByName: OPENED_BY_NAME,
+      });
       order.transitionTo('in_diagnosis');
       order.transitionTo('awaiting_approval');
       order.transitionTo('awaiting_execution');
@@ -112,6 +154,8 @@ describe('ServiceOrder', () => {
     it('updates only the provided fields', () => {
       const order = ServiceOrder.create({
         vehicleId: VEHICLE_ID,
+        openedById: OPENED_BY_ID,
+        openedByName: OPENED_BY_NAME,
         notes: 'old',
         vehicleMileageAtEntry: 100,
       });
@@ -122,7 +166,12 @@ describe('ServiceOrder', () => {
     });
 
     it('allows nulling notes and stripping whitespace', () => {
-      const order = ServiceOrder.create({ vehicleId: VEHICLE_ID, notes: 'x' });
+      const order = ServiceOrder.create({
+        vehicleId: VEHICLE_ID,
+        openedById: OPENED_BY_ID,
+        openedByName: OPENED_BY_NAME,
+        notes: 'x',
+      });
       order.update({ notes: null });
       expect(order.notes).toBeNull();
 
@@ -131,7 +180,11 @@ describe('ServiceOrder', () => {
     });
 
     it('blocks mileage/scheduledAt updates once in_execution', () => {
-      const order = ServiceOrder.create({ vehicleId: VEHICLE_ID });
+      const order = ServiceOrder.create({
+        vehicleId: VEHICLE_ID,
+        openedById: OPENED_BY_ID,
+        openedByName: OPENED_BY_NAME,
+      });
       order.transitionTo('in_diagnosis');
       order.transitionTo('awaiting_approval');
       order.transitionTo('awaiting_execution');
@@ -146,7 +199,11 @@ describe('ServiceOrder', () => {
     });
 
     it('still allows editing notes when finished', () => {
-      const order = ServiceOrder.create({ vehicleId: VEHICLE_ID });
+      const order = ServiceOrder.create({
+        vehicleId: VEHICLE_ID,
+        openedById: OPENED_BY_ID,
+        openedByName: OPENED_BY_NAME,
+      });
       order.transitionTo('in_diagnosis');
       order.transitionTo('awaiting_approval');
       order.transitionTo('awaiting_execution');
@@ -160,13 +217,21 @@ describe('ServiceOrder', () => {
 
   describe('delete()', () => {
     it('soft deletes an order in status received', () => {
-      const order = ServiceOrder.create({ vehicleId: VEHICLE_ID });
+      const order = ServiceOrder.create({
+        vehicleId: VEHICLE_ID,
+        openedById: OPENED_BY_ID,
+        openedByName: OPENED_BY_NAME,
+      });
       order.delete();
       expect(order.deletedAt).toBeInstanceOf(Date);
     });
 
     it('refuses to delete after diagnosis started', () => {
-      const order = ServiceOrder.create({ vehicleId: VEHICLE_ID });
+      const order = ServiceOrder.create({
+        vehicleId: VEHICLE_ID,
+        openedById: OPENED_BY_ID,
+        openedByName: OPENED_BY_NAME,
+      });
       order.transitionTo('in_diagnosis');
       expect(() => order.delete()).toThrow(ServiceOrderNotDeletableError);
     });

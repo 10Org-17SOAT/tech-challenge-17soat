@@ -4,12 +4,13 @@ import { Pool } from 'pg';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
-import { CLEANUP_TABLES, givenOwnedVehicle } from './fixtures';
+import { CLEANUP_TABLES, givenConsultant, givenOwnedVehicle } from './fixtures';
 
 describe('Quotations (e2e)', () => {
   let app: INestApplication<App>;
   let pool: Pool;
   let vehicleId: string;
+  let openedById: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -34,6 +35,7 @@ describe('Quotations (e2e)', () => {
     }
 
     vehicleId = (await givenOwnedVehicle(app.getHttpServer())).vehicleId;
+    openedById = await givenConsultant(app.getHttpServer());
   });
 
   afterAll(async () => {
@@ -96,7 +98,7 @@ describe('Quotations (e2e)', () => {
   async function givenOrderInDiagnosis(): Promise<string> {
     const res = await http()
       .post('/service-orders')
-      .send({ vehicleId })
+      .send({ vehicleId, openedById })
       .expect(201);
     const id = (res.body as { id: string }).id;
     await http().post(`/service-orders/${id}/diagnosis/start`).expect(200);
@@ -170,7 +172,7 @@ describe('Quotations (e2e)', () => {
       const serviceId = await givenService(9990);
       const created = await http()
         .post('/service-orders')
-        .send({ vehicleId })
+        .send({ vehicleId, openedById })
         .expect(201);
 
       await http()

@@ -101,6 +101,25 @@ export async function givenOwnedVehicle(
 }
 
 /**
+ * A random valid CPF, same construction as `uniqueDocument`, used for
+ * consultant/stock-keeper style profiles that store an 11-digit CPF rather
+ * than the customer's up-to-14-digit document.
+ */
+const uniqueCpf = (): string => uniqueDocument().slice(0, 11);
+
+export async function givenConsultant(app: App): Promise<string> {
+  const res = await request(app)
+    .post('/consultants')
+    .send({
+      name: 'Carlos Consultor',
+      cpf: uniqueCpf(),
+      phone: '11987654321',
+    })
+    .expect(201);
+  return (res.body as { id: string }).id;
+}
+
+/**
  * Truncation order matters: children before parents, and vehicles before the
  * customers they belong to.
  */
@@ -116,4 +135,5 @@ export const CLEANUP_TABLES = [
   'supplies',
   'vehicles',
   'customers',
+  'consultants',
 ] as const;
