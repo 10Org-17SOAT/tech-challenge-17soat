@@ -187,6 +187,13 @@ describe('ServiceOrders (e2e)', () => {
       );
       expect(body).not.toHaveProperty('foo');
     });
+
+    it('rejects an unknown vehicle with 422', async () => {
+      await http()
+        .post('/service-orders')
+        .send({ vehicleId: '6f2c8e0a-0b0e-4f6e-9e1e-000000000000' })
+        .expect(422);
+    });
   });
 
   describe('GET /service-orders', () => {
