@@ -21,7 +21,7 @@ export class GetAnamnesisUseCase {
     private readonly orderRepository: ServiceOrderRepository,
   ) {}
 
-  async execute(serviceOrderId: string): Promise<GetAnamnesisResult> {
+async execute(serviceOrderId: string): Promise<GetAnamnesisResult> {
     const order = await this.orderRepository.findById(serviceOrderId);
     if (!order) {
       throw new ServiceOrderNotFoundError(serviceOrderId);
@@ -32,7 +32,8 @@ export class GetAnamnesisUseCase {
     if (!anamnesis) {
       throw new AnamnesisNotFoundException(serviceOrderId);
     }
-    // vehicleId is derived from the OS (join), not stored on the anamnesis.
-    return { anamnesis, vehicleId: order.vehicleId };
+// vehicleId is derived from the OS (join), not stored on the anamnesis.
+return { anamnesis, vehicleId: order.vehicleId };
+
   }
 }
