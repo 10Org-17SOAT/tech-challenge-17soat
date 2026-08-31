@@ -95,7 +95,7 @@ describe('Quotations (e2e)', () => {
 
   async function givenOrderInDiagnosis(): Promise<string> {
     const res = await http()
-      .post('/anamnesis')
+      .post('/service-order/anamnesis')
       .send({
         vehicleId,
         consultantId: '22222222-2222-4222-8222-222222222222',
@@ -174,7 +174,7 @@ describe('Quotations (e2e)', () => {
     it('rejects a diagnosis on an order that is not in diagnosis', async () => {
       const serviceId = await givenService(9990);
       const created = await http()
-        .post('/anamnesis')
+        .post('/service-order/anamnesis')
         .send({
           vehicleId,
           consultantId: '22222222-2222-4222-8222-222222222222',

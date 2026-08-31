@@ -90,7 +90,7 @@ describe('Anamnesis (e2e)', () => {
 
   async function givenAnamnesis(): Promise<AnamnesisResponse> {
     const res = await http()
-      .post('/anamnesis')
+      .post('/service-order/anamnesis')
       .send({
         vehicleId,
         consultantId: '22222222-2222-4222-8222-222222222222',
@@ -101,11 +101,11 @@ describe('Anamnesis (e2e)', () => {
     return anamnesisBody(res);
   }
 
-  describe('POST /anamnesis', () => {
+  describe('POST /service-order/anamnesis', () => {
     it('creates the anamnesis and opens the OS in received (AC-01)', async () => {
       const body = anamnesisBody(
         await http()
-          .post('/anamnesis')
+          .post('/service-order/anamnesis')
           .send({
             vehicleId,
             consultantId: '22222222-2222-4222-8222-222222222222',
@@ -132,7 +132,7 @@ describe('Anamnesis (e2e)', () => {
 
     it('rejects an unknown vehicle with 422 (AC-02)', async () => {
       await http()
-        .post('/anamnesis')
+        .post('/service-order/anamnesis')
         .send({
           vehicleId: '6f2c8e0a-0b0e-4f6e-9e1e-000000000000',
           consultantId: '22222222-2222-4222-8222-222222222222',
@@ -144,14 +144,14 @@ describe('Anamnesis (e2e)', () => {
 
     it('rejects missing mandatory fields with 400 (AC-03)', async () => {
       await http()
-        .post('/anamnesis')
+        .post('/service-order/anamnesis')
         .send({
           vehicleId,
           consultantId: '22222222-2222-4222-8222-222222222222',
         })
         .expect(400);
       await http()
-        .post('/anamnesis')
+        .post('/service-order/anamnesis')
         .send({
           vehicleId,
           mainComplaint: 'Barulho',
@@ -162,7 +162,7 @@ describe('Anamnesis (e2e)', () => {
 
     it('rejects an invalid enum with 400 (AC-04)', async () => {
       await http()
-        .post('/anamnesis')
+        .post('/service-order/anamnesis')
         .send({
           vehicleId,
           consultantId: '22222222-2222-4222-8222-222222222222',

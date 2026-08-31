@@ -35,7 +35,7 @@ export class AnamnesisController {
     private readonly deleteAnamnesis: DeleteAnamnesisUseCase,
   ) {}
 
-  @Post('anamnesis')
+  @Post('service-order/anamnesis')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary:

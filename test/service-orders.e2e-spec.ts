@@ -101,14 +101,14 @@ describe('ServiceOrders (e2e)', () => {
     return (res.body as { id: string }).id;
   }
 
-  // The anamnesis is the entry point of the flow: POST /anamnesis opens the
-  // service order (received) with the anamnesis attached.
+  // The anamnesis is the entry point of the flow: POST /service-order/anamnesis
+  // opens the service order (received) with the anamnesis attached.
   async function givenAnamnesis(): Promise<{
     serviceOrderId: string;
     vehicleId: string;
   }> {
     const res = await http()
-      .post('/anamnesis')
+      .post('/service-order/anamnesis')
       .send({
         vehicleId,
         consultantId: '22222222-2222-4222-8222-222222222222',
