@@ -7,11 +7,23 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Response } from 'express';
+import { ExceedsReservedQuantityError } from '../domain/errors/exceeds-reserved-quantity.error';
+import { InsufficientStockError } from '../domain/errors/insufficient-stock.error';
+import { InvalidStockMovementError } from '../domain/errors/invalid-stock-movement.error';
 import { InvalidSupplyError } from '../domain/errors/invalid-supply.error';
+import { ReservationNotFoundError } from '../domain/errors/reservation-not-found.error';
 import { SupplyNameAlreadyExistsError } from '../domain/errors/supply-name-already-exists.error';
 import { SupplyNotFoundError } from '../domain/errors/supply-not-found.error';
 
-@Catch(SupplyNotFoundError, SupplyNameAlreadyExistsError, InvalidSupplyError)
+@Catch(
+  SupplyNotFoundError,
+  SupplyNameAlreadyExistsError,
+  InvalidSupplyError,
+  InvalidStockMovementError,
+  InsufficientStockError,
+  ReservationNotFoundError,
+  ExceedsReservedQuantityError,
+)
 export class SupplyErrorsFilter implements ExceptionFilter {
   catch(error: Error, host: ArgumentsHost) {
     const response = host.switchToHttp().getResponse<Response>();
@@ -20,10 +32,17 @@ export class SupplyErrorsFilter implements ExceptionFilter {
   }
 
   private toHttpException(error: Error) {
-    if (error instanceof SupplyNotFoundError) {
+    if (
+      error instanceof SupplyNotFoundError ||
+      error instanceof ReservationNotFoundError
+    ) {
       return new NotFoundException(error.message);
     }
-    if (error instanceof SupplyNameAlreadyExistsError) {
+    if (
+      error instanceof SupplyNameAlreadyExistsError ||
+      error instanceof InsufficientStockError ||
+      error instanceof ExceedsReservedQuantityError
+    ) {
       return new ConflictException(error.message);
     }
     return new BadRequestException(error.message);

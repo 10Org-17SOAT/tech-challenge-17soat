@@ -16,13 +16,29 @@ import { CreateSupplyUseCase } from '../application/create-supply.usecase';
 import { DeleteSupplyUseCase } from '../application/delete-supply.usecase';
 import { GetSupplyUseCase } from '../application/get-supply.usecase';
 import { ListSuppliesUseCase } from '../application/list-supplies.usecase';
+import { LookupStockUseCase } from '../application/lookup-stock.usecase';
+import { RegisterStockEntryUseCase } from '../application/register-stock-entry.usecase';
+import { ReservePartUseCase } from '../application/reserve-part.usecase';
 import { UpdateSupplyUseCase } from '../application/update-supply.usecase';
+import { WriteOffReservedPartUseCase } from '../application/write-off-reserved-part.usecase';
+import {
+  RegisterStockEntryDto,
+  ReservationResponseDto,
+  ReservePartDto,
+  StockEntryResponseDto,
+  toReservationResponse,
+  toStockEntryResponse,
+  toWriteOffResponse,
+  WriteOffReservedPartDto,
+  WriteOffResponseDto,
+} from './dtos/stock-movement.dtos';
 import {
   CreateSupplyDto,
   ListSuppliesQueryDto,
   PaginatedSuppliesResponseDto,
   SupplyIdParamDto,
   SupplyResponseDto,
+  SupplyStockResponseDto,
   toSupplyResponse,
   UpdateSupplyDto,
 } from './dtos/supply.dtos';
@@ -38,6 +54,10 @@ export class SuppliesController {
     private readonly listSupplies: ListSuppliesUseCase,
     private readonly updateSupply: UpdateSupplyUseCase,
     private readonly deleteSupply: DeleteSupplyUseCase,
+    private readonly registerStockEntry: RegisterStockEntryUseCase,
+    private readonly lookupStock: LookupStockUseCase,
+    private readonly reservePart: ReservePartUseCase,
+    private readonly writeOffReservedPart: WriteOffReservedPartUseCase,
   ) {}
 
   @Get()
@@ -58,7 +78,9 @@ export class SuppliesController {
   @ApiResponse({ status: 409, description: 'Nome já cadastrado' })
   async create(@Body() body: CreateSupplyDto): Promise<SupplyResponseDto> {
     const supply = await this.createSupply.execute(body);
-    return toSupplyResponse(supply);
+    // A brand new supply has no ledger movements yet, so its balance is zero by
+    // construction — no need to query for it.
+    return toSupplyResponse({ supply, availableBalance: 0 });
   }
 
   @Get(':id')
@@ -66,8 +88,17 @@ export class SuppliesController {
   @ApiResponse({ status: 200, type: SupplyResponseDto })
   @ApiResponse({ status: 404, description: 'Supply não encontrado' })
   async getById(@Param() params: SupplyIdParamDto): Promise<SupplyResponseDto> {
-    const supply = await this.getSupply.execute(params.id);
-    return toSupplyResponse(supply);
+    return toSupplyResponse(await this.getSupply.execute(params.id));
+  }
+
+  @Get(':id/stock')
+  @ApiOperation({ summary: 'Consulta o saldo disponível de uma peça' })
+  @ApiResponse({ status: 200, type: SupplyStockResponseDto })
+  @ApiResponse({ status: 404, description: 'Supply não encontrado' })
+  async getStock(
+    @Param() params: SupplyIdParamDto,
+  ): Promise<SupplyStockResponseDto> {
+    return this.lookupStock.execute(params.id);
   }
 
   @Patch(':id')
@@ -79,8 +110,7 @@ export class SuppliesController {
     @Param() params: SupplyIdParamDto,
     @Body() body: UpdateSupplyDto,
   ): Promise<SupplyResponseDto> {
-    const supply = await this.updateSupply.execute(params.id, body);
-    return toSupplyResponse(supply);
+    return toSupplyResponse(await this.updateSupply.execute(params.id, body));
   }
 
   @Delete(':id')
@@ -90,5 +120,72 @@ export class SuppliesController {
   @ApiResponse({ status: 404, description: 'Supply não encontrado' })
   async remove(@Param() params: SupplyIdParamDto): Promise<void> {
     await this.deleteSupply.execute(params.id);
+  }
+
+  @Post(':id/stock-entries')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Registra a entrada de peças no estoque' })
+  @ApiResponse({ status: 201, type: StockEntryResponseDto })
+  @ApiResponse({ status: 400, description: 'Quantidade inválida' })
+  @ApiResponse({ status: 404, description: 'Supply não encontrado' })
+  async createStockEntry(
+    @Param() params: SupplyIdParamDto,
+    @Body() body: RegisterStockEntryDto,
+  ): Promise<StockEntryResponseDto> {
+    const { movement, availableBalance } =
+      await this.registerStockEntry.execute({
+        supplyId: params.id,
+        quantity: body.quantity,
+      });
+    return toStockEntryResponse(movement, availableBalance);
+  }
+
+  @Post(':id/reservations')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Reserva uma quantidade de uma peça para uma OS' })
+  @ApiResponse({ status: 201, type: ReservationResponseDto })
+  @ApiResponse({
+    status: 400,
+    description: 'Quantidade ou referência inválida',
+  })
+  @ApiResponse({ status: 404, description: 'Supply não encontrado' })
+  @ApiResponse({ status: 409, description: 'Saldo disponível insuficiente' })
+  async createReservation(
+    @Param() params: SupplyIdParamDto,
+    @Body() body: ReservePartDto,
+  ): Promise<ReservationResponseDto> {
+    const { movement, availableBalance, reservedQuantity } =
+      await this.reservePart.execute({
+        supplyId: params.id,
+        quantity: body.quantity,
+        serviceOrderReference: body.serviceOrderReference,
+      });
+    return toReservationResponse(movement, availableBalance, reservedQuantity);
+  }
+
+  @Post(':id/write-offs')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Dá baixa em uma quantidade reservada de uma peça' })
+  @ApiResponse({ status: 201, type: WriteOffResponseDto })
+  @ApiResponse({
+    status: 400,
+    description: 'Quantidade ou referência inválida',
+  })
+  @ApiResponse({ status: 404, description: 'Supply ou reserva não encontrada' })
+  @ApiResponse({
+    status: 409,
+    description: 'Quantidade reservada insuficiente',
+  })
+  async createWriteOff(
+    @Param() params: SupplyIdParamDto,
+    @Body() body: WriteOffReservedPartDto,
+  ): Promise<WriteOffResponseDto> {
+    const { movement, reservedQuantity } =
+      await this.writeOffReservedPart.execute({
+        supplyId: params.id,
+        quantity: body.quantity,
+        serviceOrderReference: body.serviceOrderReference,
+      });
+    return toWriteOffResponse(movement, reservedQuantity);
   }
 }

@@ -5,9 +5,15 @@ import { ZodValidationPipe } from 'nestjs-zod';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
+import { MechanicModule } from './modules/mechanic/mechanic.module';
+import { CustomerModule } from './modules/onboarding/customer/customer.module';
+import { VehicleManagementModule } from './modules/onboarding/vehicles/vehicle-management.module';
+import { PaymentModule } from './modules/payment/payment.module';
+import { ServiceOrderModule } from './modules/service-management/service-order.module';
 import { StockModule } from './modules/stock/stock.module';
 import { DatabaseModule } from './shared/config/database/database.module';
 import { validateEnv } from './shared/config/env/env.validation';
+import { SharedEventsModule } from './shared/events/events.module';
 
 @Module({
   imports: [
@@ -17,7 +23,13 @@ import { validateEnv } from './shared/config/env/env.validation';
       validate: validateEnv,
     }),
     DatabaseModule,
+    SharedEventsModule,
     StockModule,
+    ServiceOrderModule,
+    VehicleManagementModule,
+    CustomerModule,
+    MechanicModule,
+    PaymentModule,
     AuthModule,
   ],
   controllers: [AppController],

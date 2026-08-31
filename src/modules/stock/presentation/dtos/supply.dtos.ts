@@ -1,6 +1,6 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
-import { Supply } from '../../domain/supply.entity';
+import type { SupplyWithBalance } from '../../application/supply-with-balance';
 
 export const createSupplySchema = z.object({
   name: z.string().trim().min(1).max(255),
@@ -31,6 +31,7 @@ export const supplyResponseSchema = z.object({
   name: z.string(),
   description: z.string().nullable(),
   priceInCents: z.number().int(),
+  availableBalance: z.number().int(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 });
@@ -38,6 +39,7 @@ export const supplyResponseSchema = z.object({
 export class SupplyResponseDto extends createZodDto(supplyResponseSchema) {}
 
 export const listSuppliesQuerySchema = z.object({
+  name: z.string().trim().min(1).max(255).optional(),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),
 });
@@ -57,12 +59,25 @@ export class PaginatedSuppliesResponseDto extends createZodDto(
   paginatedSuppliesResponseSchema,
 ) {}
 
-export function toSupplyResponse(supply: Supply): SupplyResponseDto {
+export const supplyStockResponseSchema = z.object({
+  supplyId: z.uuid(),
+  availableBalance: z.number().int(),
+});
+
+export class SupplyStockResponseDto extends createZodDto(
+  supplyStockResponseSchema,
+) {}
+
+export function toSupplyResponse({
+  supply,
+  availableBalance,
+}: SupplyWithBalance): SupplyResponseDto {
   return {
     id: supply.id,
     name: supply.name,
     description: supply.description,
     priceInCents: supply.priceInCents,
+    availableBalance,
     createdAt: supply.createdAt.toISOString(),
     updatedAt: supply.updatedAt.toISOString(),
   };

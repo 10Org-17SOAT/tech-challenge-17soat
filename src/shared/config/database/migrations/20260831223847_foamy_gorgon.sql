@@ -1,0 +1,1 @@
+CREATE INDEX "service_orders_completed_at_idx" ON "service_orders" USING btree ("completed_at");

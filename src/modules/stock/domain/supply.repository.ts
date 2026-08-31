@@ -5,6 +5,10 @@ export interface Pagination {
   limit: number;
 }
 
+export interface ListSuppliesFilter extends Pagination {
+  name?: string;
+}
+
 export interface PaginatedSupplies {
   items: Supply[];
   total: number;
@@ -12,8 +16,9 @@ export interface PaginatedSupplies {
 
 export interface SupplyRepository {
   findById(id: string): Promise<Supply | null>;
+  findManyByIds(ids: string[]): Promise<Supply[]>;
   findByName(name: string): Promise<Supply | null>;
-  findMany(pagination: Pagination): Promise<PaginatedSupplies>;
+  findMany(filter: ListSuppliesFilter): Promise<PaginatedSupplies>;
   save(supply: Supply): Promise<void>;
 }
 
