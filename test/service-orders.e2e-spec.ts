@@ -10,14 +10,13 @@ import { ExecutionCompleted } from './../src/modules/service-management/service-
 import { ExecutionStarted } from './../src/modules/service-management/service-orders/domain/events/execution-started.event';
 import type { DomainEvent } from './../src/shared/domain/events/domain-event';
 
-const vehicleId = '11111111-1111-1111-1111-111111111111';
-
 describe('ServiceOrders (e2e)', () => {
   let app: INestApplication<App>;
   let pool: Pool;
   // An order is always about a car, so every test needs one first.
   let vehicleId: string;
   let emitter: EventEmitter2;
+  let vehicleId: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -102,6 +101,22 @@ describe('ServiceOrders (e2e)', () => {
       })
       .expect(201);
     return (res.body as { id: string }).id;
+  }
+
+  async function givenVehicle(): Promise<string> {
+    const res = await http()
+      .post('/vehicles')
+      .send({
+        licensePlate: `ABC${Math.floor(Math.random() * 9000 + 1000)}`,
+        model: 'Gol',
+        year: 2020,
+        manufacturer: 'Volkswagen',
+        color: 'Preto',
+        fuelType: 'GASOLINE',
+        odometer: 50000,
+      })
+      .expect(201);
+    return (res.body as { vehicle_id: string }).vehicle_id;
   }
 
   // The anamnesis is the entry point of the flow: POST /service-order/anamnesis
@@ -207,6 +222,13 @@ describe('POST /service-orders', () => {
         await http().post('/service-orders').send({ vehicleId, foo: 'bar' }).expect(201),
       );
       expect(body).not.toHaveProperty('foo');
+    });
+
+    it('rejects an unknown vehicle with 422', async () => {
+      await http()
+        .post('/service-orders')
+        .send({ vehicleId: '6f2c8e0a-0b0e-4f6e-9e1e-000000000000' })
+        .expect(422);
     });
   });
 

@@ -1,6 +1,8 @@
 import { InMemoryVehicleCatalogQuery } from '../../../onboarding/vehicles/__test__/in-memory-vehicle-catalog.query';
+import type { VehicleLookup } from '../../../../../shared/domain/ports/vehicle-lookup';
 import { VehicleNotFoundForServiceOrderError } from '../domain/errors/vehicle-not-found-for-service-order.error';
 import { InMemoryServiceOrderRepository } from '../__test__/in-memory-service-order.repository';
+import { VehicleNotFoundError } from '../domain/errors/vehicle-not-found.error';
 import { CreateServiceOrderUseCase } from './create-service-order.usecase';
 
 const vehicleId = '11111111-1111-1111-1111-111111111111';
@@ -8,6 +10,7 @@ const vehicleId = '11111111-1111-1111-1111-111111111111';
 describe('CreateServiceOrderUseCase', () => {
   let repository: InMemoryServiceOrderRepository;
   let vehicles: InMemoryVehicleCatalogQuery;
+  let vehicleLookup: VehicleLookup;
   let useCase: CreateServiceOrderUseCase;
 
   beforeEach(() => {
@@ -21,7 +24,8 @@ describe('CreateServiceOrderUseCase', () => {
       year: 2018,
       licensePlate: 'ABC-1234',
     });
-    useCase = new CreateServiceOrderUseCase(repository, vehicles);
+    vehicleLookup = { exists: jest.fn().mockResolvedValue(true) };
+    useCase = new CreateServiceOrderUseCase(repository, vehicleLookup);
   });
 
   it('creates an order in status received and persists it', async () => {
@@ -60,5 +64,19 @@ describe('CreateServiceOrderUseCase', () => {
 
     const { total } = await repository.findMany({ page: 1, limit: 10 });
     expect(total).toBe(0);
+  });
+
+  it('checks that the vehicle exists before creating the order', async () => {
+    await useCase.execute({ vehicleId });
+
+    expect(vehicleLookup.exists).toHaveBeenCalledWith(vehicleId);
+  });
+
+  it('rejects an unknown vehicle with VehicleNotFoundError', async () => {
+    (vehicleLookup.exists as jest.Mock).mockResolvedValue(false);
+
+    await expect(useCase.execute({ vehicleId })).rejects.toThrow(
+      VehicleNotFoundError,
+    );
   });
 });

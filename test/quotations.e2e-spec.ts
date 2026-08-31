@@ -6,8 +6,6 @@ import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 import { CLEANUP_TABLES, givenOwnedVehicle } from './fixtures';
 
-const vehicleId = '11111111-1111-1111-1111-111111111111';
-
 describe('Quotations (e2e)', () => {
   let app: INestApplication<App>;
   let pool: Pool;
@@ -70,6 +68,22 @@ describe('Quotations (e2e)', () => {
       .send({ name: `Peca ${unique()}`, priceInCents })
       .expect(201);
     return (res.body as { id: string }).id;
+  }
+
+  async function givenVehicle(): Promise<string> {
+    const res = await http()
+      .post('/vehicles')
+      .send({
+        licensePlate: `ABC${Math.floor(Math.random() * 9000 + 1000)}`,
+        model: 'Gol',
+        year: 2020,
+        manufacturer: 'Volkswagen',
+        color: 'Preto',
+        fuelType: 'GASOLINE',
+        odometer: 50000,
+      })
+      .expect(201);
+    return (res.body as { vehicle_id: string }).vehicle_id;
   }
 
   async function givenService(
