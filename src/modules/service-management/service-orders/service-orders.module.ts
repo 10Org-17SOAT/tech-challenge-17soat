@@ -13,7 +13,9 @@ import { ListServiceOrdersUseCase } from './application/list-service-orders.usec
 import { StartDiagnosisUseCase } from './application/start-diagnosis.usecase';
 import { UpdateServiceOrderUseCase } from './application/update-service-order.usecase';
 import { SERVICE_ORDER_REPOSITORY } from './domain/service-order.repository';
+import { ANAMNESIS_CASCADE_PORT } from './domain/ports/anamnesis-cascade.port';
 import { ANAMNESIS_EXISTENCE_PORT } from './domain/ports/anamnesis-existence.port';
+import { DrizzleAnamnesisCascadeAdapter } from './infrastructure/adapters/drizzle-anamnesis-cascade.adapter';
 import { DrizzleAnamnesisExistenceAdapter } from './infrastructure/adapters/drizzle-anamnesis-existence.adapter';
 import { DrizzleServiceOrderRepository } from './infrastructure/persistence/drizzle-service-order.repository';
 import { ServiceOrdersController } from './presentation/service-orders.controller';
@@ -31,6 +33,10 @@ import { ServiceOrdersController } from './presentation/service-orders.controlle
     {
       provide: ANAMNESIS_EXISTENCE_PORT,
       useClass: DrizzleAnamnesisExistenceAdapter,
+    },
+    {
+      provide: ANAMNESIS_CASCADE_PORT,
+      useClass: DrizzleAnamnesisCascadeAdapter,
     },
     CreateServiceOrderUseCase,
     GetServiceOrderUseCase,
