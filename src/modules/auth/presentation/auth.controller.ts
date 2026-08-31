@@ -5,10 +5,10 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Request,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { CurrentUser } from '../decorators/current-user.decorator';
 import { Roles } from '../decorators/roles.decorator';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RolesGuard } from '../guards/roles.guard';
@@ -30,8 +30,8 @@ export class AuthController {
   @Get('me')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  me(@CurrentUser() user: { user_id: string; email: string; name: string; role_id: number }) {
-    return user;
+  me(@Request() req: { user: { user_id: string; email: string; name: string; role_id: number } }) {
+    return req.user;
   }
 
   @Get('admin-only')
