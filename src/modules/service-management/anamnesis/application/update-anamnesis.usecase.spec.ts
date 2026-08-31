@@ -46,8 +46,9 @@ describe('UpdateAnamnesisUseCase', () => {
       mainComplaint: 'Barulho na suspensão',
     }, updatedBy);
 
-    expect(result.mainComplaint).toBe('Barulho na suspensão');
-    expect(result.updatedBy).toBe(updatedBy);
+    expect(result.anamnesis.mainComplaint).toBe('Barulho na suspensão');
+    expect(result.anamnesis.updatedBy).toBe(updatedBy);
+    expect(result.vehicleId).toBe(vehicleId);
     expect(anamnesisRepository.save).toHaveBeenCalledWith(anamnesis);
   });
 
