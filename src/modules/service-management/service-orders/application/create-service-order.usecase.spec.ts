@@ -1,5 +1,5 @@
 import { InMemoryVehicleCatalogQuery } from '../../../onboarding/vehicles/__test__/in-memory-vehicle-catalog.query';
-import type { VehicleLookup } from '../../../../../shared/domain/ports/vehicle-lookup';
+import type { VehicleLookup } from '../../../../shared/domain/ports/vehicle-lookup';
 import { VehicleNotFoundForServiceOrderError } from '../domain/errors/vehicle-not-found-for-service-order.error';
 import { InMemoryServiceOrderRepository } from '../__test__/in-memory-service-order.repository';
 import { VehicleNotFoundError } from '../domain/errors/vehicle-not-found.error';

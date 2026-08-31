@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../../../shared/config/database/database.module';
 import { VehicleManagementModule } from '../../onboarding/vehicles/vehicle-management.module';
+import { VEHICLE_LOOKUP } from '../../../shared/domain/ports/vehicle-lookup';
 import { CreateServiceOrderUseCase } from './application/create-service-order.usecase';
 import { DeleteServiceOrderUseCase } from './application/delete-service-order.usecase';
 import { ExecutionCompletedHandler } from './application/event-handlers/execution-completed.handler';
@@ -17,6 +18,7 @@ import { ANAMNESIS_CASCADE_PORT } from './domain/ports/anamnesis-cascade.port';
 import { ANAMNESIS_EXISTENCE_PORT } from './domain/ports/anamnesis-existence.port';
 import { DrizzleAnamnesisCascadeAdapter } from './infrastructure/adapters/drizzle-anamnesis-cascade.adapter';
 import { DrizzleAnamnesisExistenceAdapter } from './infrastructure/adapters/drizzle-anamnesis-existence.adapter';
+import { DrizzleVehicleLookupAdapter } from './infrastructure/adapters/drizzle-vehicle-lookup.adapter';
 import { DrizzleServiceOrderRepository } from './infrastructure/persistence/drizzle-service-order.repository';
 import { ServiceOrdersController } from './presentation/service-orders.controller';
 
@@ -38,6 +40,10 @@ import { ServiceOrdersController } from './presentation/service-orders.controlle
       provide: ANAMNESIS_CASCADE_PORT,
       useClass: DrizzleAnamnesisCascadeAdapter,
     },
+    {
+      provide: VEHICLE_LOOKUP,
+      useClass: DrizzleVehicleLookupAdapter,
+    },
     CreateServiceOrderUseCase,
     GetServiceOrderUseCase,
     GetServiceOrderStatusUseCase,
@@ -49,6 +55,9 @@ import { ServiceOrdersController } from './presentation/service-orders.controlle
     ExecutionStartedHandler,
     ExecutionCompletedHandler,
     PaymentReceivedHandler,
+  ],
+  // StartDiagnosisUseCase and the order repository are consumed by the
+  // diagnostics and quotations modules — direct calls, same bounded context.
   ],
   // StartDiagnosisUseCase and the order repository are consumed by the
   // diagnostics and quotations modules — direct calls, same bounded context.
