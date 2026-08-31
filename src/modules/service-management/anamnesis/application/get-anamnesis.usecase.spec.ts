@@ -38,7 +38,10 @@ describe('GetAnamnesisUseCase', () => {
       anamnesis,
     );
 
-    await expect(useCase.execute(order.id)).resolves.toBe(anamnesis);
+    await expect(useCase.execute(order.id)).resolves.toEqual({
+      anamnesis,
+      vehicleId,
+    });
   });
 
   it('throws ServiceOrderNotFoundError when the order does not exist', async () => {

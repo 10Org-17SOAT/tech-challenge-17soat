@@ -25,7 +25,7 @@ describe('CreateAnamnesisUseCase', () => {
     const order = ServiceOrder.create({ vehicleId });
     (createOrder.execute as jest.Mock).mockResolvedValue(order);
 
-    const anamnesis = await useCase.execute({
+    const { anamnesis, vehicleId: resultVehicleId } = await useCase.execute({
       vehicleId,
       consultantId,
       mainComplaint: 'Barulho na suspensão',
@@ -33,6 +33,7 @@ describe('CreateAnamnesisUseCase', () => {
     });
 
     expect(createOrder.execute).toHaveBeenCalledWith({ vehicleId });
+    expect(resultVehicleId).toBe(vehicleId);
     expect(anamnesis.serviceOrderId).toBe(order.id);
     expect(anamnesis.consultantId).toBe(consultantId);
     expect(anamnesis.mainComplaint).toBe('Barulho na suspensão');
