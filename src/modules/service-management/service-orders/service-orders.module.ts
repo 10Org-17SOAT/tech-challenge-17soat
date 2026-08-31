@@ -44,6 +44,10 @@ import { ServiceOrdersController } from './presentation/service-orders.controlle
       provide: VEHICLE_LOOKUP,
       useClass: DrizzleVehicleLookupAdapter,
     },
+    {
+      provide: ANAMNESIS_EXISTENCE_PORT,
+      useClass: DrizzleAnamnesisExistenceAdapter,
+    },
     CreateServiceOrderUseCase,
     GetServiceOrderUseCase,
     GetServiceOrderStatusUseCase,
