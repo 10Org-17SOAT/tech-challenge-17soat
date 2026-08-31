@@ -27,6 +27,7 @@ export class UpdateAnamnesisUseCase {
     changes: UpdateAnamnesisProps,
     updatedBy: string,
   ): Promise<UpdateAnamnesisResult> {
+
     const order = await this.orderRepository.findById(serviceOrderId);
     if (!order) {
       throw new ServiceOrderNotFoundError(serviceOrderId);
@@ -44,5 +45,6 @@ export class UpdateAnamnesisUseCase {
     await this.anamnesisRepository.save(anamnesis);
     // vehicleId is derived from the OS (join), not stored on the anamnesis.
     return { anamnesis, vehicleId: order.vehicleId };
+
   }
 }
