@@ -48,6 +48,10 @@ import { ServiceOrdersController } from './presentation/service-orders.controlle
       provide: ANAMNESIS_EXISTENCE_PORT,
       useClass: DrizzleAnamnesisExistenceAdapter,
     },
+    {
+      provide: ANAMNESIS_CASCADE_PORT,
+      useClass: DrizzleAnamnesisCascadeAdapter,
+    },
     CreateServiceOrderUseCase,
     GetServiceOrderUseCase,
     GetServiceOrderStatusUseCase,
