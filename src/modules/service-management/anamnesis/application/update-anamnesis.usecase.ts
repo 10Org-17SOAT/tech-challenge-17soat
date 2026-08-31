@@ -8,6 +8,11 @@ import { ANAMNESIS_REPOSITORY } from '../domain/anamnesis.repository';
 import type { AnamnesisRepository } from '../domain/anamnesis.repository';
 import { AnamnesisNotFoundException } from '../domain/exceptions/anamnesis.exceptions';
 
+export interface UpdateAnamnesisResult {
+  anamnesis: Anamnesis;
+  vehicleId: string;
+}
+
 @Injectable()
 export class UpdateAnamnesisUseCase {
   constructor(
@@ -21,7 +26,7 @@ export class UpdateAnamnesisUseCase {
     serviceOrderId: string,
     changes: UpdateAnamnesisProps,
     updatedBy: string,
-  ): Promise<Anamnesis> {
+  ): Promise<UpdateAnamnesisResult> {
     const order = await this.orderRepository.findById(serviceOrderId);
     if (!order) {
       throw new ServiceOrderNotFoundError(serviceOrderId);
@@ -37,6 +42,7 @@ export class UpdateAnamnesisUseCase {
     // AnamnesisLockedException unless the order is "received".
     anamnesis.update(changes, updatedBy, order.status);
     await this.anamnesisRepository.save(anamnesis);
-    return anamnesis;
+    // vehicleId is derived from the OS (join), not stored on the anamnesis.
+    return { anamnesis, vehicleId: order.vehicleId };
   }
 }
