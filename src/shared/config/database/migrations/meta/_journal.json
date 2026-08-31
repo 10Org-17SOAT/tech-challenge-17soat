@@ -92,6 +92,20 @@
       "when": 1788193718817,
       "tag": "20260830230813_link_vehicle_customer_and_quotation_approval",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1788194206176,
+      "tag": "20260831163646_add_consultants",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1788194441422,
+      "tag": "20260831164041_add_service_order_consultant_attribution",
+      "breakpoints": true
     }
   ]
 }
