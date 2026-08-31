@@ -8,6 +8,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { Response } from 'express';
+import { AnamnesisRequiredException } from '../../anamnesis/domain/exceptions/anamnesis.exceptions';
 import { InvalidServiceOrderTransitionError } from '../../service-orders/domain/errors/invalid-service-order-transition.error';
 import { ServiceOrderNotFoundError } from '../../service-orders/domain/errors/service-order-not-found.error';
 import { InvalidQuotationError } from '../domain/errors/invalid-quotation.error';
@@ -26,6 +27,7 @@ import { ServiceUnavailableForQuotationError } from '../domain/errors/service-un
   ServiceOrderNotFoundError,
   InvalidServiceOrderTransitionError,
   RecipientUnreachableError,
+  AnamnesisRequiredException,
 )
 export class QuotationErrorsFilter implements ExceptionFilter {
   catch(error: Error, host: ArgumentsHost) {
@@ -43,7 +45,8 @@ export class QuotationErrorsFilter implements ExceptionFilter {
     }
     if (
       error instanceof QuotationAlreadyApprovedError ||
-      error instanceof InvalidServiceOrderTransitionError
+      error instanceof InvalidServiceOrderTransitionError ||
+      error instanceof AnamnesisRequiredException
     ) {
       return new ConflictException(error.message);
     }
