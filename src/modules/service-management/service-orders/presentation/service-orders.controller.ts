@@ -7,12 +7,10 @@ import {
   HttpStatus,
   Param,
   Patch,
-  Post,
   Query,
   UseFilters,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { CreateServiceOrderUseCase } from '../application/create-service-order.usecase';
 import { DeleteServiceOrderUseCase } from '../application/delete-service-order.usecase';
 import { GetAverageExecutionTimeUseCase } from '../application/get-average-execution-time.usecase';
 import { GetServiceOrderStatusUseCase } from '../application/get-service-order-status.usecase';
@@ -22,7 +20,6 @@ import { UpdateServiceOrderUseCase } from '../application/update-service-order.u
 import {
   AverageExecutionTimeQueryDto,
   AverageExecutionTimeResponseDto,
-  CreateServiceOrderDto,
   ListServiceOrdersQueryDto,
   ServiceOrderIdParamDto,
   ServiceOrderResponseDto,
@@ -38,7 +35,6 @@ import { ServiceOrderErrorsFilter } from './service-order-errors.filter';
 @UseFilters(ServiceOrderErrorsFilter)
 export class ServiceOrdersController {
   constructor(
-    private readonly createOrder: CreateServiceOrderUseCase,
     private readonly getOrder: GetServiceOrderUseCase,
     private readonly getOrderStatus: GetServiceOrderStatusUseCase,
     private readonly listOrders: ListServiceOrdersUseCase,
@@ -55,17 +51,6 @@ export class ServiceOrdersController {
   ): Promise<PaginatedServiceOrdersResponseDto> {
     const { items, total, page, limit } = await this.listOrders.execute(query);
     return { items: items.map(toServiceOrderResponse), total, page, limit };
-  }
-
-  @Post()
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Abre uma OS em status received' })
-  @ApiResponse({ status: 201, type: ServiceOrderResponseDto })
-  async create(
-    @Body() body: CreateServiceOrderDto,
-  ): Promise<ServiceOrderResponseDto> {
-    const order = await this.createOrder.execute(body);
-    return toServiceOrderResponse(order);
   }
 
   // Declared above `@Get(':id')` on purpose: Nest matches routes in

@@ -5,17 +5,6 @@ import { serviceOrderStatusEnum } from '../../infrastructure/persistence/schema'
 
 const serviceOrderStatusValues = serviceOrderStatusEnum.enumValues;
 
-export const createServiceOrderSchema = z.object({
-  vehicleId: z.uuid(),
-  notes: z.string().trim().max(2000).optional(),
-  vehicleMileageAtEntry: z.number().int().nonnegative().optional(),
-  scheduledAt: z.coerce.date().optional(),
-});
-
-export class CreateServiceOrderDto extends createZodDto(
-  createServiceOrderSchema,
-) {}
-
 export const updateServiceOrderSchema = z
   .object({
     notes: z.string().trim().max(2000).nullable(),
