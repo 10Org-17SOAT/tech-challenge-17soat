@@ -66,6 +66,7 @@ export class DrizzleServiceOrderRepository implements ServiceOrderRepository {
       scheduledAt: order.scheduledAt,
       startedAt: order.startedAt,
       completedAt: order.completedAt,
+      deliveredAt: order.deliveredAt,
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
       deletedAt: order.deletedAt,
