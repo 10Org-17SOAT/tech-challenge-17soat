@@ -7,3 +7,4 @@ export { vehiclesTable } from '../../../modules/onboarding/vehicles/infrastructu
 export * from '../../../modules/service-management/service-orders/infrastructure/persistence/schema';
 export * from '../../../modules/service-management/diagnostics/infrastructure/persistence/schema';
 export * from '../../../modules/service-management/quotations/infrastructure/persistence/schema';
+export * from '../../../modules/payment/infrastructure/persistence/schema';
