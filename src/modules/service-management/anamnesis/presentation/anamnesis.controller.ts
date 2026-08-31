@@ -36,6 +36,7 @@ export class AnamnesisController {
   ) {}
 
   @Post('service-order/anamnesis')
+  @Post('anamnesis')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary:
