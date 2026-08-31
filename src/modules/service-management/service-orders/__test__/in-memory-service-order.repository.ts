@@ -1,6 +1,8 @@
 import { ServiceItem } from '../domain/service-item';
 import { ServiceOrder } from '../domain/service-order.entity';
 import {
+  ExecutionTimeFilter,
+  ExecutionTimeStats,
   ListServiceOrdersFilter,
   ServiceOrderRepository,
   PaginatedServiceOrders,
@@ -43,5 +45,31 @@ export class InMemoryServiceOrderRepository implements ServiceOrderRepository {
   replaceItems(serviceOrderId: string, items: ServiceItem[]): Promise<void> {
     this.items.set(serviceOrderId, [...items]);
     return Promise.resolve();
+  }
+
+  averageExecutionTime({
+    from,
+    to,
+  }: ExecutionTimeFilter): Promise<ExecutionTimeStats> {
+    const durations: number[] = [];
+
+    for (const order of this.orders.values()) {
+      const { startedAt, completedAt } = order;
+      if (order.deletedAt || order.status !== 'finished') continue;
+      if (!startedAt || !completedAt) continue;
+      if (from && completedAt < from) continue;
+      if (to && completedAt > to) continue;
+      durations.push((completedAt.getTime() - startedAt.getTime()) / 60_000);
+    }
+
+    if (durations.length === 0) {
+      return Promise.resolve({ averageMinutes: null, sampleSize: 0 });
+    }
+
+    const total = durations.reduce((sum, minutes) => sum + minutes, 0);
+    return Promise.resolve({
+      averageMinutes: total / durations.length,
+      sampleSize: durations.length,
+    });
   }
 }

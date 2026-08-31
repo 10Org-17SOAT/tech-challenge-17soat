@@ -14,11 +14,14 @@ import {
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateServiceOrderUseCase } from '../application/create-service-order.usecase';
 import { DeleteServiceOrderUseCase } from '../application/delete-service-order.usecase';
+import { GetAverageExecutionTimeUseCase } from '../application/get-average-execution-time.usecase';
 import { GetServiceOrderStatusUseCase } from '../application/get-service-order-status.usecase';
 import { GetServiceOrderUseCase } from '../application/get-service-order.usecase';
 import { ListServiceOrdersUseCase } from '../application/list-service-orders.usecase';
 import { UpdateServiceOrderUseCase } from '../application/update-service-order.usecase';
 import {
+  AverageExecutionTimeQueryDto,
+  AverageExecutionTimeResponseDto,
   CreateServiceOrderDto,
   ListServiceOrdersQueryDto,
   ServiceOrderIdParamDto,
@@ -41,6 +44,7 @@ export class ServiceOrdersController {
     private readonly listOrders: ListServiceOrdersUseCase,
     private readonly updateOrder: UpdateServiceOrderUseCase,
     private readonly deleteOrder: DeleteServiceOrderUseCase,
+    private readonly getAverageExecutionTime: GetAverageExecutionTimeUseCase,
   ) {}
 
   @Get()
@@ -62,6 +66,25 @@ export class ServiceOrdersController {
   ): Promise<ServiceOrderResponseDto> {
     const order = await this.createOrder.execute(body);
     return toServiceOrderResponse(order);
+  }
+
+  // Declared above `@Get(':id')` on purpose: Nest matches routes in
+  // declaration order, so moving this below would make the literal path fall
+  // into `getById` and fail the UUID check with a 400. The e2e test pins it.
+  @Get('average-execution-time')
+  @ApiOperation({
+    summary: 'Tempo médio de execução das OSs finalizadas',
+    description:
+      'Média entre a entrada em in_execution (startedAt) e a finalização ' +
+      '(completedAt). Não inclui a espera por diagnóstico nem pela aprovação ' +
+      'do cliente. A janela from/to recorta por completedAt.',
+  })
+  @ApiResponse({ status: 200, type: AverageExecutionTimeResponseDto })
+  @ApiResponse({ status: 400, description: '"from" posterior a "to"' })
+  async averageExecutionTime(
+    @Query() query: AverageExecutionTimeQueryDto,
+  ): Promise<AverageExecutionTimeResponseDto> {
+    return this.getAverageExecutionTime.execute(query);
   }
 
   @Get(':id')

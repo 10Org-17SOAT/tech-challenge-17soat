@@ -46,7 +46,12 @@ export const serviceOrders = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
   },
-  (table) => [index('service_orders_vehicle_id_idx').on(table.vehicleId)],
+  (table) => [
+    index('service_orders_vehicle_id_idx').on(table.vehicleId),
+    // The average-execution-time report scans a `completed_at` range; the
+    // status and soft-delete filters ride along as cheap residuals.
+    index('service_orders_completed_at_idx').on(table.completedAt),
+  ],
 );
 
 // The scope of work an order carries: catalogue services, with the parts each
