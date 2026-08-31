@@ -44,7 +44,6 @@ export class CreateAnamnesisUseCase {
   ) {}
 
   async execute(input: CreateAnamnesisInput): Promise<CreateAnamnesisResult> {
-
     // The anamnesis is the entry point of the flow: it opens the service
     // order (validating the vehicle via VEHICLE_LOOKUP) and attaches itself
     // to it. Simple orchestration — no cross-aggregate transaction.
@@ -76,6 +75,5 @@ export class CreateAnamnesisUseCase {
     await this.anamnesisRepository.save(anamnesis);
     // vehicleId is derived from the OS (join), not stored on the anamnesis.
     return { anamnesis, vehicleId: order.vehicleId };
-
   }
 }
