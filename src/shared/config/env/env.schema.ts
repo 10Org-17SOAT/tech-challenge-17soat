@@ -12,7 +12,7 @@ export const envSchema = z.object({
   DB_PASSWORD: z.string().min(1).default('postgres'),
   DB_NAME: z.string().min(1).default('tech_challenge'),
 
-  JWT_SECRET: z.string().min(8).default('tech-challenge-secret-key'),
+  JWT_SECRET: z.string().min(32),
   JWT_EXPIRES_IN: z.string().min(1).default('1h'),
 });
 
