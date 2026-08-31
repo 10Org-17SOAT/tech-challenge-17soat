@@ -5,7 +5,7 @@
 
 ## Contexto
 
-A API precisa controlar acesso às rotas e garantir que apenas usuários autenticados possam consumir recursos sensíveis. Também é necessário distinguir tipos de acesso conforme o perfil do usuário, como administração, atendimento técnico e uso do cliente.
+A API precisa controlar acesso às rotas e garantir que apenas usuários autenticados possam consumir recursos sensíveis. Também é necessário distinguir tipos de acesso conforme o perfil do usuário, como administração, atendimento técnico, operação de oficina e uso do cliente.
 
 Sem uma autenticação explícita, qualquer requisição poderia acessar endpoints de gerenciamento, estoque, ordens e dados de usuários. Além disso, sem uma hierarquia de papéis, o sistema ficaria sem controle granular de permissões.
 
@@ -31,6 +31,7 @@ A aplicação definirá as seguintes roles:
 
 - `admin`
 - `consultor_tecnico`
+- `mecanico`
 - `cliente`
 
 A role será representada em código por um identificador numérico ou enum e será incluída no payload do JWT para permitir validação de autorização nas rotas.
@@ -49,7 +50,7 @@ A role será representada em código por um identificador numérico ou enum e se
 Para rotas com acesso restrito, será usado um guard de roles. Esse guard verificará se a role do usuário está autorizada para a rota específica. Exemplo:
 
 - rota admin-only: apenas `admin`
-- rota técnica: `admin` e `consultor_tecnico`
+- rota técnica: `admin`, `consultor_tecnico` e `mecanico`
 - rota do cliente: `cliente`
 
 ## Justificativa
@@ -72,7 +73,7 @@ A escolha de roles é adequada porque:
 ### Positivas
 
 - Endpoints sensíveis ficam protegidos.
-- O projeto passa a distinguir usuários comuns, técnicos e administradores.
+- O projeto passa a distinguir usuários comuns, técnicos, mecânicos e administradores.
 - O token transporta identidade e papel do usuário de forma padronizada.
 - A arquitetura fica pronta para evoluir com regras mais finas no futuro.
 
