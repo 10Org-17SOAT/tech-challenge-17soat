@@ -54,6 +54,7 @@ export class VehicleController {
     const result = await this.createVehicleUseCase.execute(createVehicleDto);
     return new VehicleResponseDto({
       vehicle_id: result.vehicle_id,
+      customerId: result.customerId,
       licensePlate: result.licensePlate,
       model: result.model,
       year: result.year,
@@ -104,6 +105,7 @@ export class VehicleController {
         (item) =>
           new VehicleResponseDto({
             vehicle_id: item.vehicle_id,
+            customerId: item.customerId,
             licensePlate: item.licensePlate,
             model: item.model,
             year: item.year,
@@ -140,6 +142,7 @@ export class VehicleController {
     });
     return new VehicleResponseDto({
       vehicle_id: result.vehicle_id,
+      customerId: result.customerId,
       licensePlate: result.licensePlate,
       model: result.model,
       year: result.year,

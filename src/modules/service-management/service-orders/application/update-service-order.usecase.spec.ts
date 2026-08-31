@@ -4,6 +4,9 @@ import { ServiceOrder } from '../domain/service-order.entity';
 import { InMemoryServiceOrderRepository } from '../__test__/in-memory-service-order.repository';
 import { UpdateServiceOrderUseCase } from './update-service-order.usecase';
 
+// Orders always reference a vehicle; which one is irrelevant here.
+const VEHICLE_ID = '9f1d3c40-5f0e-4a1e-9a1b-6c2d7e8f0a11';
+
 describe('UpdateServiceOrderUseCase', () => {
   let repository: InMemoryServiceOrderRepository;
   let useCase: UpdateServiceOrderUseCase;
@@ -14,7 +17,7 @@ describe('UpdateServiceOrderUseCase', () => {
   });
 
   it('updates editable fields on an order in received', async () => {
-    const order = ServiceOrder.create({});
+    const order = ServiceOrder.create({ vehicleId: VEHICLE_ID });
     await repository.save(order);
 
     const updated = await useCase.execute(order.id, {
@@ -33,7 +36,7 @@ describe('UpdateServiceOrderUseCase', () => {
   });
 
   it('blocks mileage edit after in_execution', async () => {
-    const order = ServiceOrder.create({});
+    const order = ServiceOrder.create({ vehicleId: VEHICLE_ID });
     order.transitionTo('in_diagnosis');
     order.transitionTo('awaiting_approval');
     order.transitionTo('awaiting_execution');

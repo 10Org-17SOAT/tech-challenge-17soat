@@ -5,6 +5,7 @@ import { Pool } from 'pg';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
+import { CLEANUP_TABLES, givenOwnedVehicle } from './fixtures';
 import { ExecutionCompleted } from './../src/modules/service-management/service-orders/domain/events/execution-completed.event';
 import { ExecutionStarted } from './../src/modules/service-management/service-orders/domain/events/execution-started.event';
 import type { DomainEvent } from './../src/shared/domain/events/domain-event';
@@ -12,6 +13,8 @@ import type { DomainEvent } from './../src/shared/domain/events/domain-event';
 describe('ServiceOrders (e2e)', () => {
   let app: INestApplication<App>;
   let pool: Pool;
+  // An order is always about a car, so every test needs one first.
+  let vehicleId: string;
   let emitter: EventEmitter2;
 
   beforeAll(async () => {
@@ -36,12 +39,11 @@ describe('ServiceOrders (e2e)', () => {
   // quotations, diagnostics and service_items all point at service_orders by
   // foreign key, so they have to go first.
   beforeEach(async () => {
-    await pool.query('DELETE FROM quotation_items');
-    await pool.query('DELETE FROM quotations');
-    await pool.query('DELETE FROM diagnostics');
-    await pool.query('DELETE FROM service_items');
-    await pool.query('DELETE FROM service_orders');
-    await pool.query('DELETE FROM services');
+    for (const table of CLEANUP_TABLES) {
+      await pool.query(`DELETE FROM ${table}`);
+    }
+
+    vehicleId = (await givenOwnedVehicle(app.getHttpServer())).vehicleId;
   });
 
   afterAll(async () => {
@@ -133,7 +135,7 @@ describe('ServiceOrders (e2e)', () => {
   describe('POST /service-orders', () => {
     it('creates an order in status received with defaults', async () => {
       const body = orderBody(
-        await http().post('/service-orders').send({}).expect(201),
+        await http().post('/service-orders').send({ vehicleId }).expect(201),
       );
 
       expect(body.id).toMatch(/^[0-9a-f-]{36}$/i);
@@ -152,6 +154,7 @@ describe('ServiceOrders (e2e)', () => {
         await http()
           .post('/service-orders')
           .send({
+            vehicleId,
             notes: '  batida no farol  ',
             vehicleMileageAtEntry: 45000,
             scheduledAt,
@@ -167,17 +170,20 @@ describe('ServiceOrders (e2e)', () => {
     it('rejects invalid mileage', async () => {
       await http()
         .post('/service-orders')
-        .send({ vehicleMileageAtEntry: -1 })
+        .send({ vehicleId, vehicleMileageAtEntry: -1 })
         .expect(400);
       await http()
         .post('/service-orders')
-        .send({ vehicleMileageAtEntry: 10.5 })
+        .send({ vehicleId, vehicleMileageAtEntry: 10.5 })
         .expect(400);
     });
 
     it('ignores unknown fields', async () => {
       const body = orderBody(
-        await http().post('/service-orders').send({ foo: 'bar' }).expect(201),
+        await http()
+          .post('/service-orders')
+          .send({ vehicleId, foo: 'bar' })
+          .expect(201),
       );
       expect(body).not.toHaveProperty('foo');
     });
@@ -186,10 +192,10 @@ describe('ServiceOrders (e2e)', () => {
   describe('GET /service-orders', () => {
     it('paginates and filters by status', async () => {
       for (let i = 0; i < 3; i++) {
-        await http().post('/service-orders').send({}).expect(201);
+        await http().post('/service-orders').send({ vehicleId }).expect(201);
       }
       const toAdvance = orderBody(
-        await http().post('/service-orders').send({}).expect(201),
+        await http().post('/service-orders').send({ vehicleId }).expect(201),
       );
       await advanceTo(toAdvance.id, 'in_diagnosis');
 
@@ -211,7 +217,9 @@ describe('ServiceOrders (e2e)', () => {
 
   describe('GET /service-orders/:id', () => {
     it('returns the order or 404', async () => {
-      const created = orderBody(await http().post('/service-orders').send({}));
+      const created = orderBody(
+        await http().post('/service-orders').send({ vehicleId }),
+      );
       const body = orderBody(
         await http().get(`/service-orders/${created.id}`).expect(200),
       );
@@ -226,7 +234,9 @@ describe('ServiceOrders (e2e)', () => {
 
   describe('PATCH /service-orders/:id', () => {
     it('updates editable fields', async () => {
-      const created = orderBody(await http().post('/service-orders').send({}));
+      const created = orderBody(
+        await http().post('/service-orders').send({ vehicleId }),
+      );
 
       const body = orderBody(
         await http()
@@ -240,7 +250,9 @@ describe('ServiceOrders (e2e)', () => {
     });
 
     it('blocks mileage/scheduledAt edit once in_execution', async () => {
-      const created = orderBody(await http().post('/service-orders').send({}));
+      const created = orderBody(
+        await http().post('/service-orders').send({ vehicleId }),
+      );
       await advanceTo(created.id, 'in_execution');
 
       await http()
@@ -264,7 +276,9 @@ describe('ServiceOrders (e2e)', () => {
 
   describe('GET /service-orders/:id/status', () => {
     it('returns received for a freshly created order', async () => {
-      const created = orderBody(await http().post('/service-orders').send({}));
+      const created = orderBody(
+        await http().post('/service-orders').send({ vehicleId }),
+      );
 
       const status = statusBody(
         await http().get(`/service-orders/${created.id}/status`).expect(200),
@@ -273,7 +287,9 @@ describe('ServiceOrders (e2e)', () => {
     });
 
     it('walks the whole lifecycle, stamping timestamps + approval', async () => {
-      const created = orderBody(await http().post('/service-orders').send({}));
+      const created = orderBody(
+        await http().post('/service-orders').send({ vehicleId }),
+      );
 
       await http()
         .post(`/service-orders/${created.id}/diagnosis/start`)
@@ -323,7 +339,9 @@ describe('ServiceOrders (e2e)', () => {
     });
 
     it('ignores events describing an invalid transition and keeps the current status', async () => {
-      const created = orderBody(await http().post('/service-orders').send({}));
+      const created = orderBody(
+        await http().post('/service-orders').send({ vehicleId }),
+      );
 
       await emit(new ExecutionCompleted(created.id));
 
@@ -342,7 +360,9 @@ describe('ServiceOrders (e2e)', () => {
 
   describe('DELETE /service-orders/:id', () => {
     it('soft deletes an order in received', async () => {
-      const created = orderBody(await http().post('/service-orders').send({}));
+      const created = orderBody(
+        await http().post('/service-orders').send({ vehicleId }),
+      );
       const id = created.id;
 
       await http().delete(`/service-orders/${id}`).expect(204);
@@ -360,7 +380,9 @@ describe('ServiceOrders (e2e)', () => {
     });
 
     it('refuses to delete once past received with 409', async () => {
-      const created = orderBody(await http().post('/service-orders').send({}));
+      const created = orderBody(
+        await http().post('/service-orders').send({ vehicleId }),
+      );
       await advanceTo(created.id, 'in_diagnosis');
 
       await http().delete(`/service-orders/${created.id}`).expect(409);

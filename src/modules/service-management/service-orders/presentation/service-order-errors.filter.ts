@@ -11,12 +11,14 @@ import { InvalidServiceOrderError } from '../domain/errors/invalid-service-order
 import { InvalidServiceOrderTransitionError } from '../domain/errors/invalid-service-order-transition.error';
 import { ServiceOrderNotDeletableError } from '../domain/errors/service-order-not-deletable.error';
 import { ServiceOrderNotFoundError } from '../domain/errors/service-order-not-found.error';
+import { VehicleNotFoundForServiceOrderError } from '../domain/errors/vehicle-not-found-for-service-order.error';
 
 @Catch(
   ServiceOrderNotFoundError,
   InvalidServiceOrderError,
   InvalidServiceOrderTransitionError,
   ServiceOrderNotDeletableError,
+  VehicleNotFoundForServiceOrderError,
 )
 export class ServiceOrderErrorsFilter implements ExceptionFilter {
   catch(error: Error, host: ArgumentsHost) {
@@ -26,7 +28,10 @@ export class ServiceOrderErrorsFilter implements ExceptionFilter {
   }
 
   private toHttpException(error: Error) {
-    if (error instanceof ServiceOrderNotFoundError) {
+    if (
+      error instanceof ServiceOrderNotFoundError ||
+      error instanceof VehicleNotFoundForServiceOrderError
+    ) {
       return new NotFoundException(error.message);
     }
     if (

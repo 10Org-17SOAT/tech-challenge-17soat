@@ -8,6 +8,15 @@ export class InMemoryQuotationRepository implements QuotationRepository {
     return Promise.resolve(this.quotations.get(id) ?? null);
   }
 
+  findByApprovalTokenHash(hash: string): Promise<Quotation | null> {
+    for (const quotation of this.quotations.values()) {
+      if (quotation.approvalTokenHash === hash) {
+        return Promise.resolve(quotation);
+      }
+    }
+    return Promise.resolve(null);
+  }
+
   findByServiceOrderId(serviceOrderId: string): Promise<Quotation | null> {
     for (const quotation of this.quotations.values()) {
       if (quotation.serviceOrderId === serviceOrderId) {

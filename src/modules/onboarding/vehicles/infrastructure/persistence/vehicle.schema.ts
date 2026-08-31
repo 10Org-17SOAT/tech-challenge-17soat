@@ -7,11 +7,17 @@ import {
   varchar,
   index,
 } from 'drizzle-orm/pg-core';
+import { customersTable } from '../../../customer/infrastructure/persistence/customer.schema';
 
 export const vehiclesTable = pgTable(
   'vehicles',
   {
     vehicle_id: uuid('vehicle_id').primaryKey().defaultRandom(),
+    // Every vehicle has an owner. The quotation approval email reaches the
+    // customer through this column — see VehicleCatalogQuery.
+    customerId: uuid('customer_id')
+      .notNull()
+      .references(() => customersTable.id),
     licensePlate: varchar('license_plate', { length: 20 }).unique().notNull(),
     model: varchar('model', { length: 100 }).notNull(),
     year: integer('year').notNull(),
@@ -30,5 +36,6 @@ export const vehiclesTable = pgTable(
   (table) => ({
     licensePlateIdx: index('idx_license_plate').on(table.licensePlate),
     fuelTypeIdx: index('idx_fuel_type').on(table.fuelType),
+    customerIdx: index('vehicles_customer_id_idx').on(table.customerId),
   }),
 );

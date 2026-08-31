@@ -47,6 +47,7 @@ export class DrizzleVehicleRepository implements IVehicleRepository {
       // Insert
       await this.db.insert(vehiclesTable).values({
         vehicle_id: primitives.vehicle_id,
+        customerId: primitives.customerId,
         licensePlate: primitives.licensePlate,
         model: primitives.model,
         year: primitives.year,

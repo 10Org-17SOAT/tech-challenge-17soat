@@ -4,6 +4,9 @@ import { ServiceOrder } from '../domain/service-order.entity';
 import { InMemoryServiceOrderRepository } from '../__test__/in-memory-service-order.repository';
 import { StartDiagnosisUseCase } from './start-diagnosis.usecase';
 
+// Orders always reference a vehicle; which one is irrelevant here.
+const VEHICLE_ID = '9f1d3c40-5f0e-4a1e-9a1b-6c2d7e8f0a11';
+
 describe('StartDiagnosisUseCase', () => {
   let orders: InMemoryServiceOrderRepository;
   let useCase: StartDiagnosisUseCase;
@@ -14,7 +17,7 @@ describe('StartDiagnosisUseCase', () => {
   });
 
   it('moves a received order into diagnosis', async () => {
-    const order = ServiceOrder.create({});
+    const order = ServiceOrder.create({ vehicleId: VEHICLE_ID });
     await orders.save(order);
 
     const started = await useCase.execute(order.id);
@@ -24,7 +27,7 @@ describe('StartDiagnosisUseCase', () => {
   });
 
   it('refuses to start twice', async () => {
-    const order = ServiceOrder.create({});
+    const order = ServiceOrder.create({ vehicleId: VEHICLE_ID });
     await orders.save(order);
     await useCase.execute(order.id);
 

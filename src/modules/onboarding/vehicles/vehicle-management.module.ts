@@ -8,9 +8,14 @@ import { UpdateVehicleUseCase } from './application/use-cases/update-vehicle/upd
 import { DeleteVehicleUseCase } from './application/use-cases/delete-vehicle/delete-vehicle.use-case';
 import { DrizzleVehicleRepository } from './infrastructure/repositories/drizzle-vehicle.repository';
 import { VehicleMapper } from './infrastructure/mappers/vehicle.mapper';
+import { CustomerModule } from '../customer/customer.module';
+import { VEHICLE_CATALOG_QUERY } from './public/vehicle-catalog.query';
+import { DrizzleVehicleCatalogQuery } from './public/vehicle-catalog.query.impl';
 
 @Module({
-  imports: [DatabaseModule],
+  // CustomerModule exports only CUSTOMER_CONTACT_QUERY, used here to reject a
+  // vehicle whose owner does not exist.
+  imports: [DatabaseModule, CustomerModule],
   controllers: [VehicleController],
   providers: [
     // Use Cases
@@ -26,8 +31,13 @@ import { VehicleMapper } from './infrastructure/mappers/vehicle.mapper';
       provide: 'VEHICLE_REPOSITORY',
       useClass: DrizzleVehicleRepository,
     },
+    {
+      provide: VEHICLE_CATALOG_QUERY,
+      useClass: DrizzleVehicleCatalogQuery,
+    },
   ],
   exports: [
+    VEHICLE_CATALOG_QUERY,
     'VEHICLE_REPOSITORY',
     CreateVehicleUseCase,
     FindVehicleByIdUseCase,

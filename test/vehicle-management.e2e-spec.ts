@@ -5,6 +5,8 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
+import { InMemoryCustomerContactQuery } from '../src/modules/onboarding/customer/__test__/in-memory-customer-contact.query';
+import { CUSTOMER_CONTACT_QUERY } from '../src/modules/onboarding/customer/public/customer-contact.query';
 import { Vehicle } from '../src/modules/onboarding/vehicles/domain/entities/vehicle.entity';
 import type { IVehicleRepository } from '../src/modules/onboarding/vehicles/domain/repositories/vehicle.repository';
 import {
@@ -13,6 +15,7 @@ import {
 } from '../src/modules/onboarding/vehicles/domain/value-objects';
 
 const FIRST_ID = '11111111-1111-4111-8111-111111111111';
+const CUSTOMER_ID = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
 const MISSING_ID = '22222222-2222-4222-8222-222222222222';
 
 class InMemoryVehicleRepository implements IVehicleRepository {
@@ -84,6 +87,7 @@ describe('Vehicle Management (integração HTTP)', () => {
   let repository: InMemoryVehicleRepository;
 
   const payload = {
+    customerId: CUSTOMER_ID,
     licensePlate: 'ABC-1234',
     model: 'Civic',
     year: 2024,
@@ -96,11 +100,23 @@ describe('Vehicle Management (integração HTTP)', () => {
 
   beforeEach(async () => {
     repository = new InMemoryVehicleRepository();
+    // The owner lookup is stubbed alongside the repository: this suite runs the
+    // vehicle module without touching Postgres, and creating a vehicle now
+    // checks that its customer exists.
+    const customers = new InMemoryCustomerContactQuery();
+    customers.add({
+      id: CUSTOMER_ID,
+      name: 'Ana Souza',
+      email: 'ana@example.com',
+    });
+
     const moduleFixture = await Test.createTestingModule({
       imports: [AppModule],
     })
       .overrideProvider('VEHICLE_REPOSITORY')
       .useValue(repository)
+      .overrideProvider(CUSTOMER_CONTACT_QUERY)
+      .useValue(customers)
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -173,6 +189,7 @@ describe('Vehicle Management (integração HTTP)', () => {
   it('trata entradas inexistentes e paginação limitada', async () => {
     repository.seed(
       Vehicle.create({
+        customerId: CUSTOMER_ID,
         vehicle_id: FIRST_ID,
         licensePlate: 'DEF-5678',
         model: 'Corolla',
@@ -213,6 +230,16 @@ describe('Vehicle Management (integração HTTP)', () => {
 
     await request(app.getHttpServer())
       .delete(`/vehicles/${MISSING_ID}`)
+      .expect(404);
+  });
+
+  // A vehicle belongs to a customer, and the owner is checked before the
+  // insert so an unknown one is a 404 rather than a foreign key violation
+  // surfacing as a 500.
+  it('recusa um veículo cujo dono não existe', async () => {
+    await request(app.getHttpServer())
+      .post('/vehicles')
+      .send({ ...payload, customerId: MISSING_ID })
       .expect(404);
   });
 

@@ -40,6 +40,15 @@ export class DrizzleQuotationRepository implements QuotationRepository {
     return rows[0] ? this.withItems(rows[0]) : null;
   }
 
+  async findByApprovalTokenHash(hash: string): Promise<Quotation | null> {
+    const rows = await this.db
+      .select()
+      .from(quotations)
+      .where(eq(quotations.approvalTokenHash, hash))
+      .limit(1);
+    return rows[0] ? this.withItems(rows[0]) : null;
+  }
+
   async findByServiceOrderId(
     serviceOrderId: string,
   ): Promise<Quotation | null> {
@@ -62,6 +71,9 @@ export class DrizzleQuotationRepository implements QuotationRepository {
       approvedAt: quotation.approvedAt,
       createdAt: quotation.createdAt,
       updatedAt: quotation.updatedAt,
+      approvalTokenHash: quotation.approvalTokenHash,
+      approvalTokenExpiresAt: quotation.approvalTokenExpiresAt,
+      approvalEmailSentAt: quotation.approvalEmailSentAt,
     };
 
     await this.db
@@ -73,6 +85,9 @@ export class DrizzleQuotationRepository implements QuotationRepository {
           status: row.status,
           approvedAt: row.approvedAt,
           updatedAt: row.updatedAt,
+          approvalTokenHash: row.approvalTokenHash,
+          approvalTokenExpiresAt: row.approvalTokenExpiresAt,
+          approvalEmailSentAt: row.approvalEmailSentAt,
         },
       });
 

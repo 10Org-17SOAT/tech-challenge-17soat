@@ -58,6 +58,7 @@ export class DrizzleServiceOrderRepository implements ServiceOrderRepository {
   async save(order: ServiceOrder): Promise<void> {
     const row: ServiceOrderRow = {
       id: order.id,
+      vehicleId: order.vehicleId,
       status: order.status,
       approvedByCustomer: order.approvedByCustomer,
       notes: order.notes,

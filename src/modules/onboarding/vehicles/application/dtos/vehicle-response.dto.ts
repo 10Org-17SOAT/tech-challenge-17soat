@@ -1,5 +1,6 @@
 export class VehicleResponseDto {
   vehicle_id: string;
+  customerId: string;
   licensePlate: string;
   model: string;
   year: number;
@@ -14,6 +15,7 @@ export class VehicleResponseDto {
 
   constructor(data: {
     vehicle_id: string;
+    customerId: string;
     licensePlate: string;
     model: string;
     year: number;
@@ -27,6 +29,7 @@ export class VehicleResponseDto {
     deletedAt?: Date | null;
   }) {
     this.vehicle_id = data.vehicle_id;
+    this.customerId = data.customerId;
     this.licensePlate = data.licensePlate;
     this.model = data.model;
     this.year = data.year;

@@ -1,4 +1,5 @@
 export interface CreateVehicleInput {
+  customerId: string;
   licensePlate: string;
   model: string;
   year: number;
@@ -11,6 +12,7 @@ export interface CreateVehicleInput {
 
 export interface CreateVehicleOutput {
   vehicle_id: string;
+  customerId: string;
   licensePlate: string;
   model: string;
   year: number;

@@ -10,6 +10,7 @@ import { VehicleException } from '../exceptions/vehicle.exceptions';
 
 export interface CreateVehicleProps {
   vehicle_id?: string;
+  customerId: string;
   licensePlate: string;
   model: string;
   year: number;
@@ -35,6 +36,9 @@ export interface UpdateVehicleProps {
 
 export class Vehicle {
   private readonly vehicle_id: VehicleId;
+  // The owner. Immutable here: transferring a vehicle is a business act of its
+  // own, not a field edit, and no use case asks for it yet.
+  private readonly customerId: string;
   private licensePlate: LicensePlate;
   private vehicleModel: VehicleModel;
   private description: string | null;
@@ -47,6 +51,7 @@ export class Vehicle {
 
   constructor(props: CreateVehicleProps) {
     this.vehicle_id = new VehicleId(props.vehicle_id);
+    this.customerId = Vehicle.validateCustomerId(props.customerId);
     this.licensePlate = new LicensePlate(props.licensePlate);
     this.vehicleModel = new VehicleModel(
       props.model,
@@ -66,8 +71,20 @@ export class Vehicle {
     return new Vehicle(props);
   }
 
+  private static validateCustomerId(customerId: string): string {
+    const trimmed = (customerId ?? '').trim();
+    if (trimmed.length === 0) {
+      throw new VehicleException('Vehicle must belong to a customer');
+    }
+    return trimmed;
+  }
+
   getId(): VehicleId {
     return this.vehicle_id;
+  }
+
+  getCustomerId(): string {
+    return this.customerId;
   }
 
   getLicensePlate(): LicensePlate {
@@ -148,6 +165,7 @@ export class Vehicle {
   toPrimitives() {
     return {
       vehicle_id: this.vehicle_id.getValue(),
+      customerId: this.customerId,
       licensePlate: this.licensePlate.getValue(),
       model: this.vehicleModel.getModel(),
       year: this.vehicleModel.getYear(),

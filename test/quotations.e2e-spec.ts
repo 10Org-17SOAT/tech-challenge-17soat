@@ -4,10 +4,12 @@ import { Pool } from 'pg';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
+import { CLEANUP_TABLES, givenOwnedVehicle } from './fixtures';
 
 describe('Quotations (e2e)', () => {
   let app: INestApplication<App>;
   let pool: Pool;
+  let vehicleId: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -27,15 +29,11 @@ describe('Quotations (e2e)', () => {
   });
 
   beforeEach(async () => {
-    await pool.query('DELETE FROM quotation_items');
-    await pool.query('DELETE FROM quotations');
-    await pool.query('DELETE FROM diagnostics');
-    await pool.query('DELETE FROM service_items');
-    await pool.query('DELETE FROM service_supplies');
-    await pool.query('DELETE FROM service_orders');
-    await pool.query('DELETE FROM services');
-    await pool.query('DELETE FROM stock_movements');
-    await pool.query('DELETE FROM supplies');
+    for (const table of CLEANUP_TABLES) {
+      await pool.query(`DELETE FROM ${table}`);
+    }
+
+    vehicleId = (await givenOwnedVehicle(app.getHttpServer())).vehicleId;
   });
 
   afterAll(async () => {
@@ -96,7 +94,10 @@ describe('Quotations (e2e)', () => {
   }
 
   async function givenOrderInDiagnosis(): Promise<string> {
-    const res = await http().post('/service-orders').send({}).expect(201);
+    const res = await http()
+      .post('/service-orders')
+      .send({ vehicleId })
+      .expect(201);
     const id = (res.body as { id: string }).id;
     await http().post(`/service-orders/${id}/diagnosis/start`).expect(200);
     return id;
@@ -167,7 +168,10 @@ describe('Quotations (e2e)', () => {
 
     it('rejects a diagnosis on an order that is not in diagnosis', async () => {
       const serviceId = await givenService(9990);
-      const created = await http().post('/service-orders').send({}).expect(201);
+      const created = await http()
+        .post('/service-orders')
+        .send({ vehicleId })
+        .expect(201);
 
       await http()
         .post(
