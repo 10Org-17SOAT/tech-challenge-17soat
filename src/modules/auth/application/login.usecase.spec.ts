@@ -6,7 +6,7 @@ jest.mock('@nestjs/jwt', () => ({
 
 import { UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
-import { User } from '../../users/domain/user.entity';
+import { User } from '../domain/user.entity';
 import { LoginUseCase } from './login.usecase';
 
 describe('LoginUseCase', () => {
