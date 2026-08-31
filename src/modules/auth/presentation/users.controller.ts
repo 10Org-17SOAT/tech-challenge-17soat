@@ -9,6 +9,7 @@ import {
   Patch,
   Post,
   Query,
+  UseFilters,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { CreateUserUseCase } from '../application/create-user.usecase';
@@ -25,9 +26,11 @@ import {
   UserIdParamDto,
   UserResponseDto,
 } from './dtos/user.dtos';
+import { UserErrorsFilter } from './user-errors.filter';
 
 @ApiTags('users')
 @Controller('user')
+@UseFilters(UserErrorsFilter)
 export class UsersController {
   constructor(
     private readonly createUser: CreateUserUseCase,
