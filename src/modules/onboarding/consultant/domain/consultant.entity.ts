@@ -8,6 +8,7 @@ const invalidCpf = (raw: string) =>
 
 export interface ConsultantProps {
   id: string;
+  userId?: string | null;
   name: string;
   cpf: string;
   phone: string;
@@ -17,6 +18,7 @@ export interface ConsultantProps {
 }
 
 export interface CreateConsultantProps {
+  userId?: string | null;
   name: string;
   cpf: string;
   phone: string;
@@ -24,6 +26,7 @@ export interface CreateConsultantProps {
 
 interface InternalProps {
   id: string;
+  userId: string | null;
   name: string;
   cpf: Cpf;
   phone: Phone;
@@ -39,6 +42,7 @@ export class Consultant {
     const now = new Date();
     return new Consultant({
       id: randomUUID(),
+      userId: props.userId ?? null,
       name: props.name,
       cpf: Cpf.create(props.cpf, invalidCpf),
       phone: Phone.create(props.phone),
@@ -51,6 +55,7 @@ export class Consultant {
   static restore(props: ConsultantProps): Consultant {
     return new Consultant({
       id: props.id,
+      userId: props.userId ?? null,
       name: props.name,
       cpf: Cpf.create(props.cpf, invalidCpf),
       phone: Phone.create(props.phone),
@@ -70,6 +75,11 @@ export class Consultant {
     this.props.updatedAt = new Date();
   }
 
+  linkUser(userId: string): void {
+    this.props.userId = userId;
+    this.props.updatedAt = new Date();
+  }
+
   delete(): void {
     this.props.deletedAt = new Date();
     this.props.updatedAt = this.props.deletedAt;
@@ -77,6 +87,10 @@ export class Consultant {
 
   get id(): string {
     return this.props.id;
+  }
+
+  get userId(): string | null {
+    return this.props.userId;
   }
 
   get name(): string {

@@ -8,6 +8,7 @@ import { InvalidCustomerException } from './exceptions/customer.exceptions';
 
 export interface CustomerProps {
   id?: string;
+  userId?: string | null;
   personType: PersonType;
   document: Document;
   name?: string | null;
@@ -23,6 +24,7 @@ export interface CustomerProps {
 
 export class Customer {
   private readonly id: string;
+  private userId: string | null;
   private readonly personType: PersonType;
   private readonly document: Document;
   private readonly name: string | null;
@@ -39,6 +41,7 @@ export class Customer {
     this.validate(props);
 
     this.id = props.id ?? randomUUID();
+    this.userId = props.userId ?? null;
     this.personType = props.personType;
     this.document = props.document;
     this.name = props.name ?? null;
@@ -64,6 +67,15 @@ export class Customer {
 
   getId(): string {
     return this.id;
+  }
+
+  getUserId(): string | null {
+    return this.userId;
+  }
+
+  linkUser(userId: string): void {
+    this.userId = userId;
+    this.updatedAt = new Date();
   }
 
   getPersonType(): PersonType {
@@ -120,6 +132,7 @@ export class Customer {
 
   toPrimitives(): {
     id: string;
+    userId: string | null;
     personType: PersonType;
     document: string;
     name: string | null;
@@ -146,6 +159,7 @@ export class Customer {
   } {
     return {
       id: this.id,
+      userId: this.userId,
       personType: this.personType,
       document: this.document.getValue(),
       name: this.name,

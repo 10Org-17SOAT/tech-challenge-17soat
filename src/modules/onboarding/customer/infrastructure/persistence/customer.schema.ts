@@ -10,11 +10,13 @@ import {
 } from 'drizzle-orm/pg-core';
 import type { AddressProps } from '../../domain/value-objects/address.value-object';
 import type { PhoneProps } from '../../domain/value-objects/phone.value-object';
+import { users } from '../../../../auth/infrastructure/persistence/schema';
 
 export const customersTable = pgTable(
   'customers',
   {
     id: uuid('customer_id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').references(() => users.user_id),
     personType: varchar('person_type', { length: 10 }).notNull(),
     document: varchar('document', { length: 14 }).notNull(),
     name: varchar('name', { length: 255 }),

@@ -8,6 +8,7 @@ const invalidCpf = (raw: string) =>
 
 export interface StockKeeperProps {
   id: string;
+  userId?: string | null;
   name: string;
   cpf: string;
   phone: string;
@@ -17,6 +18,7 @@ export interface StockKeeperProps {
 }
 
 export interface CreateStockKeeperProps {
+  userId?: string | null;
   name: string;
   cpf: string;
   phone: string;
@@ -24,6 +26,7 @@ export interface CreateStockKeeperProps {
 
 interface InternalProps {
   id: string;
+  userId: string | null;
   name: string;
   cpf: Cpf;
   phone: Phone;
@@ -39,6 +42,7 @@ export class StockKeeper {
     const now = new Date();
     return new StockKeeper({
       id: randomUUID(),
+      userId: props.userId ?? null,
       name: props.name,
       cpf: Cpf.create(props.cpf, invalidCpf),
       phone: Phone.create(props.phone),
@@ -51,6 +55,7 @@ export class StockKeeper {
   static restore(props: StockKeeperProps): StockKeeper {
     return new StockKeeper({
       id: props.id,
+      userId: props.userId ?? null,
       name: props.name,
       cpf: Cpf.create(props.cpf, invalidCpf),
       phone: Phone.create(props.phone),
@@ -70,6 +75,11 @@ export class StockKeeper {
     this.props.updatedAt = new Date();
   }
 
+  linkUser(userId: string): void {
+    this.props.userId = userId;
+    this.props.updatedAt = new Date();
+  }
+
   delete(): void {
     this.props.deletedAt = new Date();
     this.props.updatedAt = this.props.deletedAt;
@@ -77,6 +87,10 @@ export class StockKeeper {
 
   get id(): string {
     return this.props.id;
+  }
+
+  get userId(): string | null {
+    return this.props.userId;
   }
 
   get name(): string {

@@ -6,16 +6,18 @@ import {
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
+import { users } from '../../../../auth/infrastructure/persistence/schema';
 
 // Consultants are the profile of the employees who work the counter in
 // Atendimento, mirroring how `customers` and the stock module's
 // `stock_keepers` are each a self-contained profile table: no cross-context
-// FK, no `user_id` (Auth doesn't exist yet — added later, nullable, by the
-// module that creates `users`).
+// FK other than the nullable link to the platform-wide `users` table (a
+// consultant may exist without a login yet).
 export const consultants = pgTable(
   'consultants',
   {
     id: uuid('consultant_id').primaryKey(),
+    userId: uuid('user_id').references(() => users.user_id),
     name: varchar('name', { length: 255 }).notNull(),
     cpf: varchar('cpf', { length: 11 }).notNull(),
     phone: varchar('phone', { length: 11 }).notNull(),

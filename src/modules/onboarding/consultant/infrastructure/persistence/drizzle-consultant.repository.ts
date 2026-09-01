@@ -70,6 +70,7 @@ export class DrizzleConsultantRepository implements ConsultantRepository {
   async save(consultant: Consultant): Promise<void> {
     const row: ConsultantRow = {
       id: consultant.id,
+      userId: consultant.userId,
       name: consultant.name,
       cpf: consultant.cpf,
       phone: consultant.phone,
