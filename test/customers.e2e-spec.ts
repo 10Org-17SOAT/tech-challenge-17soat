@@ -2,11 +2,11 @@ import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { httpAs, tokenFor } from './fixtures';
-import { UserRole } from './../src/modules/auth/roles/role.enum';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
 import { CUSTOMER_REPOSITORY } from '../src/modules/onboarding/customer/domain/repository/customer.repository';
 import { InMemoryCustomerRepository } from '../src/modules/onboarding/customer/__test__/in-memory-customer.repository';
+import { UserRole } from '../src/modules/auth/public/roles';
 
 /**
  * E2E suite running against the real AppModule wiring with the repository

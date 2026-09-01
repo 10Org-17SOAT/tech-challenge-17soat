@@ -2,12 +2,12 @@ import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { httpAs, tokenFor } from './fixtures';
-import { UserRole } from './../src/modules/auth/roles/role.enum';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
 import { MECHANIC_REPOSITORY } from '../src/modules/mechanic/domain/repository/mechanic.repository';
 import { InMemoryMechanicRepository } from '../src/modules/mechanic/__test__/in-memory-mechanic.repository';
 import { Mechanic } from '../src/modules/mechanic/domain/mechanic.entity';
+import { UserRole } from '../src/modules/auth/public/roles';
 
 /**
  * E2E suite running against the real AppModule wiring with the repository

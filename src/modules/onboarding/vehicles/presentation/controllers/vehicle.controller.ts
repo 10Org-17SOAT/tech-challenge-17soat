@@ -30,8 +30,7 @@ import {
   UpdateVehicleDto,
 } from '../dtos/vehicle.dtos';
 import { VehicleErrorsFilter } from '../filters/vehicle-errors.filter';
-import { Roles } from '../../../../auth/decorators/roles.decorator';
-import { UserRole } from '../../../../auth/roles/role.enum';
+import { Roles, UserRole } from '../../../../auth/public/roles';
 
 @ApiTags('Vehicles')
 @ApiBearerAuth()

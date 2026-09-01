@@ -5,7 +5,6 @@ import { Test } from '@nestjs/testing';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
 import { httpAs, tokenFor } from './fixtures';
-import { UserRole } from '../src/modules/auth/roles/role.enum';
 import { InMemoryCustomerContactQuery } from '../src/modules/onboarding/customer/__test__/in-memory-customer-contact.query';
 import { CUSTOMER_CONTACT_QUERY } from '../src/modules/onboarding/customer/public/customer-contact.query';
 import { Vehicle } from '../src/modules/onboarding/vehicles/domain/entities/vehicle.entity';
@@ -14,6 +13,7 @@ import {
   LicensePlate,
   VehicleId,
 } from '../src/modules/onboarding/vehicles/domain/value-objects';
+import { UserRole } from '../src/modules/auth/public/roles';
 
 const FIRST_ID = '11111111-1111-4111-8111-111111111111';
 const CUSTOMER_ID = '7c9e6679-7425-40de-944b-e07fc1f90ae7';

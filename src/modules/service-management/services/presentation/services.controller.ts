@@ -37,8 +37,7 @@ import {
   UpdateServiceDto,
 } from './dtos/service.dtos';
 import { ServiceErrorsFilter } from './service-errors.filter';
-import { Roles } from '../../../auth/decorators/roles.decorator';
-import { UserRole } from '../../../auth/roles/role.enum';
+import { Roles, UserRole } from '../../../auth/public/roles';
 
 @ApiTags('services')
 @ApiBearerAuth()

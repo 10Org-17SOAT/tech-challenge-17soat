@@ -3,11 +3,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { randomUUID } from 'node:crypto';
 import { Pool } from 'pg';
 import { httpAs, tokenFor } from './fixtures';
-import { UserRole } from './../src/modules/auth/roles/role.enum';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 import { DOMAIN_EVENT_PUBLISHER } from './../src/shared/domain/events/domain-event-publisher';
 import { RecordingDomainEventPublisher } from './../src/modules/stock/__test__/recording-domain-event.publisher';
+import { UserRole } from '../src/modules/auth/public/roles';
 
 describe('Stock lookup (e2e)', () => {
   let app: INestApplication<App>;

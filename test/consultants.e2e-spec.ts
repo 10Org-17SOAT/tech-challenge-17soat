@@ -1,11 +1,11 @@
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { httpAs, tokenFor } from './fixtures';
-import { UserRole } from './../src/modules/auth/roles/role.enum';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
 import { CONSULTANT_REPOSITORY } from '../src/modules/onboarding/consultant/domain/consultant.repository';
 import { InMemoryConsultantRepository } from '../src/modules/onboarding/consultant/__test__/in-memory-consultant.repository';
+import { UserRole } from '../src/modules/auth/public/roles';
 
 /**
  * E2E suite running against the real AppModule wiring with the repository

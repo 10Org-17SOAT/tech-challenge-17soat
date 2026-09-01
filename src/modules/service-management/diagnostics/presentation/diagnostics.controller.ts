@@ -25,8 +25,7 @@ import {
   ServiceOrderIdParamDto,
   toDiagnosisResponse,
 } from './dtos/diagnosis.dtos';
-import { Roles } from '../../../auth/decorators/roles.decorator';
-import { UserRole } from '../../../auth/roles/role.enum';
+import { Roles, UserRole } from '../../../auth/public/roles';
 
 @ApiTags('diagnostics')
 @ApiBearerAuth()

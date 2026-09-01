@@ -48,8 +48,7 @@ import {
   UpdateSupplyDto,
 } from './dtos/supply.dtos';
 import { StockErrorsFilter } from './stock-errors.filter';
-import { Roles } from '../../auth/decorators/roles.decorator';
-import { UserRole } from '../../auth/roles/role.enum';
+import { Roles, UserRole } from '../../auth/public/roles';
 
 @ApiTags('supplies')
 @ApiBearerAuth()

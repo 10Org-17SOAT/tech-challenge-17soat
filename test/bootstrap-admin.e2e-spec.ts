@@ -3,8 +3,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Pool } from 'pg';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
-import { UserRole } from './../src/modules/auth/roles/role.enum';
 import { CLEANUP_TABLES_WITH_USERS, httpAs, tokenFor } from './fixtures';
+import { UserRole } from '../src/modules/auth/public/roles';
 
 /**
  * The bootstrap administrator is the one account that cannot be created

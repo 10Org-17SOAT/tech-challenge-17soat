@@ -12,8 +12,7 @@ import {
   toQuotationResponse,
 } from './dtos/quotation.dtos';
 import { QuotationErrorsFilter } from './quotation-errors.filter';
-import { Roles } from '../../../auth/decorators/roles.decorator';
-import { UserRole } from '../../../auth/roles/role.enum';
+import { Roles, UserRole } from '../../../auth/public/roles';
 
 @ApiTags('quotations')
 @ApiBearerAuth()

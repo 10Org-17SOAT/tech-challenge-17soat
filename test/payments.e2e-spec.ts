@@ -14,7 +14,7 @@ import {
   httpAs,
   tokenFor,
 } from './fixtures';
-import { UserRole } from './../src/modules/auth/roles/role.enum';
+import { UserRole } from '../src/modules/auth/public/roles';
 
 describe('Payments (e2e)', () => {
   let app: INestApplication<App>;

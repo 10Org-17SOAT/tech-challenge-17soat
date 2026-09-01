@@ -38,8 +38,7 @@ import {
   PaginatedCustomersDTO,
 } from '../../application/dto/customer.dto';
 import { PersonType } from '../../domain/value-objects/person-type.enum';
-import { Roles } from '../../../../auth/decorators/roles.decorator';
-import { UserRole } from '../../../../auth/roles/role.enum';
+import { Roles, UserRole } from '../../../../auth/public/roles';
 
 @ApiTags('customers')
 @ApiBearerAuth()

@@ -5,7 +5,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 import { CLEANUP_TABLES_WITH_USERS, httpAs, tokenFor } from './fixtures';
-import { UserRole } from '../src/modules/auth/roles/role.enum';
+import { UserRole } from '../src/modules/auth/public/roles';
 
 describe('Auth (e2e)', () => {
   let app: INestApplication<App>;

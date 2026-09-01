@@ -23,8 +23,7 @@ import {
   toPaymentResponse,
 } from './dtos/payment.dtos';
 import { PaymentErrorsFilter } from './payment-errors.filter';
-import { Roles } from '../../auth/decorators/roles.decorator';
-import { UserRole } from '../../auth/roles/role.enum';
+import { Roles, UserRole } from '../../auth/public/roles';
 
 @ApiTags('payments')
 @ApiBearerAuth()

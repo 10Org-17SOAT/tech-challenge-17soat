@@ -4,7 +4,7 @@ import { ApproveQuotationByTokenUseCase } from '../application/approve-quotation
 import { InvalidApprovalTokenError } from '../domain/errors/invalid-approval-token.error';
 import { renderApprovalSuccess } from './approval-result.template';
 import { ApprovalLinkErrorsFilter } from './approval-link-errors.filter';
-import { Public } from '../../../auth/decorators/public.decorator';
+import { Public } from '../../../auth/public/roles';
 
 /**
  * The link from the approval email. Separate from QuotationsController on

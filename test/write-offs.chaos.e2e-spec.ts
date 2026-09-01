@@ -4,9 +4,9 @@ import { Pool } from 'pg';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 import { givenUser, httpAs, tokenFor } from './fixtures';
-import { UserRole } from './../src/modules/auth/roles/role.enum';
 import { DOMAIN_EVENT_PUBLISHER } from './../src/shared/domain/events/domain-event-publisher';
 import { RecordingDomainEventPublisher } from './../src/modules/stock/__test__/recording-domain-event.publisher';
+import { UserRole } from '../src/modules/auth/public/roles';
 
 describe('Write-offs chaos (e2e)', () => {
   let app: INestApplication<App>;

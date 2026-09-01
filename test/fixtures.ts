@@ -3,7 +3,7 @@ import type { INestApplication } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { UserRole } from './../src/modules/auth/roles/role.enum';
+import { UserRole } from '../src/modules/auth/public/roles';
 
 /**
  * Shared setup for the graph a service order now hangs off: a service order

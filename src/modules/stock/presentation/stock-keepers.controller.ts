@@ -32,8 +32,7 @@ import {
   UpdateStockKeeperDto,
 } from './dtos/stock-keeper.dtos';
 import { StockErrorsFilter } from './stock-errors.filter';
-import { Roles } from '../../auth/decorators/roles.decorator';
-import { UserRole } from '../../auth/roles/role.enum';
+import { Roles, UserRole } from '../../auth/public/roles';
 
 @ApiTags('stock-keepers')
 @ApiBearerAuth()

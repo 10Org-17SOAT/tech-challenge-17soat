@@ -12,7 +12,7 @@ import {
   httpAs,
   tokenFor,
 } from './fixtures';
-import { UserRole } from './../src/modules/auth/roles/role.enum';
+import { UserRole } from '../src/modules/auth/public/roles';
 
 /**
  * The whole approval path over HTTP: a diagnosis emails the quotation, and the

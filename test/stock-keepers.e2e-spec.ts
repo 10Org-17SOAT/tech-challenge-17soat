@@ -5,7 +5,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 import { givenUser, httpAs, tokenFor } from './fixtures';
-import { UserRole } from './../src/modules/auth/roles/role.enum';
+import { UserRole } from '../src/modules/auth/public/roles';
 
 describe('Stock keepers (e2e)', () => {
   let app: INestApplication<App>;

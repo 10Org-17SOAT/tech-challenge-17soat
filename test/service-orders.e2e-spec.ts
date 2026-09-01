@@ -12,10 +12,10 @@ import {
   httpAs,
   tokenFor,
 } from './fixtures';
-import { UserRole } from './../src/modules/auth/roles/role.enum';
 import { ExecutionCompleted } from './../src/modules/mechanic/domain/events/execution-completed.event';
 import { ExecutionStarted } from './../src/modules/mechanic/domain/events/execution-started.event';
 import type { DomainEvent } from './../src/shared/domain/events/domain-event';
+import { UserRole } from '../src/modules/auth/public/roles';
 
 describe('ServiceOrders (e2e)', () => {
   let app: INestApplication<App>;

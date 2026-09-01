@@ -3,9 +3,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Pool } from 'pg';
 import request from 'supertest';
 import { httpAs, tokenFor } from './fixtures';
-import { UserRole } from './../src/modules/auth/roles/role.enum';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
+import { UserRole } from '../src/modules/auth/public/roles';
 
 describe('Services (e2e)', () => {
   let app: INestApplication<App>;

@@ -34,8 +34,7 @@ import {
   UpdateServiceOrderDto,
 } from './dtos/service-order.dtos';
 import { ServiceOrderErrorsFilter } from './service-order-errors.filter';
-import { Roles } from '../../../auth/decorators/roles.decorator';
-import { UserRole } from '../../../auth/roles/role.enum';
+import { Roles, UserRole } from '../../../auth/public/roles';
 
 @ApiTags('service-orders')
 @ApiBearerAuth()
