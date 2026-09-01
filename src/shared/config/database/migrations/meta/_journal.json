@@ -82,29 +82,29 @@
     {
       "idx": 11,
       "version": "7",
-      "when": 1788127633500,
-      "tag": "20260830220713_overconfident_warpath",
-      "breakpoints": true
-    },
-    {
-      "idx": 12,
-      "version": "7",
       "when": 1788128896177,
       "tag": "20260830222816_add_stock_keepers",
       "breakpoints": true
     },
     {
-      "idx": 13,
+      "idx": 12,
       "version": "7",
       "when": 1788128989508,
       "tag": "20260830222949_require_stock_keeper_on_stock_entry",
       "breakpoints": true
     },
     {
-      "idx": 14,
+      "idx": 13,
       "version": "7",
       "when": 1788131292354,
       "tag": "20260830230812_familiar_mister_fear",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1788131293000,
+      "tag": "20260830230813_overconfident_warpath",
       "breakpoints": true
     },
     {
