@@ -10,7 +10,12 @@ import {
   Query,
   UseFilters,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { DeleteServiceOrderUseCase } from '../application/delete-service-order.usecase';
 import { GetAverageExecutionTimeUseCase } from '../application/get-average-execution-time.usecase';
 import { GetServiceOrderStatusUseCase } from '../application/get-service-order-status.usecase';
@@ -29,8 +34,11 @@ import {
   UpdateServiceOrderDto,
 } from './dtos/service-order.dtos';
 import { ServiceOrderErrorsFilter } from './service-order-errors.filter';
+import { Roles, UserRole } from '../../../auth/public/roles';
 
 @ApiTags('service-orders')
+@ApiBearerAuth()
+@Roles(UserRole.ADMIN)
 @Controller('service-orders')
 @UseFilters(ServiceOrderErrorsFilter)
 export class ServiceOrdersController {
@@ -61,8 +69,8 @@ export class ServiceOrdersController {
     summary: 'Tempo médio de execução das OSs finalizadas',
     description:
       'Média entre a entrada em in_execution (startedAt) e a finalização ' +
-      "(completedAt). Não inclui a espera por diagnóstico nem pela aprovação " +
-      "do cliente. A janela from/to recorta por completedAt.",
+      '(completedAt). Não inclui a espera por diagnóstico nem pela aprovação ' +
+      'do cliente. A janela from/to recorta por completedAt.',
   })
   @ApiResponse({ status: 200, type: AverageExecutionTimeResponseDto })
   @ApiResponse({ status: 400, description: '"from" posterior a "to"' })
@@ -82,6 +90,9 @@ export class ServiceOrdersController {
     return toServiceOrderResponse(order);
   }
 
+  // Exception to the controller-level ADMIN rule: checking the status of an
+  // order is the single endpoint a customer is allowed to reach.
+  @Roles(UserRole.ADMIN, UserRole.CUSTOMER)
   @Get(':id/status')
   @ApiOperation({ summary: 'Consulta o status atual de uma OS' })
   @ApiResponse({ status: 200, type: ServiceOrderStatusResponseDto })

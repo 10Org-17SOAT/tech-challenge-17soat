@@ -1,10 +1,12 @@
-import { Module } from '@nestjs/common';
+import { Module, type OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import type { Env } from '../../shared/config/env/env.schema';
 import { CreateUserUseCase } from './application/create-user.usecase';
 import { DeleteUserUseCase } from './application/delete-user.usecase';
+import { EnsureBootstrapAdminUseCase } from './application/ensure-bootstrap-admin.usecase';
 import { GetUserUseCase } from './application/get-user.usecase';
 import { ListUsersUseCase } from './application/list-users.usecase';
 import { LoginUseCase } from './application/login.usecase';
@@ -39,10 +41,21 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     ListUsersUseCase,
     UpdateUserUseCase,
     DeleteUserUseCase,
+    EnsureBootstrapAdminUseCase,
     JwtStrategy,
-    JwtAuthGuard,
-    RolesGuard,
+    // Registered globally: every route requires a valid token unless it opts
+    // out with @Public(), and RolesGuard runs after it so @Roles() can rely on
+    // request.user being populated.
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
   ],
-  exports: [JwtAuthGuard, RolesGuard],
 })
-export class AuthModule {}
+export class AuthModule implements OnApplicationBootstrap {
+  constructor(
+    private readonly ensureBootstrapAdmin: EnsureBootstrapAdminUseCase,
+  ) {}
+
+  async onApplicationBootstrap(): Promise<void> {
+    await this.ensureBootstrapAdmin.execute();
+  }
+}

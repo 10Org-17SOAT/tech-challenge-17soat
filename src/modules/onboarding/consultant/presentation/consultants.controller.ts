@@ -11,7 +11,12 @@ import {
   Query,
   UseFilters,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CreateConsultantUseCase } from '../application/create-consultant.usecase';
 import { DeleteConsultantUseCase } from '../application/delete-consultant.usecase';
 import { GetConsultantUseCase } from '../application/get-consultant.usecase';
@@ -27,8 +32,11 @@ import {
   UpdateConsultantDto,
 } from './dtos/consultant.dtos';
 import { ConsultantErrorsFilter } from './consultant-errors.filter';
+import { Roles, UserRole } from '../../../auth/public/roles';
 
 @ApiTags('consultants')
+@ApiBearerAuth()
+@Roles(UserRole.ADMIN)
 @Controller('consultants')
 @UseFilters(ConsultantErrorsFilter)
 export class ConsultantsController {

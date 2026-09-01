@@ -11,7 +11,7 @@ import {
   Query,
   UseFilters,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CreateUserUseCase } from '../application/create-user.usecase';
 import { DeleteUserUseCase } from '../application/delete-user.usecase';
 import { GetUserUseCase } from '../application/get-user.usecase';
@@ -27,8 +27,12 @@ import {
   UserResponseDto,
 } from './dtos/user.dtos';
 import { UserErrorsFilter } from './user-errors.filter';
+import { Roles } from '../decorators/roles.decorator';
+import { UserRole } from '../roles/role.enum';
 
 @ApiTags('users')
+@ApiBearerAuth()
+@Roles(UserRole.ADMIN)
 @Controller('user')
 @UseFilters(UserErrorsFilter)
 export class UsersController {
@@ -47,7 +51,9 @@ export class UsersController {
   }
 
   @Get()
-  async list(@Query() query: ListUsersQueryDto): Promise<PaginatedUsersResponseDto> {
+  async list(
+    @Query() query: ListUsersQueryDto,
+  ): Promise<PaginatedUsersResponseDto> {
     const result = await this.listUsers.execute(query);
 
     return {

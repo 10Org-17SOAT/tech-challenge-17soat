@@ -2,11 +2,14 @@ import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Pool } from 'pg';
 import request from 'supertest';
+import { httpAs, tokenFor } from './fixtures';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
+import { UserRole } from '../src/modules/auth/public/roles';
 
 describe('Supplies (e2e)', () => {
   let app: INestApplication<App>;
+  let token: string;
   let pool: Pool;
 
   beforeAll(async () => {
@@ -16,6 +19,7 @@ describe('Supplies (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     await app.init();
+    token = tokenFor(app, UserRole.STOCK_KEEPER);
 
     pool = new Pool({
       host: process.env.DB_HOST ?? 'localhost',
@@ -37,7 +41,7 @@ describe('Supplies (e2e)', () => {
     await app.close();
   });
 
-  const http = () => request(app.getHttpServer());
+  const http = () => httpAs(app, token);
 
   interface SupplyResponse {
     id: string;

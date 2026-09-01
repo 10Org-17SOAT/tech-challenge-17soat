@@ -11,7 +11,12 @@ import {
   Query,
   UseFilters,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CreateStockKeeperUseCase } from '../application/create-stock-keeper.usecase';
 import { DeleteStockKeeperUseCase } from '../application/delete-stock-keeper.usecase';
 import { GetStockKeeperUseCase } from '../application/get-stock-keeper.usecase';
@@ -27,8 +32,11 @@ import {
   UpdateStockKeeperDto,
 } from './dtos/stock-keeper.dtos';
 import { StockErrorsFilter } from './stock-errors.filter';
+import { Roles, UserRole } from '../../auth/public/roles';
 
 @ApiTags('stock-keepers')
+@ApiBearerAuth()
+@Roles(UserRole.ADMIN, UserRole.STOCK_KEEPER)
 @Controller('stock-keepers')
 @UseFilters(StockErrorsFilter)
 export class StockKeepersController {

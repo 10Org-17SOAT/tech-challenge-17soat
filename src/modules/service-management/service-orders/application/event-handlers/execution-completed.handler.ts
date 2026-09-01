@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { InvalidServiceOrderTransitionError } from '../../domain/errors/invalid-service-order-transition.error';
-import { ExecutionCompleted } from '../../domain/events/execution-completed.event';
+import { ExecutionCompleted } from '../../../../mechanic/domain/events/execution-completed.event';
 import { SERVICE_ORDER_REPOSITORY } from '../../domain/service-order.repository';
 import type { ServiceOrderRepository } from '../../domain/service-order.repository';
 

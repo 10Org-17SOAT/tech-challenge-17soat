@@ -1,5 +1,10 @@
 import { Controller, Get, Param, UseFilters } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { GetServiceOrderQuotationUseCase } from '../application/get-service-order-quotation.usecase';
 import {
   QuotationResponseDto,
@@ -7,8 +12,11 @@ import {
   toQuotationResponse,
 } from './dtos/quotation.dtos';
 import { QuotationErrorsFilter } from './quotation-errors.filter';
+import { Roles, UserRole } from '../../../auth/public/roles';
 
 @ApiTags('quotations')
+@ApiBearerAuth()
+@Roles(UserRole.ADMIN)
 @Controller('service-orders/:serviceOrderId/quotation')
 @UseFilters(QuotationErrorsFilter)
 export class ServiceOrderQuotationController {

@@ -1,17 +1,17 @@
 export enum UserRole {
   ADMIN = 1,
-  CONSULTOR_TECNICO = 2,
-  MECANICO = 3,
-  CLIENTE = 4,
+  STOCK_KEEPER = 2,
+  MECHANIC = 3,
+  CUSTOMER = 4,
 }
 
 export const USER_ROLE_LABELS: Record<UserRole, string> = {
   [UserRole.ADMIN]: 'admin',
-  [UserRole.CONSULTOR_TECNICO]: 'consultor_tecnico',
-  [UserRole.MECANICO]: 'mecanico',
-  [UserRole.CLIENTE]: 'cliente',
+  [UserRole.STOCK_KEEPER]: 'stock_keeper',
+  [UserRole.MECHANIC]: 'mechanic',
+  [UserRole.CUSTOMER]: 'customer',
 };
 
 export function getRoleLabel(roleId: number): string {
-  return USER_ROLE_LABELS[roleId as UserRole] ?? 'unknown';
+  return USER_ROLE_LABELS[roleId] ?? 'unknown';
 }

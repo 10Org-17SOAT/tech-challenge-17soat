@@ -10,7 +10,12 @@ import {
   Post,
   UseFilters,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CreateAnamnesisUseCase } from '../application/create-anamnesis.usecase';
 import { DeleteAnamnesisUseCase } from '../application/delete-anamnesis.usecase';
 import { GetAnamnesisUseCase } from '../application/get-anamnesis.usecase';
@@ -23,8 +28,11 @@ import {
   UpdateAnamnesisDto,
   toAnamnesisResponse,
 } from './dtos/anamnesis.dtos';
+import { Roles, UserRole } from '../../../auth/public/roles';
 
 @ApiTags('anamnesis')
+@ApiBearerAuth()
+@Roles(UserRole.ADMIN)
 @Controller()
 @UseFilters(AnamnesisErrorsFilter)
 export class AnamnesisController {
@@ -38,8 +46,7 @@ export class AnamnesisController {
   @Post('service-order/anamnesis')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
-    summary:
-      'Cria a anamnese e abre a OS em received com a anamnese atrelada',
+    summary: 'Cria a anamnese e abre a OS em received com a anamnese atrelada',
   })
   @ApiResponse({ status: 201, type: AnamnesisResponseDto })
   @ApiResponse({ status: 400, description: 'Payload inválido' })
@@ -71,7 +78,10 @@ export class AnamnesisController {
   @ApiResponse({ status: 200, type: AnamnesisResponseDto })
   @ApiResponse({ status: 400, description: 'Payload inválido' })
   @ApiResponse({ status: 404, description: 'OS ou anamnese não encontrada' })
-  @ApiResponse({ status: 409, description: 'Anamnese bloqueada no status atual' })
+  @ApiResponse({
+    status: 409,
+    description: 'Anamnese bloqueada no status atual',
+  })
   async update(
     @Param() params: ServiceOrderIdParamDto,
     @Body() body: UpdateAnamnesisDto,
@@ -92,7 +102,10 @@ export class AnamnesisController {
   })
   @ApiResponse({ status: 204, description: 'Anamnese removida' })
   @ApiResponse({ status: 404, description: 'OS ou anamnese não encontrada' })
-  @ApiResponse({ status: 409, description: 'Anamnese bloqueada no status atual' })
+  @ApiResponse({
+    status: 409,
+    description: 'Anamnese bloqueada no status atual',
+  })
   async remove(@Param() params: ServiceOrderIdParamDto): Promise<void> {
     await this.deleteAnamnesis.execute(params.serviceOrderId);
   }

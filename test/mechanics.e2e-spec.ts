@@ -1,11 +1,13 @@
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
+import { httpAs, tokenFor } from './fixtures';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
 import { MECHANIC_REPOSITORY } from '../src/modules/mechanic/domain/repository/mechanic.repository';
 import { InMemoryMechanicRepository } from '../src/modules/mechanic/__test__/in-memory-mechanic.repository';
 import { Mechanic } from '../src/modules/mechanic/domain/mechanic.entity';
+import { UserRole } from '../src/modules/auth/public/roles';
 
 /**
  * E2E suite running against the real AppModule wiring with the repository
@@ -14,6 +16,7 @@ import { Mechanic } from '../src/modules/mechanic/domain/mechanic.entity';
  */
 describe('Mechanics (e2e)', () => {
   let app: INestApplication<App>;
+  let token: string;
   let repository: InMemoryMechanicRepository;
 
   beforeEach(async () => {
@@ -26,6 +29,7 @@ describe('Mechanics (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     await app.init();
+    token = tokenFor(app, UserRole.MECHANIC);
 
     repository =
       moduleFixture.get<InMemoryMechanicRepository>(MECHANIC_REPOSITORY);
@@ -35,7 +39,7 @@ describe('Mechanics (e2e)', () => {
     await app.close();
   });
 
-  const http = () => request(app.getHttpServer());
+  const http = () => httpAs(app, token);
 
   interface MechanicResponse {
     id: string;
@@ -427,6 +431,45 @@ describe('Mechanics (e2e)', () => {
         .send({});
 
       expect(res.status).toBe(400);
+    });
+  });
+
+  describe('POST /mechanics/:id/complete-execution', () => {
+    const serviceOrderId = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
+
+    it('frees the mechanic when the work is reported as done', async () => {
+      const mechanic = await seedMechanic();
+      mechanic.claim(serviceOrderId);
+
+      const res = await http()
+        .post(`/mechanics/${mechanic.getId()}/complete-execution`)
+        .send({ serviceOrderId });
+
+      expect(res.status).toBe(200);
+      expect(mechanicBody(res).availability).toBe('AVAILABLE');
+      expect(mechanicBody(res).currentServiceOrderId).toBeUndefined();
+    });
+
+    it('returns 409 when the mechanic is not allocated to that order', async () => {
+      const mechanic = await seedMechanic();
+      mechanic.claim(serviceOrderId);
+
+      const res = await http()
+        .post(`/mechanics/${mechanic.getId()}/complete-execution`)
+        .send({ serviceOrderId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22' });
+
+      expect(res.status).toBe(409);
+    });
+
+    it('forbids a role outside the mechanic context', async () => {
+      const mechanic = await seedMechanic();
+      mechanic.claim(serviceOrderId);
+
+      const res = await httpAs(app, tokenFor(app, UserRole.CUSTOMER))
+        .post(`/mechanics/${mechanic.getId()}/complete-execution`)
+        .send({ serviceOrderId });
+
+      expect(res.status).toBe(403);
     });
   });
 });

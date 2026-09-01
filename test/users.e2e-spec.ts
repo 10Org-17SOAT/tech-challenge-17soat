@@ -4,10 +4,12 @@ import { Pool } from 'pg';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
-import { CLEANUP_TABLES_WITH_USERS } from './fixtures';
+import { CLEANUP_TABLES_WITH_USERS, httpAs, tokenFor } from './fixtures';
+import { UserRole } from '../src/modules/auth/public/roles';
 
 describe('Users (e2e)', () => {
   let app: INestApplication<App>;
+  let token: string;
   let pool: Pool;
 
   beforeAll(async () => {
@@ -17,6 +19,7 @@ describe('Users (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     await app.init();
+    token = tokenFor(app, UserRole.ADMIN);
 
     pool = new Pool({
       host: process.env.DB_HOST ?? 'localhost',
@@ -38,7 +41,7 @@ describe('Users (e2e)', () => {
     await app.close();
   });
 
-  const http = () => request(app.getHttpServer());
+  const http = () => httpAs(app, token);
 
   interface UserResponse {
     user_id: string;

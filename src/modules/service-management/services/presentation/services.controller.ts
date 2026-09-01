@@ -12,7 +12,12 @@ import {
   Query,
   UseFilters,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CreateServiceUseCase } from '../application/create-service.usecase';
 import { DeleteServiceUseCase } from '../application/delete-service.usecase';
 import { GetServiceSuppliesUseCase } from '../application/get-service-supplies.usecase';
@@ -32,8 +37,11 @@ import {
   UpdateServiceDto,
 } from './dtos/service.dtos';
 import { ServiceErrorsFilter } from './service-errors.filter';
+import { Roles, UserRole } from '../../../auth/public/roles';
 
 @ApiTags('services')
+@ApiBearerAuth()
+@Roles(UserRole.ADMIN)
 @Controller('services')
 @UseFilters(ServiceErrorsFilter)
 export class ServicesController {

@@ -3,6 +3,7 @@ import { InMemoryMechanicRepository } from '../../__test__/in-memory-mechanic.re
 import { RecordingDomainEventPublisher } from '../../__test__/recording-domain-event.publisher';
 import { NoAvailableMechanicException } from '../exceptions/mechanic-application.exception';
 import { InvalidMechanicException } from '../../domain/exceptions/mechanic.exceptions';
+import { ExecutionStarted } from '../../domain/events/execution-started.event';
 import { MechanicAllocated } from '../../domain/events/mechanic-allocated.event';
 import { Mechanic } from '../../domain/mechanic.entity';
 import { Cpf } from '../../domain/value-objects/cpf.value-object';
@@ -99,7 +100,7 @@ describe('FindAvailableMechanicUseCase', () => {
     ).rejects.toBeInstanceOf(NoAvailableMechanicException);
   });
 
-  it('publishes MechanicAllocated after a successful claim', async () => {
+  it('publishes MechanicAllocated and ExecutionStarted after a successful claim', async () => {
     const mechanic = seedAvailableMechanic(
       'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
       new Date('2024-01-01T00:00:00.000Z'),
@@ -107,11 +108,18 @@ describe('FindAvailableMechanicUseCase', () => {
 
     await useCase.execute({ serviceOrderId: 'OS-1' });
 
-    expect(publisher.events).toHaveLength(1);
+    expect(publisher.events).toHaveLength(2);
     expect(publisher.events[0]).toBeInstanceOf(MechanicAllocated);
     const event = publisher.events[0] as MechanicAllocated;
     expect(event.mechanicId).toBe(mechanic.getId());
     expect(event.serviceOrderId).toBe('OS-1');
+
+    // Claiming a mechanic is what starts the execution, so the order has to
+    // hear about it in the same breath.
+    expect(publisher.events[1]).toBeInstanceOf(ExecutionStarted);
+    expect((publisher.events[1] as ExecutionStarted).serviceOrderId).toBe(
+      'OS-1',
+    );
   });
 
   it('rejects an empty serviceOrderId', async () => {

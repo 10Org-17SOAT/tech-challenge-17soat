@@ -1,10 +1,11 @@
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import request from 'supertest';
+import { httpAs, tokenFor } from './fixtures';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
 import { CONSULTANT_REPOSITORY } from '../src/modules/onboarding/consultant/domain/consultant.repository';
 import { InMemoryConsultantRepository } from '../src/modules/onboarding/consultant/__test__/in-memory-consultant.repository';
+import { UserRole } from '../src/modules/auth/public/roles';
 
 /**
  * E2E suite running against the real AppModule wiring with the repository
@@ -13,6 +14,7 @@ import { InMemoryConsultantRepository } from '../src/modules/onboarding/consulta
  */
 describe('Consultants (e2e)', () => {
   let app: INestApplication<App>;
+  let token: string;
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -24,13 +26,14 @@ describe('Consultants (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     await app.init();
+    token = tokenFor(app, UserRole.ADMIN);
   });
 
   afterEach(async () => {
     await app.close();
   });
 
-  const http = () => request(app.getHttpServer());
+  const http = () => httpAs(app, token);
 
   interface ConsultantResponse {
     id: string;
@@ -52,7 +55,12 @@ describe('Consultants (e2e)', () => {
     it('creates a consultant', async () => {
       const res = await http()
         .post('/consultants')
-        .send({ userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', name: 'Carlos Consultor', cpf: '529.982.247-25', phone: '(11) 98765-4321' })
+        .send({
+          userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+          name: 'Carlos Consultor',
+          cpf: '529.982.247-25',
+          phone: '(11) 98765-4321',
+        })
         .expect(201);
 
       const body = res.body as ConsultantResponse;
@@ -65,17 +73,35 @@ describe('Consultants (e2e)', () => {
     it('rejects a duplicate active CPF', async () => {
       await http()
         .post('/consultants')
-        .send({ userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', name: 'Carlos Consultor', cpf: '52998224725', phone: '11987654321' })
+        .send({
+          userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+          name: 'Carlos Consultor',
+          cpf: '52998224725',
+          phone: '11987654321',
+        })
         .expect(201);
 
       await http()
         .post('/consultants')
-        .send({ userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', name: 'Outra Pessoa', cpf: '52998224725', phone: '11912345678' })
+        .send({
+          userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+          name: 'Outra Pessoa',
+          cpf: '52998224725',
+          phone: '11912345678',
+        })
         .expect(409);
     });
 
     it('rejects an invalid payload', async () => {
-      await http().post('/consultants').send({ userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', name: '', cpf: '1', phone: '1' }).expect(400);
+      await http()
+        .post('/consultants')
+        .send({
+          userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+          name: '',
+          cpf: '1',
+          phone: '1',
+        })
+        .expect(400);
     });
   });
 
@@ -83,7 +109,12 @@ describe('Consultants (e2e)', () => {
     it('returns an existing consultant', async () => {
       const created = await http()
         .post('/consultants')
-        .send({ userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', name: 'Carlos Consultor', cpf: '52998224725', phone: '11987654321' })
+        .send({
+          userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+          name: 'Carlos Consultor',
+          cpf: '52998224725',
+          phone: '11987654321',
+        })
         .expect(201);
 
       const res = await http()
@@ -103,11 +134,21 @@ describe('Consultants (e2e)', () => {
     it('paginates and filters by name', async () => {
       await http()
         .post('/consultants')
-        .send({ userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', name: 'Carlos Consultor', cpf: '52998224725', phone: '11987654321' })
+        .send({
+          userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+          name: 'Carlos Consultor',
+          cpf: '52998224725',
+          phone: '11987654321',
+        })
         .expect(201);
       await http()
         .post('/consultants')
-        .send({ userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', name: 'Ana Consultora', cpf: '15350946056', phone: '11911112222' })
+        .send({
+          userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+          name: 'Ana Consultora',
+          cpf: '15350946056',
+          phone: '11911112222',
+        })
         .expect(201);
 
       const all = await http().get('/consultants').expect(200);
@@ -124,7 +165,12 @@ describe('Consultants (e2e)', () => {
     it('updates name and phone, keeping the CPF immutable', async () => {
       const created = await http()
         .post('/consultants')
-        .send({ userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', name: 'Carlos Consultor', cpf: '52998224725', phone: '11987654321' })
+        .send({
+          userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+          name: 'Carlos Consultor',
+          cpf: '52998224725',
+          phone: '11987654321',
+        })
         .expect(201);
       const id = (created.body as ConsultantResponse).id;
 
@@ -150,7 +196,12 @@ describe('Consultants (e2e)', () => {
     it('soft deletes a consultant', async () => {
       const created = await http()
         .post('/consultants')
-        .send({ userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', name: 'Carlos Consultor', cpf: '52998224725', phone: '11987654321' })
+        .send({
+          userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+          name: 'Carlos Consultor',
+          cpf: '52998224725',
+          phone: '11987654321',
+        })
         .expect(201);
       const id = (created.body as ConsultantResponse).id;
 

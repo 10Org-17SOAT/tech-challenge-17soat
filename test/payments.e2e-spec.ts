@@ -2,16 +2,23 @@ import { INestApplication } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Pool } from 'pg';
-import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
-import { ExecutionCompleted } from './../src/modules/service-management/service-orders/domain/events/execution-completed.event';
-import { ExecutionStarted } from './../src/modules/service-management/service-orders/domain/events/execution-started.event';
+import { ExecutionCompleted } from './../src/modules/mechanic/domain/events/execution-completed.event';
+import { ExecutionStarted } from './../src/modules/mechanic/domain/events/execution-started.event';
 import type { DomainEvent } from './../src/shared/domain/events/domain-event';
-import { CLEANUP_TABLES, givenConsultant, givenOwnedVehicle } from './fixtures';
+import {
+  CLEANUP_TABLES,
+  givenConsultant,
+  givenOwnedVehicle,
+  httpAs,
+  tokenFor,
+} from './fixtures';
+import { UserRole } from '../src/modules/auth/public/roles';
 
 describe('Payments (e2e)', () => {
   let app: INestApplication<App>;
+  let token: string;
   let pool: Pool;
   let vehicleId: string;
   let openedById: string;
@@ -24,6 +31,7 @@ describe('Payments (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     await app.init();
+    token = tokenFor(app, UserRole.ADMIN);
 
     emitter = app.get(EventEmitter2);
 
@@ -41,8 +49,8 @@ describe('Payments (e2e)', () => {
       await pool.query(`DELETE FROM ${table}`);
     }
 
-    vehicleId = (await givenOwnedVehicle(app.getHttpServer())).vehicleId;
-    openedById = await givenConsultant(app.getHttpServer());
+    vehicleId = (await givenOwnedVehicle(app.getHttpServer(), token)).vehicleId;
+    openedById = await givenConsultant(app.getHttpServer(), token);
   });
 
   afterAll(async () => {
@@ -50,7 +58,7 @@ describe('Payments (e2e)', () => {
     await app.close();
   });
 
-  const http = () => request(app.getHttpServer());
+  const http = () => httpAs(app, token);
 
   interface PaymentResponse {
     id: string;
@@ -100,12 +108,9 @@ describe('Payments (e2e)', () => {
         problemDescription: 'Estalo ao passar em lombadas',
       })
       .expect(201);
-    const orderId = (created.body as { serviceOrderId: string })
-      .serviceOrderId;
+    const orderId = (created.body as { serviceOrderId: string }).serviceOrderId;
 
-    await http()
-      .post(`/service-orders/${orderId}/diagnosis/start`)
-      .expect(200);
+    await http().post(`/service-orders/${orderId}/diagnosis/start`).expect(200);
     const serviceId = await givenService(laborPriceInCents);
     const diagnosed = await http()
       .post(`/service-orders/${orderId}/diagnosis`)

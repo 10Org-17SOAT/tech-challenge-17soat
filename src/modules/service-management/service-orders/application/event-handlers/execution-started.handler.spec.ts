@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { ServiceOrder } from '../../domain/service-order.entity';
-import { ExecutionStarted } from '../../domain/events/execution-started.event';
+import { ExecutionStarted } from '../../../../mechanic/domain/events/execution-started.event';
 import { InMemoryServiceOrderRepository } from '../../__test__/in-memory-service-order.repository';
 import { ExecutionStartedHandler } from './execution-started.handler';
 

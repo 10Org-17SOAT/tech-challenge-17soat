@@ -2,14 +2,16 @@ import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { randomUUID } from 'node:crypto';
 import { Pool } from 'pg';
-import request from 'supertest';
+import { httpAs, tokenFor } from './fixtures';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 import { DOMAIN_EVENT_PUBLISHER } from './../src/shared/domain/events/domain-event-publisher';
 import { RecordingDomainEventPublisher } from './../src/modules/stock/__test__/recording-domain-event.publisher';
+import { UserRole } from '../src/modules/auth/public/roles';
 
 describe('Stock lookup (e2e)', () => {
   let app: INestApplication<App>;
+  let token: string;
   let pool: Pool;
   let publisher: RecordingDomainEventPublisher;
 
@@ -27,6 +29,7 @@ describe('Stock lookup (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     await app.init();
+    token = tokenFor(app, UserRole.STOCK_KEEPER);
 
     pool = new Pool({
       host: process.env.DB_HOST ?? 'localhost',
@@ -48,7 +51,7 @@ describe('Stock lookup (e2e)', () => {
     await app.close();
   });
 
-  const http = () => request(app.getHttpServer());
+  const http = () => httpAs(app, token);
 
   let sequence = 0;
   const createSupply = async (): Promise<string> => {

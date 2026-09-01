@@ -8,6 +8,7 @@ import { ListMechanicsUseCase } from './application/use-cases/list-mechanics.use
 import { UpdateMechanicProfileUseCase } from './application/use-cases/update-mechanic-profile.use-case';
 import { DeactivateMechanicUseCase } from './application/use-cases/deactivate-mechanic.use-case';
 import { FindAvailableMechanicUseCase } from './application/use-cases/find-available-mechanic.use-case';
+import { CompleteExecutionUseCase } from './application/use-cases/complete-execution.use-case';
 import { ReleaseMechanicUseCase } from './application/use-cases/release-mechanic.use-case';
 import { MechanicController } from './presentation/controllers/mechanic.controller';
 
@@ -26,6 +27,7 @@ import { MechanicController } from './presentation/controllers/mechanic.controll
     DeactivateMechanicUseCase,
     FindAvailableMechanicUseCase,
     ReleaseMechanicUseCase,
+    CompleteExecutionUseCase,
   ],
 })
 export class MechanicModule {}

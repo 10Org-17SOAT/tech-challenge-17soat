@@ -10,6 +10,7 @@ import {
   type DomainEventPublisher,
 } from '../../../../shared/domain/events/domain-event-publisher';
 import { MechanicAllocated } from '../../domain/events/mechanic-allocated.event';
+import { ExecutionStarted } from '../../domain/events/execution-started.event';
 import { InvalidMechanicException } from '../../domain/exceptions/mechanic.exceptions';
 import { SPECIALTIES } from '../../domain/value-objects/specialty.enum';
 import { NoAvailableMechanicException } from '../exceptions/mechanic-application.exception';
@@ -35,6 +36,11 @@ export class FindAvailableMechanicUseCase {
     this.publisher.publish(
       new MechanicAllocated(mechanic.getId(), filter.serviceOrderId),
     );
+
+    // Allocating a mechanic *is* the start of the execution: there is no
+    // separate "start work" action, so the claim is what moves the order from
+    // `awaiting_execution` to `in_execution`.
+    this.publisher.publish(new ExecutionStarted(filter.serviceOrderId));
 
     return mechanic;
   }

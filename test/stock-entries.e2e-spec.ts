@@ -5,10 +5,15 @@ import { Pool } from 'pg';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
-import { givenUser } from './fixtures';
+import { givenUser, httpAs, tokenFor } from './fixtures';
+import { UserRole } from '../src/modules/auth/public/roles';
 
 describe('Stock entries (e2e)', () => {
   let app: INestApplication<App>;
+  let token: string;
+  // Seeding through the API goes over ADMIN-only routes, whatever role the
+  // suite itself exercises.
+  let adminToken: string;
   let pool: Pool;
 
   beforeAll(async () => {
@@ -18,6 +23,8 @@ describe('Stock entries (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     await app.init();
+    token = tokenFor(app, UserRole.STOCK_KEEPER);
+    adminToken = tokenFor(app, UserRole.ADMIN);
 
     pool = new Pool({
       host: process.env.DB_HOST ?? 'localhost',
@@ -40,7 +47,7 @@ describe('Stock entries (e2e)', () => {
     await app.close();
   });
 
-  const http = () => request(app.getHttpServer());
+  const http = () => httpAs(app, token);
 
   interface StockEntryResponse {
     movementId: string;
@@ -66,7 +73,7 @@ describe('Stock entries (e2e)', () => {
 
   // beforeEach clears stock_keepers, so a fixed CPF never collides across tests.
   const createStockKeeper = async (): Promise<string> => {
-    const userId = (await givenUser(app.getHttpServer())).id;
+    const userId = (await givenUser(app.getHttpServer(), adminToken)).id;
     const res = await http()
       .post('/stock-keepers')
       .send({

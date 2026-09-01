@@ -4,10 +4,18 @@ import { Pool } from 'pg';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
-import { CLEANUP_TABLES, givenConsultant, givenOwnedVehicle } from './fixtures';
+import {
+  CLEANUP_TABLES,
+  givenConsultant,
+  givenOwnedVehicle,
+  httpAs,
+  tokenFor,
+} from './fixtures';
+import { UserRole } from '../src/modules/auth/public/roles';
 
 describe('Anamnesis (e2e)', () => {
   let app: INestApplication<App>;
+  let token: string;
   let pool: Pool;
   let vehicleId: string;
   let consultantId: string;
@@ -19,6 +27,7 @@ describe('Anamnesis (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     await app.init();
+    token = tokenFor(app, UserRole.ADMIN);
 
     pool = new Pool({
       host: process.env.DB_HOST ?? 'localhost',
@@ -33,8 +42,8 @@ describe('Anamnesis (e2e)', () => {
     for (const table of CLEANUP_TABLES) {
       await pool.query(`DELETE FROM ${table}`);
     }
-    vehicleId = (await givenOwnedVehicle(app.getHttpServer())).vehicleId;
-    consultantId = await givenConsultant(app.getHttpServer());
+    vehicleId = (await givenOwnedVehicle(app.getHttpServer(), token)).vehicleId;
+    consultantId = await givenConsultant(app.getHttpServer(), token);
   });
 
   afterAll(async () => {
@@ -42,7 +51,7 @@ describe('Anamnesis (e2e)', () => {
     await app.close();
   });
 
-  const http = () => request(app.getHttpServer());
+  const http = () => httpAs(app, token);
 
   interface AnamnesisResponse {
     id: string;
@@ -69,7 +78,8 @@ describe('Anamnesis (e2e)', () => {
     updatedAt: string;
   }
 
-  const anamnesisBody = (res: request.Response) => res.body as AnamnesisResponse;
+  const anamnesisBody = (res: request.Response) =>
+    res.body as AnamnesisResponse;
 
   async function givenAnamnesis(): Promise<AnamnesisResponse> {
     const res = await http()
@@ -300,7 +310,9 @@ describe('Anamnesis (e2e)', () => {
     it('soft deletes the anamnesis when the OS is deleted', async () => {
       const created = await givenAnamnesis();
 
-      await http().delete(`/service-orders/${created.serviceOrderId}`).expect(204);
+      await http()
+        .delete(`/service-orders/${created.serviceOrderId}`)
+        .expect(204);
       await http()
         .get(`/service-orders/${created.serviceOrderId}/anamnesis`)
         .expect(404);
