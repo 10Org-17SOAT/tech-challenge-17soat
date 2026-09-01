@@ -19,14 +19,13 @@ API de gestão de ordens de serviço para uma oficina mecânica de veículos, de
   <a href="#arquitetura">Arquitetura</a> •
   <a href="#tecnologias">Tecnologias</a> •
   <a href="#diagramas">Diagramas</a> •
-  <a href="#dicionario">Dicionário de linguagem ubíqua</a> •
   <a href="#instalacao-e-uso">Instalação e Uso</a> • <br/>
   <a href="#estrutura-do-projeto">Estrutura do Projeto</a> •
   <a href="#apis">APIs</a> •
   <a href="#banco-de-dados">Banco de Dados</a> •
   <a href="#adrs">ADRs</a> •
   <a href="#resolucao-de-problemas">Resolução de Problemas</a> •
-  <a href="#contribuicao-e-licenca">Contribuição e Licença</a>
+  <a href="#licenca">Licença</a>
 </div>
 
 <h2 id="visao-geral">📋 Visão Geral</h2>
@@ -406,139 +405,9 @@ classDiagram
 
 > As associações que cruzam contextos (`User → Customer/Mechanic/Consultant/StockKeeper`, `Mechanic → ServiceOrder`, `Payment → ServiceOrder`, `ServiceSupply → Supply`) existem no modelo conceitual, mas **não** viram foreign key no banco — são validadas no domínio.
 
-### Ciclo de vida da Ordem de Serviço
+### Event Storming
 
-```mermaid
-stateDiagram-v2
-    [*] --> received: consultor recebe o veículo
-    received --> in_diagnosis: mecânico inicia diagnóstico
-    in_diagnosis --> awaiting_approval: laudo registrado + orçamento emitido
-    awaiting_approval --> awaiting_execution: cliente aprova pelo link do e-mail
-    awaiting_execution --> in_execution: mecânico assume (FIFO) e inicia
-    in_execution --> finished: execução concluída
-    finished --> delivered: pagamento recebido
-    delivered --> [*]
-```
-
-### Fluxo de recepção, diagnóstico e orçamento (Event Storming)
-
-```mermaid
-flowchart TD
-    %% Comandos
-    C1[RegisterCustomer] --> E1[CustomerRegistered]
-    C2[RegisterVehicle] --> E2[VehicleRegistered]
-    C3[OpenServiceOrder] --> E3[ServiceOrderOpened]
-    C4[RecordAnamnesis] --> E4[AnamnesisRecorded]
-    C5[StartDiagnosis] --> E5[DiagnosisStarted]
-    C6[RecordDiagnosis] --> E6[DiagnosisRecorded]
-    E6 --> E7[QuotationIssued]
-    C7[SendApprovalEmail] --> E8[ApprovalEmailSent]
-    C8[ApproveQuotation] --> E9[QuotationApproved]
-    E9 --> E10[PartsReservedForServiceOrder]
-
-    %% Atores
-    A1[Consultant] --> C1
-    A1 --> C2
-    A1 --> C3
-    A1 --> C4
-    A2[Mechanic] --> C5
-    A2 --> C6
-    A1 --> C7
-    A3[Customer] --> C8
-```
-
-### Fluxo de execução, entrega e estoque (Event Storming)
-
-```mermaid
-flowchart TD
-    %% Comandos
-    C1[ClaimServiceOrder] --> E1[MechanicAllocated]
-    E1 --> E2[ExecutionStarted]
-    C2[CompleteExecution] --> E3[ExecutionCompleted]
-    E3 --> E4[PartsWrittenOffFromStock]
-    E3 --> E5[MechanicReleased]
-    C3[RegisterPayment] --> E6[PaymentReceived]
-    E6 --> E7[ServiceOrderDelivered]
-    C4[RegisterStockEntry] --> E8[StockEntryRegistered]
-    E8 --> E9{quantidade abaixo do mínimo?}
-    E9 -->|sim| E10[PurchaseRequestNeeded]
-
-    %% Atores
-    A1[Mechanic] --> C1
-    A1 --> C2
-    A2[Consultant] --> C3
-    A3[StockKeeper] --> C4
-```
-
-</details>
-
-<h2 id="dicionario">📖 Dicionário de linguagem ubíqua</h2>
-
-<details>
-<summary>Expandir para mais detalhes</summary>
-
-- **Anamnese (Anamnesis)**
-  Relato estruturado do cliente sobre o problema do veículo, colhido pelo consultor na recepção. Uma por ordem de serviço; congela quando a ordem sai de `received`.
-
-- **Baixa (Consume / Write-off)**
-  Movimento que retira definitivamente o insumo do estoque, após a execução do serviço.
-
-- **Consultor (Consultant)**
-  Funcionário que atende o cliente no balcão: cadastra clientes e veículos, abre a ordem de serviço e registra a anamnese.
-
-- **Diagnóstico (Diagnosis)**
-  Laudo técnico do mecânico sobre o veículo. É o que dá origem ao orçamento.
-
-- **Entrada (Stock Entry / IN)**
-  Movimento que adiciona insumos ao estoque. Só um estoquista pode realizá-lo, e o nome dele fica registrado no movimento.
-
-- **Estoquista (Stock Keeper)**
-  Funcionário responsável pelo estoque de insumos: cadastra insumos e registra entradas.
-
-- **Insumo (Supply)**
-  Peça ou material consumido na execução de um serviço. Preço sempre em centavos.
-
-- **Item do orçamento (Quotation Item)**
-  Linha congelada de um orçamento. Guarda o nome e o preço unitário no momento da emissão — nunca relê o catálogo depois.
-
-- **Livro-razão de estoque (Stock Ledger)**
-  Tabela append-only de movimentos (`IN`, `RESERVE`, `CONSUME`). A quantidade disponível de um insumo é sempre derivada dela, nunca armazenada como coluna.
-
-- **Mecânico (Mechanic)**
-  Profissional que executa o diagnóstico e o serviço. Possui especialidades e um estado de disponibilidade.
-
-- **Orçamento (Quotation)**
-  Conjunto de itens (serviços e peças) com valor total, emitido após o diagnóstico e enviado ao cliente para aprovação. Um por ordem de serviço.
-
-- **Ordem de Serviço (Service Order)**
-  Unidade central do sistema: representa a passagem de um veículo pela oficina, do recebimento à entrega.
-
-- **Pagamento (Payment)**
-  Registro do pagamento de uma ordem de serviço. Guarda um snapshot do valor cobrado e é único por ordem.
-
-- **Reserva (Reserve)**
-  Movimento que aparta insumos para uma ordem de serviço aprovada, sem ainda retirá-los definitivamente.
-
-- **Serviço (Service)**
-  Item do catálogo de mão de obra (ex.: troca de óleo, alinhamento). Possui categoria, preço de mão de obra, duração estimada e garantia.
-
-- **Ficha técnica do serviço (Service Supplies)**
-  Lista de insumos que um serviço consome, com quantidade. É por ela que peças chegam ao orçamento — não existe linha de peça avulsa.
-
-- **Snapshot**
-  Cópia de um dado no momento em que o fato ocorreu (nome de quem abriu a ordem, preço do item no orçamento). Existe para que o histórico continue verdadeiro mesmo se a origem mudar.
-
-- **Token de aprovação (Approval Token)**
-  Segredo de uso único enviado no link do e-mail de orçamento. Só o hash SHA-256 é persistido, e ele expira.
-
-- **FIFO (alocação de mecânico)**
-  Regra de fila: quem está disponível há mais tempo (`available_since` mais antigo) assume a próxima ordem.
-
-- **Role (Papel)**
-  Permissão do usuário autenticado: `ADMIN`, `STOCK_KEEPER`, `MECHANIC` ou `CUSTOMER`.
-
-- **Veículo (Vehicle)**
-  Carro do cliente, identificado pela placa. Todo veículo tem um dono — é por ele que o e-mail de aprovação chega ao cliente.
+Quadro completo no Miro: <https://miro.com/app/board/uXjVH7iT7WY=/>
 
 </details>
 
@@ -1179,54 +1048,6 @@ Se `approval_email_sent_at` estiver nulo no orçamento, o envio falhou — o env
 
 </details>
 
-<h2 id="contribuicao-e-licenca">🙏 Contribuição e Licença</h2>
-
-### Guia de Contribuição
-
-#### Branches
-
-- A branch base de desenvolvimento é a `develop`
-- O padrão de nome é `<matrícula>/<número-da-issue>-<tipo>-<slug>` — o segmento antes da barra é a matrícula do autor na pós, não um id de ticket:
-  - `376229/7-feat-controle-de-estoque`
-  - `376229/45-docs-configurar-readme`
-
-#### Commits
-
-Seguimos [Conventional Commits](https://www.conventionalcommits.org/), com o **módulo como escopo**, em minúsculas e no imperativo:
-
-```
-<tipo>(<módulo>): <descrição>
-```
-
-Exemplos:
-
-- `feat(stock): adds supply use cases`
-- `fix(mechanic): restrict release to ADMIN`
-- `test: cover ownership end to end`
-- `docs: update README`
-
-#### Pull Requests
-
-1. Garanta que sua branch está atualizada com a `develop`
-2. Abra o PR contra a `develop`
-3. Descreva as alterações com clareza e vincule a issue relacionada
-4. O Quality Gate do SonarCloud roda em todo PR — ele precisa passar
-5. Aguarde a revisão
-
----
-
-### Contribuidores
-
-Este projeto é mantido por:
-
-- Antônio César
-- [João Pedro Mattos R. Camargo](https://github.com/jotapemattos)
-- [Lucas Pinheiro](https://github.com/LucasP1nheiro)
-- [Marcio Henrique](https://github.com/mhenrk)
-- Pablo Brito
-
----
-
-### Licença
+<h2 id="licenca">📄 Licença</h2>
 
 Projeto acadêmico desenvolvido para o Tech Challenge da Pós-Graduação em Arquitetura de Software (SOAT) da FIAP. Distribuído como `UNLICENSED`.
