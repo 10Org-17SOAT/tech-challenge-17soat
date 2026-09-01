@@ -12,6 +12,8 @@ jobs:
   sonar:
     name: Test coverage + Sonar scan
     runs-on: ubuntu-latest
+    env:
+      JWT_SECRET: ci-only-test-secret-not-used-outside-this-workflow
     services:
       postgres:
         image: postgres:16-alpine

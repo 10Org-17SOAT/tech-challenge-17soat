@@ -1,10 +1,22 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, desc, eq, isNull } from 'drizzle-orm';
+import {
+  and,
+  count,
+  desc,
+  eq,
+  gte,
+  isNotNull,
+  isNull,
+  lte,
+  sql,
+} from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../../../../../shared/config/database/database.constants';
 import type { DrizzleDatabase } from '../../../../../shared/config/database/drizzle.provider';
 import { ServiceItem } from '../../domain/service-item';
 import { ServiceOrder } from '../../domain/service-order.entity';
 import type {
+  ExecutionTimeFilter,
+  ExecutionTimeStats,
   ListServiceOrdersFilter,
   ServiceOrderRepository,
   PaginatedServiceOrders,
@@ -68,6 +80,7 @@ export class DrizzleServiceOrderRepository implements ServiceOrderRepository {
       scheduledAt: order.scheduledAt,
       startedAt: order.startedAt,
       completedAt: order.completedAt,
+      deliveredAt: order.deliveredAt,
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
       deletedAt: order.deletedAt,
@@ -87,6 +100,43 @@ export class DrizzleServiceOrderRepository implements ServiceOrderRepository {
     return rows.map((row) =>
       ServiceItem.create({ serviceId: row.serviceId, quantity: row.quantity }),
     );
+  }
+
+  // `avg` over zero rows is null in Postgres, which is exactly the answer we
+  // want for an empty window — it travels up untouched. The raw average is
+  // returned unrounded: rounding is a presentation call, made in the use case.
+  async averageExecutionTime({
+    from,
+    to,
+  }: ExecutionTimeFilter): Promise<ExecutionTimeStats> {
+    const where = and(
+      isNull(serviceOrders.deletedAt),
+      eq(serviceOrders.status, 'finished'),
+      // Belt and braces: the linear status flow guarantees both timestamps on
+      // a finished order, but the aggregate must never average over a null.
+      isNotNull(serviceOrders.startedAt),
+      isNotNull(serviceOrders.completedAt),
+      from ? gte(serviceOrders.completedAt, from) : undefined,
+      to ? lte(serviceOrders.completedAt, to) : undefined,
+    );
+
+    const [row] = await this.db
+      .select({
+        averageMinutes: sql<
+          string | null
+        >`avg(extract(epoch from ${serviceOrders.completedAt} - ${serviceOrders.startedAt}) / 60)`,
+        sampleSize: count(),
+      })
+      .from(serviceOrders)
+      .where(where);
+
+    return {
+      // `avg` comes back as numeric, which node-postgres hands over as a
+      // string to protect precision it does not know we can spare.
+      averageMinutes:
+        row.averageMinutes === null ? null : Number(row.averageMinutes),
+      sampleSize: row.sampleSize,
+    };
   }
 
   // The scope of work is replaced wholesale, never patched line by line: a

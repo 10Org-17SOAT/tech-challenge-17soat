@@ -6,6 +6,8 @@ import { CreateServiceOrderUseCase } from './application/create-service-order.us
 import { DeleteServiceOrderUseCase } from './application/delete-service-order.usecase';
 import { ExecutionCompletedHandler } from './application/event-handlers/execution-completed.handler';
 import { ExecutionStartedHandler } from './application/event-handlers/execution-started.handler';
+import { PaymentReceivedHandler } from './application/event-handlers/payment-received.handler';
+import { GetAverageExecutionTimeUseCase } from './application/get-average-execution-time.usecase';
 import { GetServiceOrderStatusUseCase } from './application/get-service-order-status.usecase';
 import { GetServiceOrderUseCase } from './application/get-service-order.usecase';
 import { ListServiceOrdersUseCase } from './application/list-service-orders.usecase';
@@ -33,9 +35,11 @@ import { ServiceOrdersController } from './presentation/service-orders.controlle
     ListServiceOrdersUseCase,
     UpdateServiceOrderUseCase,
     DeleteServiceOrderUseCase,
+    GetAverageExecutionTimeUseCase,
     StartDiagnosisUseCase,
     ExecutionStartedHandler,
     ExecutionCompletedHandler,
+    PaymentReceivedHandler,
   ],
   // StartDiagnosisUseCase and the order repository are consumed by the
   // diagnostics and quotations modules — direct calls, same bounded context.

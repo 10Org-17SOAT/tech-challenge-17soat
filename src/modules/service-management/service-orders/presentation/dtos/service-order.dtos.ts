@@ -49,6 +49,7 @@ export const serviceOrderResponseSchema = z.object({
   scheduledAt: z.iso.datetime().nullable(),
   startedAt: z.iso.datetime().nullable(),
   completedAt: z.iso.datetime().nullable(),
+  deliveredAt: z.iso.datetime().nullable(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 });
@@ -86,6 +87,32 @@ export class PaginatedServiceOrdersResponseDto extends createZodDto(
   paginatedServiceOrdersResponseSchema,
 ) {}
 
+// The window is optional at both ends: no bound at all means "the whole
+// history". Full ISO datetimes with an offset, so the caller owns the
+// timezone question and the API never has to guess the shop's.
+export const averageExecutionTimeQuerySchema = z
+  .object({
+    from: z.coerce.date().optional(),
+    to: z.coerce.date().optional(),
+  })
+  .refine((query) => !query.from || !query.to || query.from <= query.to, {
+    message: '"from" must be earlier than or equal to "to"',
+    path: ['from'],
+  });
+
+export class AverageExecutionTimeQueryDto extends createZodDto(
+  averageExecutionTimeQuerySchema,
+) {}
+
+export const averageExecutionTimeResponseSchema = z.object({
+  averageExecutionTimeMinutes: z.number().int().nullable(),
+  sampleSize: z.number().int(),
+});
+
+export class AverageExecutionTimeResponseDto extends createZodDto(
+  averageExecutionTimeResponseSchema,
+) {}
+
 export function toServiceOrderResponse(
   order: ServiceOrder,
 ): ServiceOrderResponseDto {
@@ -101,6 +128,7 @@ export function toServiceOrderResponse(
     scheduledAt: order.scheduledAt ? order.scheduledAt.toISOString() : null,
     startedAt: order.startedAt ? order.startedAt.toISOString() : null,
     completedAt: order.completedAt ? order.completedAt.toISOString() : null,
+    deliveredAt: order.deliveredAt ? order.deliveredAt.toISOString() : null,
     createdAt: order.createdAt.toISOString(),
     updatedAt: order.updatedAt.toISOString(),
   };

@@ -362,6 +362,141 @@ describe('ServiceOrders (e2e)', () => {
     });
   });
 
+  describe('GET /service-orders/average-execution-time', () => {
+    interface AverageExecutionTimeResponse {
+      averageExecutionTimeMinutes: number | null;
+      sampleSize: number;
+    }
+
+    const averageBody = (res: request.Response) =>
+      res.body as AverageExecutionTimeResponse;
+
+    // `transitionTo` stamps the timestamps with the wall clock, so an order
+    // that took a known number of hours has to be planted straight into the
+    // table. What the endpoint reads is the SQL aggregate, not the entity.
+    async function givenFinishedOrder(
+      startedAt: string,
+      completedAt: string,
+    ): Promise<string> {
+      const created = orderBody(
+        await http().post('/service-orders').send({ vehicleId }),
+      );
+      await pool.query(
+        `UPDATE service_orders
+            SET status = 'finished', started_at = $1, completed_at = $2
+          WHERE service_order_id = $3`,
+        [startedAt, completedAt, created.id],
+      );
+      return created.id;
+    }
+
+    const average = () => http().get('/service-orders/average-execution-time');
+
+    it('averages bench time across finished orders', async () => {
+      await givenFinishedOrder(
+        '2026-08-10T09:00:00Z',
+        '2026-08-10T13:00:00Z', // 240 min
+      );
+      await givenFinishedOrder(
+        '2026-08-11T09:00:00Z',
+        '2026-08-11T11:00:00Z', // 120 min
+      );
+
+      const body = averageBody(await average().expect(200));
+
+      expect(body).toEqual({
+        averageExecutionTimeMinutes: 180,
+        sampleSize: 2,
+      });
+    });
+
+    it('returns null with a zero sample when no order has finished', async () => {
+      const created = orderBody(
+        await http().post('/service-orders').send({ vehicleId }),
+      );
+      await advanceTo(created.id, 'in_execution');
+
+      const body = averageBody(await average().expect(200));
+
+      expect(body).toEqual({
+        averageExecutionTimeMinutes: null,
+        sampleSize: 0,
+      });
+    });
+
+    it('recorta por completedAt, inclusivo nas duas pontas', async () => {
+      // Started before the window, finished on its first instant.
+      await givenFinishedOrder('2026-07-31T20:00:00Z', '2026-08-01T00:00:00Z');
+      // Finished exactly on the upper bound.
+      await givenFinishedOrder('2026-08-31T21:00:00Z', '2026-08-31T23:00:00Z');
+      // Finished past the window: must not weigh in.
+      await givenFinishedOrder('2026-09-01T09:00:00Z', '2026-09-01T19:00:00Z');
+
+      const body = averageBody(
+        await average()
+          .query({
+            from: '2026-08-01T00:00:00Z',
+            to: '2026-08-31T23:00:00Z',
+          })
+          .expect(200),
+      );
+
+      expect(body).toEqual({
+        averageExecutionTimeMinutes: 180,
+        sampleSize: 2,
+      });
+    });
+
+    it('honours the timezone offset the caller sends', async () => {
+      // 20:00 in Sao Paulo is 23:00 UTC — a window closed at "31/08 23:59:59"
+      // local must still catch it.
+      await givenFinishedOrder('2026-08-31T21:00:00Z', '2026-08-31T23:00:00Z');
+
+      const body = averageBody(
+        await average()
+          .query({
+            from: '2026-08-01T00:00:00-03:00',
+            to: '2026-08-31T23:59:59-03:00',
+          })
+          .expect(200),
+      );
+
+      expect(body.sampleSize).toBe(1);
+    });
+
+    it('ignores soft-deleted orders', async () => {
+      const deleted = await givenFinishedOrder(
+        '2026-08-10T09:00:00Z',
+        '2026-08-10T19:00:00Z', // 600 min, would skew the average
+      );
+      await pool.query(
+        'UPDATE service_orders SET deleted_at = now() WHERE service_order_id = $1',
+        [deleted],
+      );
+      await givenFinishedOrder('2026-08-11T09:00:00Z', '2026-08-11T11:00:00Z');
+
+      const body = averageBody(await average().expect(200));
+
+      expect(body).toEqual({
+        averageExecutionTimeMinutes: 120,
+        sampleSize: 1,
+      });
+    });
+
+    it('rejects a window whose start is after its end', async () => {
+      await average()
+        .query({ from: '2026-08-31T00:00:00Z', to: '2026-08-01T00:00:00Z' })
+        .expect(400);
+    });
+
+    // Pins the route ordering: were this handler ever moved below
+    // `@Get(':id')`, the literal path would hit the UUID param check and this
+    // would come back 400 instead of 200.
+    it('is not swallowed by the :id route', async () => {
+      await average().expect(200);
+    });
+  });
+
   describe('DELETE /service-orders/:id', () => {
     it('soft deletes an order in received', async () => {
       const created = orderBody(

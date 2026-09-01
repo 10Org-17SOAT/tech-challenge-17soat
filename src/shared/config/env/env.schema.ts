@@ -13,6 +13,9 @@ export const envSchema = z
     DB_PASSWORD: z.string().min(1).default('postgres'),
     DB_NAME: z.string().min(1).default('tech_challenge'),
 
+    JWT_SECRET: z.string().min(32),
+    JWT_EXPIRES_IN: z.string().min(1).default('1h'),
+
     // Where the approval link in the email points. It cannot be derived from the
     // incoming request: the email is composed by a background call that has no
     // request, and Host headers are caller-controlled anyway.

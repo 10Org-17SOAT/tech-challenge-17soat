@@ -22,6 +22,8 @@ import { BrevoEmailSender } from './infrastructure/brevo-email-sender';
 import { LogEmailSender } from './infrastructure/log-email-sender';
 import { OnboardingQuotationRecipientQuery } from './infrastructure/onboarding-quotation-recipient.query';
 import { StockPartCatalog } from './infrastructure/stock-part-catalog';
+import { SERVICE_ORDER_BILLING_QUERY } from './public/service-order-billing.query';
+import { ServiceOrderBillingQueryImpl } from './public/service-order-billing.query.impl';
 import { QuotationApprovalLinkController } from './presentation/quotation-approval-link.controller';
 import { QuotationsController } from './presentation/quotations.controller';
 import { ServiceOrderQuotationController } from './presentation/service-order-quotation.controller';
@@ -71,9 +73,19 @@ import { ServiceOrderQuotationController } from './presentation/service-order-qu
     SendQuotationApprovalEmailUseCase,
     GetQuotationUseCase,
     GetServiceOrderQuotationUseCase,
+    {
+      provide: SERVICE_ORDER_BILLING_QUERY,
+      useClass: ServiceOrderBillingQueryImpl,
+    },
   ],
-  // Both consumed by diagnostics: completing a diagnosis issues the quotation
-  // and then emails it.
-  exports: [IssueQuotationUseCase, SendQuotationApprovalEmailUseCase],
+  // The first two are consumed by diagnostics: completing a diagnosis issues
+  // the quotation and then emails it — same bounded context, direct calls.
+  // SERVICE_ORDER_BILLING_QUERY is the published contract for the payment
+  // context, which may import nothing else from here.
+  exports: [
+    IssueQuotationUseCase,
+    SendQuotationApprovalEmailUseCase,
+    SERVICE_ORDER_BILLING_QUERY,
+  ],
 })
 export class QuotationsModule {}

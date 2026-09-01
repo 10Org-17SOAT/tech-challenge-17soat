@@ -124,6 +124,7 @@ export async function givenConsultant(app: App): Promise<string> {
  * customers they belong to.
  */
 export const CLEANUP_TABLES = [
+  'payments',
   'quotation_items',
   'quotations',
   'diagnostics',

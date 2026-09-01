@@ -45,11 +45,19 @@ export const serviceOrders = pgTable(
     scheduledAt: timestamp('scheduled_at', { withTimezone: true }),
     startedAt: timestamp('started_at', { withTimezone: true }),
     completedAt: timestamp('completed_at', { withTimezone: true }),
+    // Stamped by the payment context's event handler: paying is what delivers
+    // the car, so there is no separate "handed over" moment to record.
+    deliveredAt: timestamp('delivered_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
   },
-  (table) => [index('service_orders_vehicle_id_idx').on(table.vehicleId)],
+  (table) => [
+    index('service_orders_vehicle_id_idx').on(table.vehicleId),
+    // The average-execution-time report scans a `completed_at` range; the
+    // status and soft-delete filters ride along as cheap residuals.
+    index('service_orders_completed_at_idx').on(table.completedAt),
+  ],
 );
 
 // The scope of work an order carries: catalogue services, with the parts each
