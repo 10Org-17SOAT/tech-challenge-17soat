@@ -8,7 +8,12 @@ import {
   Post,
   UseFilters,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { GetPaymentUseCase } from '../application/get-payment.usecase';
 import { SettlePaymentUseCase } from '../application/settle-payment.usecase';
 import {
@@ -18,8 +23,12 @@ import {
   toPaymentResponse,
 } from './dtos/payment.dtos';
 import { PaymentErrorsFilter } from './payment-errors.filter';
+import { Roles } from '../../auth/decorators/roles.decorator';
+import { UserRole } from '../../auth/roles/role.enum';
 
 @ApiTags('payments')
+@ApiBearerAuth()
+@Roles(UserRole.ADMIN)
 @Controller('payments')
 @UseFilters(PaymentErrorsFilter)
 export class PaymentsController {

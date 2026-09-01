@@ -11,7 +11,12 @@ import {
   HttpStatus,
   UseFilters,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CreateVehicleUseCase } from '../../application/use-cases/create-vehicle/create-vehicle.use-case';
 import { FindVehicleByIdUseCase } from '../../application/use-cases/find-vehicle-by-id/find-vehicle-by-id.use-case';
 import { ListVehiclesUseCase } from '../../application/use-cases/list-vehicles/list-vehicles.use-case';
@@ -25,8 +30,12 @@ import {
   UpdateVehicleDto,
 } from '../dtos/vehicle.dtos';
 import { VehicleErrorsFilter } from '../filters/vehicle-errors.filter';
+import { Roles } from '../../../../auth/decorators/roles.decorator';
+import { UserRole } from '../../../../auth/roles/role.enum';
 
 @ApiTags('Vehicles')
+@ApiBearerAuth()
+@Roles(UserRole.ADMIN)
 @Controller('vehicles')
 @UseFilters(VehicleErrorsFilter)
 export class VehicleController {

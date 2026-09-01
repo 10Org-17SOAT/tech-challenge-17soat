@@ -4,6 +4,7 @@ import { ApproveQuotationByTokenUseCase } from '../application/approve-quotation
 import { InvalidApprovalTokenError } from '../domain/errors/invalid-approval-token.error';
 import { renderApprovalSuccess } from './approval-result.template';
 import { ApprovalLinkErrorsFilter } from './approval-link-errors.filter';
+import { Public } from '../../../auth/decorators/public.decorator';
 
 /**
  * The link from the approval email. Separate from QuotationsController on
@@ -14,6 +15,9 @@ import { ApprovalLinkErrorsFilter } from './approval-link-errors.filter';
  * prefetchers do follow links in messages, and one that does will approve the
  * quotation before the customer opens it.
  */
+// Anonymous by design: the customer follows this link straight from the
+// approval email, with no session. The signed token is the credential.
+@Public()
 @ApiExcludeController()
 @Controller('quotations')
 @UseFilters(ApprovalLinkErrorsFilter)

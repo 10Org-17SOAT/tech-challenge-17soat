@@ -11,7 +11,12 @@ import {
   Query,
   UseFilters,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CreateSupplyUseCase } from '../application/create-supply.usecase';
 import { DeleteSupplyUseCase } from '../application/delete-supply.usecase';
 import { GetSupplyUseCase } from '../application/get-supply.usecase';
@@ -43,8 +48,12 @@ import {
   UpdateSupplyDto,
 } from './dtos/supply.dtos';
 import { StockErrorsFilter } from './stock-errors.filter';
+import { Roles } from '../../auth/decorators/roles.decorator';
+import { UserRole } from '../../auth/roles/role.enum';
 
 @ApiTags('supplies')
+@ApiBearerAuth()
+@Roles(UserRole.ADMIN, UserRole.STOCK_KEEPER)
 @Controller('supplies')
 @UseFilters(StockErrorsFilter)
 export class SuppliesController {

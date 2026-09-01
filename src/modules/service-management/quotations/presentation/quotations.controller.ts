@@ -7,7 +7,12 @@ import {
   Post,
   UseFilters,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { ApproveQuotationUseCase } from '../application/approve-quotation.usecase';
 import { GetQuotationUseCase } from '../application/get-quotation.usecase';
 import { SendQuotationApprovalEmailUseCase } from '../application/send-quotation-approval-email.usecase';
@@ -17,8 +22,12 @@ import {
   toQuotationResponse,
 } from './dtos/quotation.dtos';
 import { QuotationErrorsFilter } from './quotation-errors.filter';
+import { Roles } from '../../../auth/decorators/roles.decorator';
+import { UserRole } from '../../../auth/roles/role.enum';
 
 @ApiTags('quotations')
+@ApiBearerAuth()
+@Roles(UserRole.ADMIN)
 @Controller('quotations')
 @UseFilters(QuotationErrorsFilter)
 export class QuotationsController {

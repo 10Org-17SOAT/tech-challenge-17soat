@@ -11,7 +11,12 @@ import {
   Query,
   UseFilters,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CreateCustomerUseCase } from '../../application/use-cases/create-customer.use-case';
 import { FindCustomerByIdUseCase } from '../../application/use-cases/find-customer-by-id.use-case';
 import { FindAllCustomersUseCase } from '../../application/use-cases/find-all-customers.use-case';
@@ -33,8 +38,12 @@ import {
   PaginatedCustomersDTO,
 } from '../../application/dto/customer.dto';
 import { PersonType } from '../../domain/value-objects/person-type.enum';
+import { Roles } from '../../../../auth/decorators/roles.decorator';
+import { UserRole } from '../../../../auth/roles/role.enum';
 
 @ApiTags('customers')
+@ApiBearerAuth()
+@Roles(UserRole.ADMIN)
 @Controller('customers')
 @UseFilters(CustomerErrorsFilter)
 export class CustomerController {

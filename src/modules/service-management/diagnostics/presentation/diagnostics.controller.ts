@@ -7,7 +7,12 @@ import {
   Post,
   UseFilters,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { QuotationErrorsFilter } from '../../quotations/presentation/quotation-errors.filter';
 import { toQuotationResponse } from '../../quotations/presentation/dtos/quotation.dtos';
 import { StartDiagnosisUseCase } from '../../service-orders/application/start-diagnosis.usecase';
@@ -20,8 +25,12 @@ import {
   ServiceOrderIdParamDto,
   toDiagnosisResponse,
 } from './dtos/diagnosis.dtos';
+import { Roles } from '../../../auth/decorators/roles.decorator';
+import { UserRole } from '../../../auth/roles/role.enum';
 
 @ApiTags('diagnostics')
+@ApiBearerAuth()
+@Roles(UserRole.ADMIN, UserRole.MECHANIC)
 @Controller('service-orders/:serviceOrderId/diagnosis')
 @UseFilters(QuotationErrorsFilter)
 export class DiagnosticsController {
