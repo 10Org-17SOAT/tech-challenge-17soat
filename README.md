@@ -142,6 +142,26 @@ npm run db:push
 npm run db:studio
 ```
 
+#### 🔑 Autenticação e primeiro acesso
+
+Toda a API exige um token JWT (`Authorization: Bearer <token>`). As únicas
+rotas anônimas são `POST /auth/login`, `GET /` e o link de aprovação de
+orçamento enviado por e-mail (`GET /quotations/approve?token=`).
+
+Como criar usuário é uma rota de `ADMIN`, o primeiro administrador não pode
+ser criado pela API. Ele é inserido por migration:
+
+| Campo | Valor |
+|---|---|
+| E-mail | `admin@techchallenge.local` |
+| Senha | `ChangeMe@123` |
+
+> ⚠️ Credencial de bootstrap: troque a senha logo após o primeiro acesso.
+
+Perfis disponíveis (`role_id`): `1` ADMIN (acesso total), `2` STOCK_KEEPER
+(contexto de estoque), `3` MECHANIC (contexto de mecânicos, diagnósticos e
+conclusão da execução da OS), `4` CUSTOMER (apenas o status da OS).
+
 ---
 
 ## 🏃 Executando a Aplicação
