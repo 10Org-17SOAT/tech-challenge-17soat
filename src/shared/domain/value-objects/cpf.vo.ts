@@ -1,19 +1,24 @@
-import { InvalidStockKeeperError } from '../errors/invalid-stock-keeper.error';
-
 const CPF_LENGTH = 11;
 
 // Check digit weights (mod 11 algorithm)
 const FIRST_CHECK_WEIGHTS = [10, 9, 8, 7, 6, 5, 4, 3, 2];
 const SECOND_CHECK_WEIGHTS = [11, 10, 9, 8, 7, 6, 5, 4, 3, 2];
 
+/**
+ * CPF validation is a generic algorithm (mod 11 check digits), not
+ * module-specific business logic, so it lives here instead of being
+ * duplicated per module. Each caller supplies its own domain error via
+ * `onInvalid` so validation failures still surface as that module's error
+ * type.
+ */
 export class Cpf {
   private constructor(readonly value: string) {}
 
-  static create(raw: string): Cpf {
+  static create(raw: string, onInvalid: (raw: string) => Error): Cpf {
     const digits = raw.replace(/\D/g, '');
 
     if (!Cpf.isValid(digits)) {
-      throw new InvalidStockKeeperError(`Invalid CPF: "${raw}"`);
+      throw onInvalid(raw);
     }
 
     return new Cpf(digits);
