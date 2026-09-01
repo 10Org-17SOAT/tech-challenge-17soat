@@ -149,14 +149,17 @@ rotas anônimas são `POST /auth/login`, `GET /` e o link de aprovação de
 orçamento enviado por e-mail (`GET /quotations/approve?token=`).
 
 Como criar usuário é uma rota de `ADMIN`, o primeiro administrador não pode
-ser criado pela API. Ele é inserido por migration:
+ser criado pela API. Ele é criado na subida da aplicação a partir do ambiente:
 
-| Campo | Valor |
-|---|---|
-| E-mail | `admin@techchallenge.local` |
-| Senha | `ChangeMe@123` |
+```bash
+BOOTSTRAP_ADMIN_EMAIL=admin@suaoficina.com
+BOOTSTRAP_ADMIN_PASSWORD=<escolha uma senha forte>
+```
 
-> ⚠️ Credencial de bootstrap: troque a senha logo após o primeiro acesso.
+As duas variáveis são obrigatórias em conjunto; sem elas, nada é criado. A
+rotina é idempotente — se a conta já existir, nada acontece —, então reiniciar
+ou reimplantar é seguro. A senha nunca é versionada: quem faz o deploy é quem a
+define.
 
 Perfis disponíveis (`role_id`): `1` ADMIN (acesso total), `2` STOCK_KEEPER
 (contexto de estoque), `3` MECHANIC (contexto de mecânicos, diagnósticos e
