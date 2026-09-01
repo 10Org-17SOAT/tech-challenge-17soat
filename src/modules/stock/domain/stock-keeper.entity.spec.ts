@@ -64,9 +64,9 @@ describe('StockKeeper', () => {
     });
     const before = stockKeeper.updatedAt;
 
-    stockKeeper.update({ phone: '11912345678' });
+    stockKeeper.update({ name: 'Marcia Estoquista', phone: '11912345678' });
 
-    expect(stockKeeper.name).toBe('Maria Estoquista');
+    expect(stockKeeper.name).toBe('Marcia Estoquista');
     expect(stockKeeper.phone).toBe('11912345678');
     expect(stockKeeper.cpf).toBe('52998224725');
     expect(stockKeeper.updatedAt.getTime()).toBeGreaterThanOrEqual(
@@ -74,6 +74,34 @@ describe('StockKeeper', () => {
     );
     expect(() => stockKeeper.update({ phone: '123' })).toThrow(
       InvalidStockKeeperError,
+    );
+  });
+
+  it('rejects creation without a linked user account', () => {
+    expect(() =>
+      StockKeeper.create({
+        userId: '',
+        name: 'Maria Estoquista',
+        cpf: '52998224725',
+        phone: '11987654321',
+      }),
+    ).toThrow(InvalidStockKeeperError);
+  });
+
+  it('links a user account, stamping updatedAt', () => {
+    const stockKeeper = StockKeeper.create({
+      userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+      name: 'Maria Estoquista',
+      cpf: '52998224725',
+      phone: '11987654321',
+    });
+    const before = stockKeeper.updatedAt;
+
+    stockKeeper.linkUser('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22');
+
+    expect(stockKeeper.userId).toBe('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22');
+    expect(stockKeeper.updatedAt.getTime()).toBeGreaterThanOrEqual(
+      before.getTime(),
     );
   });
 

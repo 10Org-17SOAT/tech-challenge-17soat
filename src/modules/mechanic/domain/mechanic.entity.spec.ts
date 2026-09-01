@@ -66,21 +66,45 @@ describe('Mechanic', () => {
         }),
       ).toThrow();
     });
+
+    it('rejects creation without a linked user account', () => {
+      expect(() => Mechanic.create({ ...validProps, userId: '' })).toThrow(
+        InvalidMechanicException,
+      );
+    });
+  });
+
+  describe('linkUser', () => {
+    it('links a user account, stamping updatedAt', () => {
+      const mechanic = makeMechanic();
+      const before = mechanic.getUpdatedAt();
+
+      mechanic.linkUser('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22');
+
+      expect(mechanic.getUserId()).toBe('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22');
+      expect(mechanic.getUpdatedAt().getTime()).toBeGreaterThanOrEqual(
+        before.getTime(),
+      );
+    });
   });
 
   describe('updateProfile', () => {
     it('updates only the provided fields', () => {
       const mechanic = makeMechanic();
 
+      const newHireDate = new Date('2025-02-01T00:00:00.000Z');
       mechanic.updateProfile({
         name: 'Jane Doe',
         email: 'jane.doe@example.com',
+        phone: { countryCode: '55', areaCode: '11', number: '987654321' },
+        hireDate: newHireDate,
       });
 
       expect(mechanic.getName()).toBe('Jane Doe');
       expect(mechanic.getEmail().getValue()).toBe('jane.doe@example.com');
       expect(mechanic.getCpf().getValue()).toBe('11144477735');
-      expect(mechanic.getPhone().getNumber()).toBe('912345678');
+      expect(mechanic.getPhone().getNumber()).toBe('987654321');
+      expect(mechanic.getHireDate()).toBe(newHireDate);
       expect(mechanic.getSpecialties()).toEqual(['mechanical', 'electrical']);
     });
 

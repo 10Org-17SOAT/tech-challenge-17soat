@@ -77,6 +77,34 @@ describe('Consultant', () => {
     );
   });
 
+  it('rejects creation without a linked user account', () => {
+    expect(() =>
+      Consultant.create({
+        userId: '',
+        name: 'Carlos Consultor',
+        cpf: '52998224725',
+        phone: '11987654321',
+      }),
+    ).toThrow(InvalidConsultantError);
+  });
+
+  it('links a user account, stamping updatedAt', () => {
+    const consultant = Consultant.create({
+      userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+      name: 'Carlos Consultor',
+      cpf: '52998224725',
+      phone: '11987654321',
+    });
+    const before = consultant.updatedAt;
+
+    consultant.linkUser('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22');
+
+    expect(consultant.userId).toBe('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22');
+    expect(consultant.updatedAt.getTime()).toBeGreaterThanOrEqual(
+      before.getTime(),
+    );
+  });
+
   it('soft deletes by stamping deletedAt', () => {
     const consultant = Consultant.create({
       userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
