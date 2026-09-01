@@ -69,7 +69,11 @@ Executado contra o `package-lock.json`, comparando a árvore de dependências re
 
 ## 2. Análise inicial (antes das correções)
 
-<!-- Screenshot do dashboard (Overview) da develop -->
+### 2.0 Evolução no período
+
+![Evolução da cobertura na branch develop, de 53,6% a 90,7%](img/sonarcloud-evolucao-cobertura.jpg)
+
+*Cobertura da `develop` ao longo das sete análises: 53,6% (30/08) → 90,7% (01/09).*
 
 ### 2.1 Panorama
 
@@ -128,6 +132,11 @@ super-linear performance due to backtracking"*:
 | 1 | `modules/onboarding/customer/domain/value-objects/email.value-object.ts` | 3 | `/^[^\s@]+@[^\s@]+\.[^\s@]+$/` |
 | 2 | `modules/mechanic/domain/value-objects/email.value-object.ts` | 3 | mesma expressão |
 | 3 | `modules/service-management/quotations/application/send-quotation-approval-email.usecase.ts` | 53 | `/\/+$/` |
+
+![As três issues de Reliability abertas no SonarCloud antes da correção](img/sonarcloud-reliability-issues-antes.jpg)
+
+*As três ocorrências no dashboard, antes da correção. Note o filtro lateral:
+Security 0, Reliability 3, Maintainability 87.*
 
 **Causa (itens 1 e 2).** Em `[^\s@]+\.[^\s@]+`, o caractere `.` também pertence à classe
 `[^\s@]`. Rótulo do domínio e separador disputam os mesmos caracteres, então uma entrada
@@ -277,7 +286,9 @@ manual — automatizá-la é a recomendação 1 da seção 7.
 
 ## 6. Análise final (depois das correções)
 
-<!-- Screenshot do dashboard (Overview) após o merge dos PRs #92 e #93 -->
+![Dashboard do SonarCloud após as correções: Quality Gate Passed, Security 0, Reliability 0](img/sonarcloud-overview-depois.jpg)
+
+*Análise da `develop` em 01/09/2026, 20:33 — após o merge dos PRs #92 e #93.*
 
 ### 6.1 SonarCloud
 
@@ -290,13 +301,9 @@ manual — automatizá-la é a recomendação 1 da seção 7.
 | Reliability Rating | A | A | mantido |
 | Maintainability — issues | 87 | 87 | fora do escopo |
 | **Coverage** | 53,6% | **90,7%** | **+37,1 p.p.** |
-| Duplicated Lines | 1,0% | 2,6% | ↑ (base quase dobrou) |
-| Lines of Code | 7.839 | 15.343 | +96% |
-| **Quality Gate** | OK | OK | mantido |
-
-> A coluna "Depois" de Reliability reflete o efeito esperado do PR #93 e deve ser
-> confirmada na análise da `develop` posterior ao merge — o screenshot final desta seção
-> precisa ser tirado depois disso.
+| Duplicated Lines | 1,0% | **2,3%** | ↑ |
+| Lines of Code | 7.839 | 15.336 | +96% |
+| **Quality Gate** | OK | **OK** | mantido |
 
 ### 6.2 `npm audit`
 
