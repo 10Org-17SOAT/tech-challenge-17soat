@@ -20,6 +20,7 @@ API de gestão de ordens de serviço para uma oficina mecânica de veículos, de
   <a href="#tecnologias">Tecnologias</a> •
   <a href="#diagramas">Diagramas</a> •
   <a href="#instalacao-e-uso">Instalação e Uso</a> • <br/>
+  <a href="#fluxo-de-teste">Testando o ciclo de vida da OS</a> •
   <a href="#estrutura-do-projeto">Estrutura do Projeto</a> •
   <a href="#apis">APIs</a> •
   <a href="#banco-de-dados">Banco de Dados</a> •
@@ -444,6 +445,9 @@ docker compose up -d
 # Aplique as migrações
 npm run db:migrate
 
+# Popule o banco com contas, catálogo e estoque de demonstração
+npm run db:seed
+
 # Suba a aplicação em modo watch
 npm run start:dev
 ```
@@ -462,6 +466,7 @@ npm run start:dev
 | `npm run test:e2e` | Testes end-to-end (requer o banco no ar) |
 | `npm run db:generate` | Gera uma nova migração a partir do schema |
 | `npm run db:migrate` | Aplica as migrações pendentes |
+| `npm run db:seed` | Popula o banco com dados de demonstração (idempotente) |
 | `npm run db:studio` | Abre o Drizzle Studio |
 
 ### Acessando a aplicação
@@ -475,10 +480,10 @@ npm run start:dev
 Todas as rotas exigem JWT, exceto `POST /auth/login` e o link público de aprovação de orçamento.
 
 ```bash
-# 1. Faça login com o admin criado no bootstrap
+# 1. Faça login com o admin do seed (ou com o criado no bootstrap)
 curl -X POST http://localhost:3000/auth/login \
   -H 'Content-Type: application/json' \
-  -d '{"email":"admin@example.com","password":"sua-senha"}'
+  -d '{"email":"admin@oficina.dev","password":"Oficina@2026"}'
 
 # 2. Use o token retornado nas demais chamadas
 curl http://localhost:3000/service-orders \
@@ -497,6 +502,229 @@ curl http://localhost:3000/service-orders \
 | `MAIL_DRIVER` | `log` (apenas registra no logger) ou `brevo` | `log` |
 | `MAIL_FROM` / `MAIL_FROM_NAME` | Remetente dos e-mails | — |
 | `BREVO_API_KEY` | Chave da Brevo, obrigatória quando `MAIL_DRIVER=brevo` | — |
+
+</details>
+
+<h2 id="fluxo-de-teste">🧪 Testando o ciclo de vida da OS</h2>
+
+<details>
+<summary>Expandir para mais detalhes</summary>
+
+Um roteiro do balcão à entrega, levando uma ordem de serviço pelos sete estados
+com os dados que o seed já deixou no banco.
+
+### 1. Popule o banco
+
+```bash
+npm run db:seed
+```
+
+O seed cadastra as contas, os perfis, o catálogo de serviços e o estoque — mas
+**não** abre nenhuma OS: abrir, diagnosticar, orçar, executar e pagar é
+justamente o que este guia percorre. Os ids são fixos, então os comandos abaixo
+podem ser colados como estão. Rodar de novo não duplica nem apaga nada; para
+recomeçar do zero, veja [Recomeçar o banco](#resolucao-de-problemas).
+
+**Contas** — senha `Oficina@2026` para todas:
+
+| E-mail | Papel | Usada para |
+|--------|-------|------------|
+| `admin@oficina.dev` | `ADMIN` | quase tudo neste roteiro |
+| `consultor@oficina.dev` | `ADMIN` | recepção (o perfil é que a marca como consultora) |
+| `bruno@oficina.dev` | `MECHANIC` | diagnóstico e execução |
+| `diego@oficina.dev` | `MECHANIC` | segundo da fila FIFO |
+| `estoquista@oficina.dev` | `STOCK_KEEPER` | entradas de estoque |
+| `ana@example.com` | `CUSTOMER` | consultar o status da própria OS |
+
+**Ids usados no roteiro:**
+
+| O quê | Id |
+|-------|-----|
+| Veículo — Fiat Uno `ABC-1234` (da Ana) | `33333333-3333-4333-8333-000000000001` |
+| Consultora Carla Menezes | `44444444-4444-4444-8444-000000000001` |
+| Serviço — Troca de pastilhas (R$ 150,00) | `88888888-8888-4888-8888-000000000002` |
+| Insumo — Pastilha de freio (R$ 120,00, 20 em estoque) | `77777777-7777-4777-8777-000000000001` |
+
+O seed imprime a lista completa — inclusive o segundo carro da Ana, o cliente PJ
+e os demais serviços — ao terminar.
+
+### 2. Prepare o terminal
+
+```bash
+API=http://localhost:3000
+
+# Extrai um campo do JSON da resposta sem depender do jq
+field() { node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log(process.argv[1].split('.').reduce((a,k)=>a?.[k],JSON.parse(s))))" "$1"; }
+
+login() { curl -s -X POST $API/auth/login -H 'Content-Type: application/json' \
+  -d "{\"email\":\"$1\",\"password\":\"Oficina@2026\"}" | field access_token; }
+
+ADMIN=$(login admin@oficina.dev)
+BRUNO=$(login bruno@oficina.dev)
+```
+
+Prefere clicar? O mesmo roteiro funciona pelo <http://localhost:3000/docs>:
+autentique com o token do `POST /auth/login` no botão **Authorize**.
+
+### 3. Recepção — abre a OS em `received`
+
+A anamnese é o ponto de entrada: registrar o relato do cliente é o que abre a
+ordem de serviço.
+
+```bash
+OS=$(curl -s -X POST $API/service-order/anamnesis \
+  -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
+  -d '{
+    "vehicleId": "33333333-3333-4333-8333-000000000001",
+    "consultantId": "44444444-4444-4444-8444-000000000001",
+    "mainComplaint": "Barulho ao frear",
+    "problemDescription": "Chiado agudo nas rodas dianteiras",
+    "severity": "moderate",
+    "frequency": "constant"
+  }' | field serviceOrderId)
+
+curl -s $API/service-orders/$OS/status -H "Authorization: Bearer $ADMIN"
+# {"status":"received"}
+```
+
+### 4. Diagnóstico — `in_diagnosis` e depois `awaiting_approval`
+
+```bash
+curl -s -X POST $API/service-orders/$OS/diagnosis/start \
+  -H "Authorization: Bearer $BRUNO" > /dev/null
+# status: in_diagnosis
+
+QUOTE=$(curl -s -X POST $API/service-orders/$OS/diagnosis \
+  -H "Authorization: Bearer $BRUNO" -H 'Content-Type: application/json' \
+  -d '{
+    "findings": "Pastilhas dianteiras no limite",
+    "serviceItems": [{ "serviceId": "88888888-8888-4888-8888-000000000002", "quantity": 1 }]
+  }' | field quotation.id)
+```
+
+Registrar o laudo emite o orçamento e dispara o e-mail de aprovação na mesma
+tacada. O orçamento sai com **duas linhas**, embora só um serviço tenha sido
+pedido:
+
+```json
+{ "kind": "labor", "name": "Troca de pastilhas de freio", "quantity": 1, "unitPriceInCents": 15000 }
+{ "kind": "part",  "name": "Pastilha de freio dianteira", "quantity": 1, "unitPriceInCents": 12000 }
+```
+
+A peça entrou pela ficha técnica do serviço — não existe linha de peça avulsa. O
+total é R$ 270,00.
+
+### 5. Aprovação do cliente — `awaiting_execution`
+
+Com `MAIL_DRIVER=log` (o padrão), o e-mail não sai: a mensagem com o link de
+aprovação é escrita no log da aplicação. Você pode abrir aquele link ou aprovar
+direto:
+
+```bash
+curl -s -X POST $API/quotations/$QUOTE/approve -H "Authorization: Bearer $ADMIN" > /dev/null
+# status: awaiting_execution
+```
+
+### 6. Estoque — reserva a peça
+
+A reserva é um passo explícito, não uma consequência automática da aprovação:
+
+```bash
+curl -s -X POST $API/supplies/77777777-7777-4777-8777-000000000001/reservations \
+  -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
+  -d "{\"quantity\":1,\"serviceOrderReference\":\"$OS\"}"
+# availableBalance cai de 20 para 19; reservedQuantity: 1
+```
+
+### 7. Execução — `in_execution`
+
+Não existe "iniciar trabalho": assumir a ordem **é** o começo da execução.
+
+```bash
+MECANICO=$(curl -s -X POST $API/mechanics/claim \
+  -H "Authorization: Bearer $BRUNO" -H 'Content-Type: application/json' \
+  -d "{\"serviceOrderId\":\"$OS\"}" | field id)
+
+echo $MECANICO   # quem a fila entregou
+# status: in_execution
+```
+
+> A alocação é FIFO: quem está disponível há mais tempo assume, **não**
+> necessariamente quem chamou. Na primeira rodada sai o Bruno; na segunda, como
+> ele voltou para o fim da fila ao ser liberado, sai o Diego. Por isso o id vem
+> da resposta (`$MECANICO`) em vez de ser fixo — é ele que o passo 9 exige.
+
+### 8. Estoque — dá baixa na peça
+
+```bash
+curl -s -X POST $API/supplies/77777777-7777-4777-8777-000000000001/write-offs \
+  -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
+  -d "{\"quantity\":1,\"serviceOrderReference\":\"$OS\"}"
+# reservedQuantity volta a 0; o saldo disponível segue 19
+```
+
+### 9. Conclusão — `finished`
+
+```bash
+curl -s -X POST $API/mechanics/$MECANICO/complete-execution \
+  -H "Authorization: Bearer $BRUNO" -H 'Content-Type: application/json' \
+  -d "{\"serviceOrderId\":\"$OS\"}" > /dev/null
+# status: finished — e o mecânico volta para a fila como AVAILABLE
+```
+
+Este é o momento de olhar o relatório: ele conta apenas as ordens **em
+`finished`**, então uma OS já paga não entra na média.
+
+```bash
+curl -s "$API/service-orders/average-execution-time" -H "Authorization: Bearer $ADMIN"
+# {"averageExecutionTimeMinutes":0,"sampleSize":1}
+```
+
+A média sai em minutos inteiros, então um roteiro percorrido em segundos
+arredonda para `0` — o que importa aqui é o `sampleSize` subir para 1 e voltar a
+zero no passo seguinte.
+
+### 10. Pagamento — `delivered`
+
+```bash
+curl -s -X POST $API/payments \
+  -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
+  -d "{\"serviceOrderId\":\"$OS\"}"
+# {"amountInCents":27000, ...}
+```
+
+O pagamento é mockado — não há gateway, ele nasce confirmado — e publica
+`payment.received`, que carimba a entrega:
+
+```bash
+curl -s $API/service-orders/$OS -H "Authorization: Bearer $ADMIN"
+# status: delivered, deliveredAt preenchido, openedByName: "Carla Menezes"
+```
+
+### 11. A visão do cliente
+
+O único endpoint que um `CUSTOMER` alcança, e apenas para as ordens dos próprios
+veículos:
+
+```bash
+ANA=$(login ana@example.com)
+curl -s $API/service-orders/$OS/status -H "Authorization: Bearer $ANA"
+# {"status":"delivered"}
+```
+
+Uma ordem de outro cliente responde **404**, não 403: um 403 confirmaria quais
+ids existem e deixaria mapear as ordens da oficina por tentativa.
+
+### O que vale observar no caminho
+
+- **O snapshot é imutável**: renomeie a consultora Carla e o `openedByName` da OS
+  continua o nome antigo — o histórico não muda quando a origem muda
+- **O preço congela na emissão**: altere o `laborPriceInCents` do serviço depois
+  do orçamento emitido e o `unitPriceInCents` do item não acompanha
+- **O saldo é derivado**: `GET /supplies/{id}/stock` soma o livro-razão; não
+  existe coluna de quantidade para conferir
+- **Fora de ordem dá 409**: tente pagar uma OS que não está em `finished`, ou
+  iniciar o diagnóstico de uma que já saiu de `received`
 
 </details>
 
@@ -537,6 +765,8 @@ tech-challenge-17soat/
 │       └── infrastructure/                    # Publisher de eventos
 │
 ├── test/                                      # Testes end-to-end
+├── scripts/
+│   └── seed.ts                                # Dados de demonstração (npm run db:seed)
 ├── docs/
 │   ├── adr/                                   # Architecture Decision Records
 │   ├── security/                              # Relatório SonarCloud
