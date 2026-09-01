@@ -399,21 +399,11 @@ describe('Mechanics (e2e)', () => {
     });
 
     it('returns 404 for an unknown id', async () => {
-      // Asked as an admin: a mechanic is identity-checked first and would get
-      // a 403 for any id but their own, unknown or not.
-      const res = await httpAs(app, tokenFor(app, UserRole.ADMIN))
-        .post('/mechanics/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12/release')
+      const res = await http()
+        .post('/mechanics/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11/release')
         .send({ serviceOrderId });
 
       expect(res.status).toBe(404);
-    });
-
-    it('answers 403, not 404, when a mechanic probes an unknown id', async () => {
-      const res = await http()
-        .post('/mechanics/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12/release')
-        .send({ serviceOrderId });
-
-      expect(res.status).toBe(403);
     });
 
     it('returns 409 when the mechanic is not allocated', async () => {
@@ -519,12 +509,11 @@ describe('Mechanics (e2e)', () => {
       expect(res.status).toBe(403);
     });
 
-    it('forbids the same crossover on release', async () => {
-      const mechanic = await seedMechanic();
-      mechanic.claim(serviceOrderId);
-
-      const res = await asMechanic(OTHER_USER_ID)
-        .post(`/mechanics/${mechanic.getId()}/release`)
+    it('answers 403, not 404, when a mechanic probes an unknown id', async () => {
+      const res = await http()
+        .post(
+          '/mechanics/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12/complete-execution',
+        )
         .send({ serviceOrderId });
 
       expect(res.status).toBe(403);

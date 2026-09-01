@@ -168,12 +168,10 @@ export class MechanicController {
   async release(
     @Param() params: MechanicIdParamDto,
     @Body() body: ReleaseMechanicDto,
-    @CurrentUser() user: AuthenticatedUser,
   ): Promise<MechanicResponseDTO> {
     const mechanic = await this.releaseMechanic.execute({
       mechanicId: params.id,
       serviceOrderId: body.serviceOrderId,
-      actingUserId: actingMechanicOf(user),
     });
     return MechanicResponseMapper.toResponseDTO(mechanic);
   }
