@@ -379,7 +379,7 @@ describe('ServiceOrders (e2e)', () => {
       completedAt: string,
     ): Promise<string> {
       const created = orderBody(
-        await http().post('/service-orders').send({ vehicleId }),
+        await http().post('/service-orders').send({ vehicleId, openedById }),
       );
       await pool.query(
         `UPDATE service_orders
@@ -412,7 +412,7 @@ describe('ServiceOrders (e2e)', () => {
 
     it('returns null with a zero sample when no order has finished', async () => {
       const created = orderBody(
-        await http().post('/service-orders').send({ vehicleId }),
+        await http().post('/service-orders').send({ vehicleId, openedById }),
       );
       await advanceTo(created.id, 'in_execution');
 
