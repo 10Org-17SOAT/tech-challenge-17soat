@@ -95,10 +95,15 @@ describe('Quotation approval by email (e2e)', () => {
       .expect(200);
 
     const order = await http()
-      .post('/service-orders')
-      .send({ vehicleId, openedById })
+      .post('/service-order/anamnesis')
+      .send({
+        vehicleId,
+        consultantId: openedById,
+        mainComplaint: 'Barulho na suspensão',
+        problemDescription: 'Estalo ao passar em lombadas',
+      })
       .expect(201);
-    const orderId = (order.body as { id: string }).id;
+    const orderId = (order.body as { serviceOrderId: string }).serviceOrderId;
     await http().post(`/service-orders/${orderId}/diagnosis/start`).expect(200);
 
     const diagnosis = await http()

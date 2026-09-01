@@ -92,10 +92,16 @@ describe('Payments (e2e)', () => {
     laborPriceInCents = 15000,
   ): Promise<{ orderId: string; totalInCents: number }> {
     const created = await http()
-      .post('/service-orders')
-      .send({ vehicleId, openedById })
+      .post('/service-order/anamnesis')
+      .send({
+        vehicleId,
+        consultantId: openedById,
+        mainComplaint: 'Barulho na suspensão',
+        problemDescription: 'Estalo ao passar em lombadas',
+      })
       .expect(201);
-    const orderId = (created.body as { id: string }).id;
+    const orderId = (created.body as { serviceOrderId: string })
+      .serviceOrderId;
 
     await http()
       .post(`/service-orders/${orderId}/diagnosis/start`)
@@ -184,13 +190,21 @@ describe('Payments (e2e)', () => {
 
     it('returns 404 for an order that has not been quoted yet', async () => {
       const created = await http()
-        .post('/service-orders')
-        .send({ vehicleId, openedById })
+        .post('/service-order/anamnesis')
+        .send({
+          vehicleId,
+          consultantId: openedById,
+          mainComplaint: 'Barulho na suspensão',
+          problemDescription: 'Estalo ao passar em lombadas',
+        })
         .expect(201);
 
       await http()
         .post('/payments')
-        .send({ serviceOrderId: (created.body as { id: string }).id })
+        .send({
+          serviceOrderId: (created.body as { serviceOrderId: string })
+            .serviceOrderId,
+        })
         .expect(404);
     });
 

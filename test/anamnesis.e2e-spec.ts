@@ -4,7 +4,7 @@ import { Pool } from 'pg';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
-import { givenConsultant } from './fixtures';
+import { CLEANUP_TABLES, givenConsultant, givenOwnedVehicle } from './fixtures';
 
 describe('Anamnesis (e2e)', () => {
   let app: INestApplication<App>;
@@ -30,15 +30,10 @@ describe('Anamnesis (e2e)', () => {
   });
 
   beforeEach(async () => {
-    await pool.query('DELETE FROM quotation_items');
-    await pool.query('DELETE FROM quotations');
-    await pool.query('DELETE FROM diagnostics');
-    await pool.query('DELETE FROM service_items');
-    await pool.query('DELETE FROM anamneses');
-    await pool.query('DELETE FROM service_orders');
-    await pool.query('DELETE FROM services');
-    await pool.query('DELETE FROM consultants');
-    vehicleId = await givenVehicle();
+    for (const table of CLEANUP_TABLES) {
+      await pool.query(`DELETE FROM ${table}`);
+    }
+    vehicleId = (await givenOwnedVehicle(app.getHttpServer())).vehicleId;
     consultantId = await givenConsultant(app.getHttpServer());
   });
 
@@ -75,22 +70,6 @@ describe('Anamnesis (e2e)', () => {
   }
 
   const anamnesisBody = (res: request.Response) => res.body as AnamnesisResponse;
-
-  async function givenVehicle(): Promise<string> {
-    const res = await http()
-      .post('/vehicles')
-      .send({
-        licensePlate: `ABC${Math.floor(Math.random() * 9000 + 1000)}`,
-        model: 'Gol',
-        year: 2020,
-        manufacturer: 'Volkswagen',
-        color: 'Preto',
-        fuelType: 'GASOLINE',
-        odometer: 50000,
-      })
-      .expect(201);
-    return (res.body as { vehicle_id: string }).vehicle_id;
-  }
 
   async function givenAnamnesis(): Promise<AnamnesisResponse> {
     const res = await http()
@@ -134,7 +113,7 @@ describe('Anamnesis (e2e)', () => {
       expect((order.body as { status: string }).status).toBe('received');
     });
 
-    it('rejects an unknown vehicle with 422 (AC-02)', async () => {
+    it('rejects an unknown vehicle with 404 (AC-02)', async () => {
       await http()
         .post('/service-order/anamnesis')
         .send({
@@ -143,7 +122,7 @@ describe('Anamnesis (e2e)', () => {
           mainComplaint: 'Barulho',
           problemDescription: 'Estalo',
         })
-        .expect(422);
+        .expect(404);
     });
 
     it('rejects missing mandatory fields with 400 (AC-03)', async () => {

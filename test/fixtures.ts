@@ -128,6 +128,7 @@ export const CLEANUP_TABLES = [
   'quotation_items',
   'quotations',
   'diagnostics',
+  'anamneses',
   'service_items',
   'service_supplies',
   'service_orders',

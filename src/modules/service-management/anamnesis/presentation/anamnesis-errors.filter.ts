@@ -5,11 +5,10 @@ import {
   ConflictException,
   ExceptionFilter,
   NotFoundException,
-  UnprocessableEntityException,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { ServiceOrderNotFoundError } from '../../service-orders/domain/errors/service-order-not-found.error';
-import { VehicleNotFoundError } from '../../service-orders/domain/errors/vehicle-not-found.error';
+import { VehicleNotFoundForServiceOrderError } from '../../service-orders/domain/errors/vehicle-not-found-for-service-order.error';
 import {
   AnamnesisAlreadyExistsException,
   AnamnesisLockedException,
@@ -23,7 +22,7 @@ import {
   AnamnesisAlreadyExistsException,
   InvalidAnamnesisException,
   ServiceOrderNotFoundError,
-  VehicleNotFoundError,
+  VehicleNotFoundForServiceOrderError,
 )
 export class AnamnesisErrorsFilter implements ExceptionFilter {
   catch(error: Error, host: ArgumentsHost) {
@@ -35,7 +34,8 @@ export class AnamnesisErrorsFilter implements ExceptionFilter {
   private toHttpException(error: Error) {
     if (
       error instanceof AnamnesisNotFoundException ||
-      error instanceof ServiceOrderNotFoundError
+      error instanceof ServiceOrderNotFoundError ||
+      error instanceof VehicleNotFoundForServiceOrderError
     ) {
       return new NotFoundException(error.message);
     }
@@ -44,10 +44,6 @@ export class AnamnesisErrorsFilter implements ExceptionFilter {
       error instanceof AnamnesisAlreadyExistsException
     ) {
       return new ConflictException(error.message);
-    }
-    // The request is well-formed, but the referenced vehicle does not exist.
-    if (error instanceof VehicleNotFoundError) {
-      return new UnprocessableEntityException(error.message);
     }
     return new BadRequestException(error.message);
   }

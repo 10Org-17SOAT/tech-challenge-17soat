@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../../../../../shared/config/database/database.constants';
 import type { DrizzleDatabase } from '../../../../../shared/config/database/drizzle.provider';
 import { Anamnesis } from '../../domain/anamnesis.entity';
@@ -24,7 +24,12 @@ export class DrizzleAnamnesisRepository implements AnamnesisRepository {
     const rows = await this.db
       .select()
       .from(anamneses)
-      .where(eq(anamneses.serviceOrderId, serviceOrderId))
+      .where(
+        and(
+          eq(anamneses.serviceOrderId, serviceOrderId),
+          isNull(anamneses.deletedAt),
+        ),
+      )
       .limit(1);
     return rows[0] ? toEntity(rows[0]) : null;
   }

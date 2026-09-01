@@ -1,6 +1,6 @@
 import { CreateServiceOrderUseCase } from '../../service-orders/application/create-service-order.usecase';
 import { ServiceOrder } from '../../service-orders/domain/service-order.entity';
-import { VehicleNotFoundError } from '../../service-orders/domain/errors/vehicle-not-found.error';
+import { VehicleNotFoundForServiceOrderError } from '../../service-orders/domain/errors/vehicle-not-found-for-service-order.error';
 import type { AnamnesisRepository } from '../domain/anamnesis.repository';
 import { CreateAnamnesisUseCase } from './create-anamnesis.usecase';
 
@@ -47,9 +47,9 @@ describe('CreateAnamnesisUseCase', () => {
     expect(anamnesisRepository.save).toHaveBeenCalledWith(anamnesis);
   });
 
-  it('propagates VehicleNotFoundError when the vehicle does not exist', async () => {
+  it('propagates VehicleNotFoundForServiceOrderError when the vehicle does not exist', async () => {
     (createOrder.execute as jest.Mock).mockRejectedValue(
-      new VehicleNotFoundError(vehicleId),
+      new VehicleNotFoundForServiceOrderError(vehicleId),
     );
 
     await expect(
@@ -59,7 +59,7 @@ describe('CreateAnamnesisUseCase', () => {
         mainComplaint: 'Barulho',
         problemDescription: 'Estalo',
       }),
-    ).rejects.toThrow(VehicleNotFoundError);
+    ).rejects.toThrow(VehicleNotFoundForServiceOrderError);
     expect(anamnesisRepository.save).not.toHaveBeenCalled();
   });
 
