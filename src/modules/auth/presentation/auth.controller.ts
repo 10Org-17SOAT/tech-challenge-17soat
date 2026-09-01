@@ -5,9 +5,10 @@ import {
   HttpCode,
   HttpStatus,
   Post,
-  Request,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { CurrentUser } from '../decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../decorators/current-user.decorator';
 import { Public } from '../decorators/public.decorator';
 import { LoginUseCase } from '../application/login.usecase';
 import { LoginRequestDto, LoginResponseDto } from './dtos/auth.dtos';
@@ -27,12 +28,7 @@ export class AuthController {
   // No @Roles: any authenticated user may read their own identity.
   @Get('me')
   @ApiBearerAuth()
-  me(
-    @Request()
-    req: {
-      user: { user_id: string; email: string; role_id: number };
-    },
-  ) {
-    return req.user;
+  me(@CurrentUser() user: AuthenticatedUser): AuthenticatedUser {
+    return user;
   }
 }
