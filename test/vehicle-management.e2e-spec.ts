@@ -236,13 +236,14 @@ describe('Vehicle Management (integração HTTP)', () => {
   });
 
   it('converte falhas de domínio e falhas inesperadas em respostas HTTP', async () => {
-    await http()
+    const invalid = await http()
       .post('/vehicles')
-      .send({ ...payload, licensePlate: '' })
-      .expect(400);
+      .send({ ...payload, licensePlate: '' });
+    expect(invalid.status).toBe(400);
 
     repository.error = new Error('database unavailable');
-    await http().get('/vehicles').expect(500);
+    const failed = await http().get('/vehicles');
+    expect(failed.status).toBe(500);
     await http().get(`/vehicles/${FIRST_ID}`).expect(500);
     await http()
       .patch(`/vehicles/${FIRST_ID}`)

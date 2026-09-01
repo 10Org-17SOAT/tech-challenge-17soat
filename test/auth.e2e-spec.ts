@@ -136,32 +136,40 @@ describe('Auth (e2e)', () => {
       const email = await givenUser(UserRole.STOCK_KEEPER);
       const token = await login(email);
 
-      await http()
+      const res = await http()
         .get('/supplies')
-        .set('Authorization', `Bearer ${token}`)
-        .expect(200);
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
     });
 
     it('forbids a customer outside the order status endpoint', async () => {
       const email = await givenUser(UserRole.CUSTOMER);
       const token = await login(email);
 
-      await http()
+      const res = await http()
         .get('/supplies')
-        .set('Authorization', `Bearer ${token}`)
-        .expect(403);
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(403);
     });
 
     it('rejects an anonymous request to a protected route', async () => {
-      await http().get('/supplies').expect(401);
+      const res = await http().get('/supplies');
+
+      expect(res.status).toBe(401);
     });
 
     it('keeps login and the root route public', async () => {
-      await http().get('/').expect(200);
-      await http()
+      const root = await http().get('/');
+      expect(root.status).toBe(200);
+
+      // 401 rather than 403: the route is reachable without a token, it just
+      // rejects the unknown credentials.
+      const login = await http()
         .post('/auth/login')
-        .send({ email: 'missing@example.com', password })
-        .expect(401);
+        .send({ email: 'missing@example.com', password });
+      expect(login.status).toBe(401);
     });
   });
 });
