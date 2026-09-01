@@ -21,9 +21,15 @@ const unique = () => Math.random().toString(36).slice(2, 10);
 export function tokenFor(
   app: INestApplication,
   role: UserRole = UserRole.ADMIN,
+  /**
+   * The account the token speaks for. Ownership checks resolve the caller's
+   * profile from it, so a suite testing possession must pass the real id
+   * rather than take the random one.
+   */
+  userId: string = randomUUID(),
 ): string {
   return app.get(JwtService).sign({
-    sub: randomUUID(),
+    sub: userId,
     email: `e2e-${unique()}@example.com`,
     role_id: role,
   });
@@ -115,7 +121,7 @@ export async function givenCustomer(
   app: App,
   token: string,
   email = `cliente-${unique()}@example.com`,
-): Promise<{ id: string; email: string }> {
+): Promise<{ id: string; email: string; userId: string }> {
   const user = await givenUser(app, token);
   const res = await request(app)
     .post('/customers')
@@ -137,7 +143,8 @@ export async function givenCustomer(
       },
     })
     .expect(201);
-  return { id: (res.body as { id: string }).id, email };
+  // The linked account comes back too: ownership checks start from it.
+  return { id: (res.body as { id: string }).id, email, userId: user.id };
 }
 
 export async function givenVehicle(
@@ -166,10 +173,20 @@ export async function givenVehicle(
 export async function givenOwnedVehicle(
   app: App,
   token: string,
-): Promise<{ customerId: string; vehicleId: string; email: string }> {
+): Promise<{
+  customerId: string;
+  vehicleId: string;
+  email: string;
+  userId: string;
+}> {
   const customer = await givenCustomer(app, token);
   const vehicleId = await givenVehicle(app, token, customer.id);
-  return { customerId: customer.id, vehicleId, email: customer.email };
+  return {
+    customerId: customer.id,
+    vehicleId,
+    email: customer.email,
+    userId: customer.userId,
+  };
 }
 
 /**

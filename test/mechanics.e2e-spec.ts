@@ -14,6 +14,8 @@ import { UserRole } from '../src/modules/auth/public/roles';
  * swapped for an in-memory fake (no database required). The DATABASE_CONNECTION
  * provider is never instantiated because nothing injects it after the override.
  */
+const SEEDED_MECHANIC_USER_ID = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
+
 describe('Mechanics (e2e)', () => {
   let app: INestApplication<App>;
   let token: string;
@@ -29,7 +31,9 @@ describe('Mechanics (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     await app.init();
-    token = tokenFor(app, UserRole.MECHANIC);
+    // The suite acts as the mechanic it seeds: ownership checks resolve the
+    // caller's profile from the token, so a random account would be a stranger.
+    token = tokenFor(app, UserRole.MECHANIC, SEEDED_MECHANIC_USER_ID);
 
     repository =
       moduleFixture.get<InMemoryMechanicRepository>(MECHANIC_REPOSITORY);
@@ -99,7 +103,7 @@ describe('Mechanics (e2e)', () => {
 
   const seedMechanic = async (overrides: Record<string, unknown> = {}) => {
     const mechanic = Mechanic.create({
-      userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+      userId: SEEDED_MECHANIC_USER_ID,
       name: 'John Doe',
       cpf: validCpf('111444777'),
       email: 'john.doe@example.com',
@@ -395,11 +399,21 @@ describe('Mechanics (e2e)', () => {
     });
 
     it('returns 404 for an unknown id', async () => {
-      const res = await http()
-        .post('/mechanics/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11/release')
+      // Asked as an admin: a mechanic is identity-checked first and would get
+      // a 403 for any id but their own, unknown or not.
+      const res = await httpAs(app, tokenFor(app, UserRole.ADMIN))
+        .post('/mechanics/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12/release')
         .send({ serviceOrderId });
 
       expect(res.status).toBe(404);
+    });
+
+    it('answers 403, not 404, when a mechanic probes an unknown id', async () => {
+      const res = await http()
+        .post('/mechanics/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12/release')
+        .send({ serviceOrderId });
+
+      expect(res.status).toBe(403);
     });
 
     it('returns 409 when the mechanic is not allocated', async () => {
@@ -470,6 +484,62 @@ describe('Mechanics (e2e)', () => {
         .send({ serviceOrderId });
 
       expect(res.status).toBe(403);
+    });
+  });
+
+  describe('acting identity', () => {
+    const OWNER_USER_ID = SEEDED_MECHANIC_USER_ID;
+    const OTHER_USER_ID = 'b1ffcd88-8d1a-4fe7-aa5c-5aa8ac270b22';
+    const serviceOrderId = 'c2aabb77-7e2b-4ad6-9b4d-4bb7bd160c33';
+
+    const asMechanic = (userId: string) =>
+      httpAs(app, tokenFor(app, UserRole.MECHANIC, userId));
+
+    it('lets a mechanic complete their own execution', async () => {
+      const mechanic = await seedMechanic();
+      mechanic.claim(serviceOrderId);
+
+      const res = await asMechanic(OWNER_USER_ID)
+        .post(`/mechanics/${mechanic.getId()}/complete-execution`)
+        .send({ serviceOrderId });
+
+      expect(res.status).toBe(200);
+    });
+
+    // 403, not 404: the mechanic plainly exists — it is the caller who is
+    // not entitled to act as them.
+    it('forbids a mechanic completing another mechanic execution', async () => {
+      const mechanic = await seedMechanic();
+      mechanic.claim(serviceOrderId);
+
+      const res = await asMechanic(OTHER_USER_ID)
+        .post(`/mechanics/${mechanic.getId()}/complete-execution`)
+        .send({ serviceOrderId });
+
+      expect(res.status).toBe(403);
+    });
+
+    it('forbids the same crossover on release', async () => {
+      const mechanic = await seedMechanic();
+      mechanic.claim(serviceOrderId);
+
+      const res = await asMechanic(OTHER_USER_ID)
+        .post(`/mechanics/${mechanic.getId()}/release`)
+        .send({ serviceOrderId });
+
+      expect(res.status).toBe(403);
+    });
+
+    // Someone has to be able to free an order if the mechanic goes home.
+    it('lets an admin act for any mechanic', async () => {
+      const mechanic = await seedMechanic();
+      mechanic.claim(serviceOrderId);
+
+      const res = await httpAs(app, tokenFor(app, UserRole.ADMIN))
+        .post(`/mechanics/${mechanic.getId()}/complete-execution`)
+        .send({ serviceOrderId });
+
+      expect(res.status).toBe(200);
     });
   });
 });
