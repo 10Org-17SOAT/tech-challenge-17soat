@@ -45,4 +45,19 @@ export class DrizzleCustomerContactQuery implements CustomerContactQuery {
       email: row.email,
     };
   }
+
+  async findIdByUserId(userId: string): Promise<string | null> {
+    const rows = await this.db
+      .select({ id: customersTable.id })
+      .from(customersTable)
+      .where(
+        and(
+          eq(customersTable.userId, userId),
+          isNull(customersTable.deletedAt),
+        ),
+      )
+      .limit(1);
+
+    return rows[0]?.id ?? null;
+  }
 }

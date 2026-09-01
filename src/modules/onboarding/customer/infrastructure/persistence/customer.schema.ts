@@ -42,5 +42,8 @@ export const customersTable = pgTable(
       .where(sql`${table.deletedAt} IS NULL`),
     index('customers_email_idx').on(table.email),
     index('customers_deleted_at_idx').on(table.deletedAt),
+    // Ownership checks resolve the customer behind the caller's account on
+    // every request that proves possession.
+    index('customers_user_id_idx').on(table.userId),
   ],
 );
