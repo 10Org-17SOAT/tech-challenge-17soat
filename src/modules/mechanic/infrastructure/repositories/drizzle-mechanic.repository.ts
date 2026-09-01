@@ -52,6 +52,21 @@ export class DrizzleMechanicRepository implements MechanicRepository {
     return rows[0] ? MechanicMapper.toDomain(rows[0]) : null;
   }
 
+  async findByUserId(userId: string): Promise<Mechanic | null> {
+    const rows = await this.db
+      .select()
+      .from(mechanicsTable)
+      .where(
+        and(
+          eq(mechanicsTable.userId, userId),
+          isNull(mechanicsTable.deletedAt),
+        ),
+      )
+      .limit(1);
+
+    return rows[0] ? MechanicMapper.toDomain(rows[0]) : null;
+  }
+
   async updateProfile(mechanic: Mechanic): Promise<Mechanic | null> {
     const row = MechanicMapper.toPersistence(mechanic);
 

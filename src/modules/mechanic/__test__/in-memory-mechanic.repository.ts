@@ -55,6 +55,14 @@ export class InMemoryMechanicRepository implements MechanicRepository {
     return Promise.resolve(isActive ? mechanic : null);
   }
 
+  findByUserId(userId: string): Promise<Mechanic | null> {
+    const match = [...this.mechanics.values()].find(
+      (mechanic) =>
+        mechanic.getUserId() === userId && mechanic.getDeletedAt() === null,
+    );
+    return Promise.resolve(match ?? null);
+  }
+
   findMany(params: FindMechanicsParams): Promise<PaginatedResult<Mechanic>> {
     const { page, limit, filters } = params;
 

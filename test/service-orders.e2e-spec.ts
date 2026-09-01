@@ -25,6 +25,8 @@ describe('ServiceOrders (e2e)', () => {
   let vehicleId: string;
   // ...and about who opened it.
   let openedById: string;
+  // The auth account behind the vehicle's owner, for the ownership checks.
+  let ownerUserId: string;
   let emitter: EventEmitter2;
 
   beforeAll(async () => {
@@ -54,7 +56,9 @@ describe('ServiceOrders (e2e)', () => {
       await pool.query(`DELETE FROM ${table}`);
     }
 
-    vehicleId = (await givenOwnedVehicle(app.getHttpServer(), token)).vehicleId;
+    const owned = await givenOwnedVehicle(app.getHttpServer(), token);
+    vehicleId = owned.vehicleId;
+    ownerUserId = owned.userId;
     openedById = await givenConsultant(app.getHttpServer(), token);
   });
 
@@ -257,6 +261,55 @@ describe('ServiceOrders (e2e)', () => {
         .patch('/service-orders/6f2c8e0a-0b0e-4f6e-9e1e-000000000000')
         .send({ notes: 'x' })
         .expect(404);
+    });
+  });
+
+  describe('GET /service-orders/:id/status — ownership', () => {
+    const asCustomer = (userId: string) =>
+      httpAs(app, tokenFor(app, UserRole.CUSTOMER, userId));
+
+    it('lets the owner read the status of their own order', async () => {
+      const created = await givenAnamnesis();
+
+      const res = await asCustomer(ownerUserId).get(
+        `/service-orders/${created.serviceOrderId}/status`,
+      );
+
+      expect(res.status).toBe(200);
+      expect((res.body as { status: string }).status).toBe('received');
+    });
+
+    // 404, not 403: a customer must not be able to learn which ids exist by
+    // probing the endpoint.
+    it('hides an order that belongs to another customer', async () => {
+      const created = await givenAnamnesis();
+      const stranger = await givenOwnedVehicle(app.getHttpServer(), token);
+
+      const res = await asCustomer(stranger.userId).get(
+        `/service-orders/${created.serviceOrderId}/status`,
+      );
+
+      expect(res.status).toBe(404);
+    });
+
+    it('hides the order from a customer account with no profile linked', async () => {
+      const created = await givenAnamnesis();
+
+      const res = await httpAs(app, tokenFor(app, UserRole.CUSTOMER)).get(
+        `/service-orders/${created.serviceOrderId}/status`,
+      );
+
+      expect(res.status).toBe(404);
+    });
+
+    it('still lets an admin read any order', async () => {
+      const created = await givenAnamnesis();
+
+      const res = await http().get(
+        `/service-orders/${created.serviceOrderId}/status`,
+      );
+
+      expect(res.status).toBe(200);
     });
   });
 

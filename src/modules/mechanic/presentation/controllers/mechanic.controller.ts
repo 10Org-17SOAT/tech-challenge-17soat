@@ -44,6 +44,15 @@ import {
   PaginatedMechanicsDTO,
 } from '../../application/dto/mechanic.dto';
 import { Roles, UserRole } from '../../../auth/public/roles';
+import { CurrentUser } from '../../../auth/public/current-user';
+import type { AuthenticatedUser } from '../../../auth/public/current-user';
+
+/**
+ * A mechanic acts only as themselves; an admin acts for anyone, so it passes
+ * no identity and the use case skips the check.
+ */
+const actingMechanicOf = (user: AuthenticatedUser): string | undefined =>
+  user.role_id === UserRole.MECHANIC ? user.user_id : undefined;
 
 @ApiTags('mechanics')
 @ApiBearerAuth()
@@ -146,11 +155,23 @@ export class MechanicController {
     return MechanicResponseMapper.toResponseDTO(mechanic);
   }
 
+  /**
+   * An operational escape hatch, not part of the normal flow: finishing the
+   * work already frees the mechanic. This one abandons the allocation without
+   * finishing it — the order stays in `in_execution` waiting for a new claim —
+   * which is why it is narrowed to ADMIN and a mechanic cannot walk off a job
+   * on their own.
+   */
+  @Roles(UserRole.ADMIN)
   @Post(':id/release')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Libera um mecânico alocado (release)' })
+  @ApiOperation({
+    summary:
+      'Libera um mecânico alocado sem concluir a OS (exceção operacional)',
+  })
   @ApiResponse({ status: 200, type: MechanicResponseDto })
   @ApiResponse({ status: 400, description: 'Payload inválido' })
+  @ApiResponse({ status: 403, description: 'Apenas ADMIN pode liberar' })
   @ApiResponse({ status: 404, description: 'Mecânico não encontrado' })
   @ApiResponse({
     status: 409,
@@ -182,10 +203,12 @@ export class MechanicController {
   async completeExecutionOnOrder(
     @Param() params: MechanicIdParamDto,
     @Body() body: ReleaseMechanicDto,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<MechanicResponseDTO> {
     const mechanic = await this.completeExecution.execute({
       mechanicId: params.id,
       serviceOrderId: body.serviceOrderId,
+      actingUserId: actingMechanicOf(user),
     });
     return MechanicResponseMapper.toResponseDTO(mechanic);
   }

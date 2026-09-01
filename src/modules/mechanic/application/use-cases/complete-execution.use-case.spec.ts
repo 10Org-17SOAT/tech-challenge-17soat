@@ -3,6 +3,7 @@ import { InMemoryMechanicRepository } from '../../__test__/in-memory-mechanic.re
 import { RecordingDomainEventPublisher } from '../../__test__/recording-domain-event.publisher';
 import { MechanicNotFoundException } from '../exceptions/mechanic-application.exception';
 import {
+  MechanicIdentityMismatchException,
   MechanicNotAllocatedException,
   WrongServiceOrderException,
 } from '../../domain/exceptions/mechanic.exceptions';
@@ -10,6 +11,9 @@ import { ExecutionCompleted } from '../../domain/events/execution-completed.even
 import { MechanicReleased } from '../../domain/events/mechanic-released.event';
 import { Mechanic } from '../../domain/mechanic.entity';
 import { MECHANIC_AVAILABILITY } from '../../domain/value-objects/mechanic-availability.enum';
+
+const OWNER_USER_ID = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
+const OTHER_USER_ID = 'b1ffcd88-8d1a-4fe7-aa5c-5aa8ac270b22';
 
 describe('CompleteExecutionUseCase', () => {
   let repository: InMemoryMechanicRepository;
@@ -24,7 +28,7 @@ describe('CompleteExecutionUseCase', () => {
 
   const seedMechanic = async (): Promise<Mechanic> => {
     const mechanic = Mechanic.create({
-      userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+      userId: OWNER_USER_ID,
       name: 'John Doe',
       cpf: '11144477735',
       email: 'john.doe@example.com',
@@ -101,5 +105,75 @@ describe('CompleteExecutionUseCase', () => {
     ).rejects.toBeInstanceOf(MechanicNotAllocatedException);
 
     expect(publisher.events).toHaveLength(0);
+  });
+
+  describe('acting identity', () => {
+    it('lets a mechanic act on their own allocation', async () => {
+      const mechanic = await seedMechanic();
+      mechanic.claim('OS-1');
+
+      const result = await useCase.execute({
+        mechanicId: mechanic.getId(),
+        serviceOrderId: 'OS-1',
+        actingUserId: OWNER_USER_ID,
+      });
+
+      expect(result.getId()).toBe(mechanic.getId());
+    });
+
+    it('refuses a mechanic acting on another mechanic allocation', async () => {
+      const mechanic = await seedMechanic();
+      mechanic.claim('OS-1');
+
+      await expect(
+        useCase.execute({
+          mechanicId: mechanic.getId(),
+          serviceOrderId: 'OS-1',
+          actingUserId: OTHER_USER_ID,
+        }),
+      ).rejects.toBeInstanceOf(MechanicIdentityMismatchException);
+    });
+
+    // No profile means no identity to match, so it is a refusal — never a
+    // free pass around the rule.
+    it('refuses an account with no mechanic linked', async () => {
+      const mechanic = await seedMechanic();
+      mechanic.claim('OS-1');
+
+      await expect(
+        useCase.execute({
+          mechanicId: mechanic.getId(),
+          serviceOrderId: 'OS-1',
+          actingUserId: 'c2aabb77-7e2b-4ad6-9b4d-4bb7bd160c33',
+        }),
+      ).rejects.toBeInstanceOf(MechanicIdentityMismatchException);
+    });
+
+    it('skips the check when no acting user is given', async () => {
+      const mechanic = await seedMechanic();
+      mechanic.claim('OS-1');
+
+      await expect(
+        useCase.execute({
+          mechanicId: mechanic.getId(),
+          serviceOrderId: 'OS-1',
+        }),
+      ).resolves.toBeDefined();
+    });
+
+    it('publishes nothing when the identity does not match', async () => {
+      const mechanic = await seedMechanic();
+      mechanic.claim('OS-1');
+
+      await expect(
+        useCase.execute({
+          mechanicId: mechanic.getId(),
+          serviceOrderId: 'OS-1',
+          actingUserId: OTHER_USER_ID,
+        }),
+      ).rejects.toBeInstanceOf(MechanicIdentityMismatchException);
+
+      expect(publisher.events).toHaveLength(0);
+    });
   });
 });
