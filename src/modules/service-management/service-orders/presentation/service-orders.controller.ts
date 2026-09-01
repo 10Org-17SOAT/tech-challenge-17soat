@@ -35,6 +35,8 @@ import {
 } from './dtos/service-order.dtos';
 import { ServiceOrderErrorsFilter } from './service-order-errors.filter';
 import { Roles, UserRole } from '../../../auth/public/roles';
+import { CurrentUser } from '../../../auth/public/current-user';
+import type { AuthenticatedUser } from '../../../auth/public/current-user';
 
 @ApiTags('service-orders')
 @ApiBearerAuth()
@@ -99,8 +101,18 @@ export class ServiceOrdersController {
   @ApiResponse({ status: 404, description: 'OS não encontrada' })
   async getStatus(
     @Param() params: ServiceOrderIdParamDto,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<ServiceOrderStatusResponseDto> {
-    const status = await this.getOrderStatus.execute(params.id);
+    // A customer only sees their own order; an admin sees any. Passing the
+    // requester is what narrows the use case, so the role check stays here and
+    // the ownership rule stays in the application layer.
+    const requesterUserId =
+      user.role_id === UserRole.CUSTOMER ? user.user_id : undefined;
+
+    const status = await this.getOrderStatus.execute(
+      params.id,
+      requesterUserId,
+    );
     return { status };
   }
 

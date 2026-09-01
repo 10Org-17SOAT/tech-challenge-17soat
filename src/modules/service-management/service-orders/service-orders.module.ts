@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../../../shared/config/database/database.module';
 import { ConsultantModule } from '../../onboarding/consultant/consultant.module';
+import { CustomerModule } from '../../onboarding/customer/customer.module';
 import { VehicleManagementModule } from '../../onboarding/vehicles/vehicle-management.module';
 import { VEHICLE_LOOKUP } from '../../../shared/domain/ports/vehicle-lookup';
 import { CreateServiceOrderUseCase } from './application/create-service-order.usecase';
@@ -28,7 +29,14 @@ import { ServiceOrdersController } from './presentation/service-orders.controlle
   // an order opened for a vehicle that does not exist. ConsultantModule
   // exports only CONSULTANT_DIRECTORY_QUERY, used the same way to resolve
   // and validate the consultant opening the order.
-  imports: [DatabaseModule, VehicleManagementModule, ConsultantModule],
+  imports: [
+    DatabaseModule,
+    VehicleManagementModule,
+    ConsultantModule,
+    // For CUSTOMER_CONTACT_QUERY: resolving which customer is behind the
+    // requesting account is how order ownership is proved.
+    CustomerModule,
+  ],
   controllers: [ServiceOrdersController],
   providers: [
     {
