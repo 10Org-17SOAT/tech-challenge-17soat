@@ -106,21 +106,6 @@ Evolução ao longo das sete análises:
 **Nenhuma vulnerability e nenhum security hotspot** foram levantados em qualquer momento,
 com a base praticamente dobrando de tamanho (7.839 → 15.343 ncloc).
 
-#### Por que não há vulnerabilities
-
-O resultado não é acidental. Várias regras de segurança que o SonarCloud aplica a
-projetos Node/TypeScript já são atendidas por decisões estruturais documentadas nas ADRs
-em `docs/adr/`:
-
-| Risco típico | Decisão que o previne |
-| --- | --- |
-| Senha em texto claro | Senhas persistidas apenas como hash **bcrypt** (`password_hash`) |
-| Segredo hardcoded | Variáveis de ambiente validadas por schema Zod no boot; `JWT_SECRET` obrigatório com mínimo de 32 caracteres. Nenhum segredo no repositório — `.env.example` só tem placeholders |
-| Token de acesso persistido | O token de aprovação de orçamento é gravado **apenas como digest SHA-256** (`approval_token_hash`), com expiração; o valor bruto existe uma vez, em memória, o tempo de montar o link |
-| Injeção de SQL | Acesso a dados via **Drizzle ORM** com queries parametrizadas; sem concatenação de SQL |
-| Entrada não validada | Validação de contrato com **Zod** (`ZodValidationPipe` global) na fronteira de toda requisição, com política *fail-fast* |
-| Endpoint sem autorização | `JwtAuthGuard` e `RolesGuard` registrados como `APP_GUARD`; toda rota exige autenticação salvo as marcadas com `@Public()`, e o acesso é restrito por papel com `@Roles(...)` |
-
 ### 2.2 Issues de Reliability — backtracking super-linear (ReDoS latente)
 
 Três ocorrências da regra [`typescript:S8786`](https://rules.sonarsource.com/typescript/RSPEC-8786),
@@ -314,43 +299,6 @@ manual — automatizá-la é a recomendação 1 da seção 7.
 | Moderate | 4 | 4 | risco aceito (seção 5.1) |
 | Low | 0 | 0 | — |
 | **Total** | **6** | **4** | **−2** |
-
----
-
-## 7. Conclusão
-
-O código-fonte do projeto **não apresentou nenhuma vulnerabilidade de segurança nem
-nenhum security hotspot** em nenhuma das sete análises do SonarCloud, mantendo Security
-Rating A enquanto a base praticamente dobrou de tamanho. Isso é resultado de decisões
-estruturais tomadas antes da análise — hash de senha, segredos validados no boot, token
-persistido só como digest, ORM parametrizado, validação na fronteira e guards por papel.
-
-O valor da análise, portanto, não esteve em encontrar falhas graves onde não havia, mas
-em três lições sobre **onde o risco realmente estava**:
-
-1. **A métrica agregada esconde o achado.** `bugs: 0` e `code_smells: 90` sugerem que só
-   restava dívida de manutenibilidade. Decompondo pela taxonomia atual, 3 daquelas 90
-   eram backtracking super-linear em regex de validação — corrigidas no PR #93.
-2. **Análise estática de código não vê a cadeia de dependências.** As duas
-   vulnerabilidades `high` do projeto estavam em pacotes de terceiros, invisíveis para o
-   SonarCloud, e só apareceram sob `npm audit` — corrigidas no PR #92.
-3. **Severidade se mede no caminho real, não no trecho isolado.** As regex eram de fato
-   quadráticas em isolamento (2,5 s para 100 KB), mas a validação Zod na fronteira barra
-   o payload antes. Registrar isso como defeito latente, e não como vulnerabilidade
-   explorável, é o que mantém o relatório honesto.
-
-### Recomendações
-
-1. **Rodar `npm audit --audit-level=high` no CI**, para que uma nova vulnerabilidade
-   high/critical quebre o build em vez de depender de verificação manual.
-2. **Tornar o Quality Gate um check obrigatório** no merge para `develop` e `main`, hoje
-   ainda informativo.
-3. **Habilitar o Dependabot**, especialmente para acompanhar quando o `drizzle-kit`
-   resolver a cadeia do `esbuild`.
-4. **Ler o dashboard pela taxonomia Clean Code**, não pelas métricas legadas — foi o que
-   revelou o achado da seção 2.2.
-5. **Reduzir issues de manutenibilidade e duplicação** (87 e 2,6%) em uma frente própria
-   de qualidade, sem impacto de segurança.
 
 ### Verificação
 
