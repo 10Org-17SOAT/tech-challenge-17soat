@@ -6,24 +6,6 @@ import { Pool } from 'pg';
 import * as schema from '../src/shared/config/database/schema';
 import type { Specialty } from '../src/modules/mechanic/domain/value-objects/specialty.enum';
 
-/**
- * Popula a oficina com os atores e o catálogo que uma ordem de serviço exige,
- * para que um clone novo consiga percorrer todo o ciclo de vida sem cadastrar
- * nada à mão. A OS em si não é criada aqui: abrir, diagnosticar, orçar, executar
- * e pagar é justamente o roteiro do README.
- *
- * Os ids são fixos de propósito. O guia de fluxo cita cada um deles
- * literalmente, e um seed que sorteasse uuids a cada execução transformaria o
- * guia em paráfrase em vez de algo para colar no terminal.
- *
- * Todo insert é `on conflict do nothing`: rodar duas vezes não duplica nada e
- * nada é apagado, então uma OS aberta contra um veículo semeado sobrevive a uma
- * nova execução. Para recomeçar do zero, derrube o volume do Postgres
- * (`docker compose down -v`) e migre de novo.
- */
-
-// Um seed carrega credenciais conhecidas por todo mundo que lê o repositório —
-// é aceitável em desenvolvimento e inaceitável em produção.
 if (process.env.NODE_ENV === 'production') {
   throw new Error(
     'O seed é uma ferramenta de desenvolvimento e nunca deve rodar em produção.',
