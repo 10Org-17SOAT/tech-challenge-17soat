@@ -92,7 +92,7 @@ graph TD
         ONB -->|VehicleCatalogQuery| SM
         STOCK -->|SupplyCatalogQuery| SM
         MECH -.eventos.-> SM
-        PAY -.evento payment.received.-> SM
+        PAY -.evento PaymentReceived.-> SM
         SM -.reserva/baixa.-> STOCK
     end
 ```
