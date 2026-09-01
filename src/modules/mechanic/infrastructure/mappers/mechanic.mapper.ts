@@ -26,6 +26,7 @@ export class MechanicMapper {
     // Rebuilds VOs through constructors: corrupted rows fail fast.
     return Mechanic.restore({
       id: row.id,
+      userId: row.userId,
       name: row.name,
       cpf: new Cpf(row.cpf),
       email: new Email(row.email),

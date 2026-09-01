@@ -155,6 +155,13 @@
       "when": 1788261257814,
       "tag": "20260901111417_perpetual_gauntlet",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1788265457733,
+      "tag": "20260901122417_amusing_wong",
+      "breakpoints": true
     }
   ]
 }

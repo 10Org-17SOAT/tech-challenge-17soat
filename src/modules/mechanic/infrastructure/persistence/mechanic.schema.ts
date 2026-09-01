@@ -12,6 +12,7 @@ import {
 import type { PhoneProps } from '../../domain/value-objects/phone.value-object';
 import type { Specialty } from '../../domain/value-objects/specialty.enum';
 import { MECHANIC_AVAILABILITY } from '../../domain/value-objects/mechanic-availability.enum';
+import { users } from '../../../auth/infrastructure/persistence/schema';
 
 const AVAILABILITY_VALUES = Object.values(MECHANIC_AVAILABILITY)
   .map((value) => `'${value}'`)
@@ -21,6 +22,7 @@ export const mechanicsTable = pgTable(
   'mechanics',
   {
     id: uuid('mechanic_id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').references(() => users.user_id),
     name: varchar('name', { length: 255 }).notNull(),
     cpf: varchar('cpf', { length: 11 }).notNull(),
     email: varchar('email', { length: 255 }).notNull(),
