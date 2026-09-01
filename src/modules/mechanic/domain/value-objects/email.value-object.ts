@@ -1,6 +1,6 @@
 import { InvalidEmailException } from '../exceptions/mechanic.exceptions';
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/;
 
 export class Email {
   private readonly value: string;
