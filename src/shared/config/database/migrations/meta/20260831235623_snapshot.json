@@ -4,591 +4,6 @@
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.vehicles": {
-      "name": "vehicles",
-      "schema": "",
-      "columns": {
-        "vehicle_id": {
-          "name": "vehicle_id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "customer_id": {
-          "name": "customer_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "license_plate": {
-          "name": "license_plate",
-          "type": "varchar(20)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "model": {
-          "name": "model",
-          "type": "varchar(100)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "year": {
-          "name": "year",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "manufacturer": {
-          "name": "manufacturer",
-          "type": "varchar(100)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "color": {
-          "name": "color",
-          "type": "varchar(50)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "fuel_type": {
-          "name": "fuel_type",
-          "type": "varchar(20)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "odometer": {
-          "name": "odometer",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "idx_license_plate": {
-          "name": "idx_license_plate",
-          "columns": [
-            {
-              "expression": "license_plate",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "idx_fuel_type": {
-          "name": "idx_fuel_type",
-          "columns": [
-            {
-              "expression": "fuel_type",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "vehicles_customer_id_idx": {
-          "name": "vehicles_customer_id_idx",
-          "columns": [
-            {
-              "expression": "customer_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "vehicles_customer_id_customers_customer_id_fk": {
-          "name": "vehicles_customer_id_customers_customer_id_fk",
-          "tableFrom": "vehicles",
-          "tableTo": "customers",
-          "columnsFrom": [
-            "customer_id"
-          ],
-          "columnsTo": [
-            "customer_id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "vehicles_license_plate_unique": {
-          "name": "vehicles_license_plate_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "license_plate"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.customers": {
-      "name": "customers",
-      "schema": "",
-      "columns": {
-        "customer_id": {
-          "name": "customer_id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "person_type": {
-          "name": "person_type",
-          "type": "varchar(10)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "document": {
-          "name": "document",
-          "type": "varchar(14)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "corporate_name": {
-          "name": "corporate_name",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "trade_name": {
-          "name": "trade_name",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "email": {
-          "name": "email",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "phone": {
-          "name": "phone",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "address": {
-          "name": "address",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "customers_document_active_unique": {
-          "name": "customers_document_active_unique",
-          "columns": [
-            {
-              "expression": "document",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"customers\".\"deleted_at\" IS NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "customers_email_idx": {
-          "name": "customers_email_idx",
-          "columns": [
-            {
-              "expression": "email",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "customers_deleted_at_idx": {
-          "name": "customers_deleted_at_idx",
-          "columns": [
-            {
-              "expression": "deleted_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.users": {
-      "name": "users",
-      "schema": "",
-      "columns": {
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "email": {
-          "name": "email",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "password_hash": {
-          "name": "password_hash",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "role_id": {
-          "name": "role_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.service_supplies": {
-      "name": "service_supplies",
-      "schema": "",
-      "columns": {
-        "service_id": {
-          "name": "service_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "supply_id": {
-          "name": "supply_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "quantity": {
-          "name": "quantity",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "service_supplies_service_id_services_service_id_fk": {
-          "name": "service_supplies_service_id_services_service_id_fk",
-          "tableFrom": "service_supplies",
-          "tableTo": "services",
-          "columnsFrom": [
-            "service_id"
-          ],
-          "columnsTo": [
-            "service_id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "service_supplies_service_id_supply_id_pk": {
-          "name": "service_supplies_service_id_supply_id_pk",
-          "columns": [
-            "service_id",
-            "supply_id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "service_supplies_quantity_positive": {
-          "name": "service_supplies_quantity_positive",
-          "value": "\"service_supplies\".\"quantity\" > 0"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.services": {
-      "name": "services",
-      "schema": "",
-      "columns": {
-        "service_id": {
-          "name": "service_id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "category": {
-          "name": "category",
-          "type": "service_category",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "labor_price_in_cents": {
-          "name": "labor_price_in_cents",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "estimated_duration": {
-          "name": "estimated_duration",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "warranty_days": {
-          "name": "warranty_days",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "active": {
-          "name": "active",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "services_name_active_unique": {
-          "name": "services_name_active_unique",
-          "columns": [
-            {
-              "expression": "name",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"services\".\"deleted_at\" is null",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.stock_movements": {
-      "name": "stock_movements",
-      "schema": "",
-      "columns": {
-        "movement_id": {
-          "name": "movement_id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "supply_id": {
-          "name": "supply_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "type": {
-          "name": "type",
-          "type": "varchar(16)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "quantity": {
-          "name": "quantity",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "service_order_reference": {
-          "name": "service_order_reference",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "stock_movements_supply_id_idx": {
-          "name": "stock_movements_supply_id_idx",
-          "columns": [
-            {
-              "expression": "supply_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "stock_movements_supply_id_supplies_supply_id_fk": {
-          "name": "stock_movements_supply_id_supplies_supply_id_fk",
-          "tableFrom": "stock_movements",
-          "tableTo": "supplies",
-          "columnsFrom": [
-            "supply_id"
-          ],
-          "columnsTo": [
-            "supply_id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "stock_movements_quantity_positive": {
-          "name": "stock_movements_quantity_positive",
-          "value": "\"stock_movements\".\"quantity\" > 0"
-        },
-        "stock_movements_type_valid": {
-          "name": "stock_movements_type_valid",
-          "value": "\"stock_movements\".\"type\" in ('IN', 'RESERVE', 'CONSUME')"
-        }
-      },
-      "isRLSEnabled": false
-    },
     "public.supplies": {
       "name": "supplies",
       "schema": "",
@@ -642,23 +57,24 @@
           "columns": [
             {
               "expression": "name",
-              "isExpression": false,
               "asc": true,
-              "nulls": "last"
+              "nulls": "last",
+              "opclass": "text_ops",
+              "isExpression": false
             }
           ],
           "isUnique": true,
-          "where": "\"supplies\".\"deleted_at\" is null",
           "concurrently": false,
           "method": "btree",
+          "where": "(deleted_at IS NULL)",
           "with": {}
         }
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "policies": {},
       "checkConstraints": {},
+      "policies": {},
       "isRLSEnabled": false
     },
     "public.mechanics": {
@@ -748,36 +164,22 @@
         }
       },
       "indexes": {
-        "mechanics_cpf_active_unique": {
-          "name": "mechanics_cpf_active_unique",
-          "columns": [
-            {
-              "expression": "cpf",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"mechanics\".\"deleted_at\" IS NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "mechanics_availability_available_since_idx": {
           "name": "mechanics_availability_available_since_idx",
           "columns": [
             {
               "expression": "availability",
-              "isExpression": false,
               "asc": true,
-              "nulls": "last"
+              "nulls": "last",
+              "opclass": "text_ops",
+              "isExpression": false
             },
             {
               "expression": "available_since",
-              "isExpression": false,
               "asc": true,
-              "nulls": "last"
+              "nulls": "last",
+              "opclass": "text_ops",
+              "isExpression": false
             }
           ],
           "isUnique": false,
@@ -785,14 +187,32 @@
           "method": "btree",
           "with": {}
         },
+        "mechanics_cpf_active_unique": {
+          "name": "mechanics_cpf_active_unique",
+          "columns": [
+            {
+              "expression": "cpf",
+              "asc": true,
+              "nulls": "last",
+              "opclass": "text_ops",
+              "isExpression": false
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "where": "(deleted_at IS NULL)",
+          "with": {}
+        },
         "mechanics_deleted_at_idx": {
           "name": "mechanics_deleted_at_idx",
           "columns": [
             {
               "expression": "deleted_at",
-              "isExpression": false,
               "asc": true,
-              "nulls": "last"
+              "nulls": "last",
+              "opclass": "timestamptz_ops",
+              "isExpression": false
             }
           ],
           "isUnique": false,
@@ -804,152 +224,42 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "policies": {},
       "checkConstraints": {
         "mechanics_availability_valid": {
           "name": "mechanics_availability_valid",
-          "value": "\"mechanics\".\"availability\" in ('AVAILABLE', 'ALLOCATED', 'OFF_DUTY', 'INACTIVE')"
+          "value": "(availability)::text = ANY ((ARRAY['AVAILABLE'::character varying, 'ALLOCATED'::character varying, 'OFF_DUTY'::character varying, 'INACTIVE'::character varying])::text[])"
         }
       },
-      "isRLSEnabled": false
-    },
-    "public.service_items": {
-      "name": "service_items",
-      "schema": "",
-      "columns": {
-        "service_order_id": {
-          "name": "service_order_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "service_id": {
-          "name": "service_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "quantity": {
-          "name": "quantity",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "service_items_service_id_services_service_id_fk": {
-          "name": "service_items_service_id_services_service_id_fk",
-          "tableFrom": "service_items",
-          "tableTo": "services",
-          "columnsFrom": [
-            "service_id"
-          ],
-          "columnsTo": [
-            "service_id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "service_items_service_order_id_fk": {
-          "name": "service_items_service_order_id_fk",
-          "tableFrom": "service_items",
-          "tableTo": "service_orders",
-          "columnsFrom": [
-            "service_order_id"
-          ],
-          "columnsTo": [
-            "service_order_id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "service_items_service_order_id_service_id_pk": {
-          "name": "service_items_service_order_id_service_id_pk",
-          "columns": [
-            "service_order_id",
-            "service_id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {
-        "service_items_quantity_positive": {
-          "name": "service_items_quantity_positive",
-          "value": "\"service_items\".\"quantity\" > 0"
-        }
-      },
       "isRLSEnabled": false
     },
-    "public.service_orders": {
-      "name": "service_orders",
+    "public.stock_keepers": {
+      "name": "stock_keepers",
       "schema": "",
       "columns": {
-        "service_order_id": {
-          "name": "service_order_id",
+        "stock_keeper_id": {
+          "name": "stock_keeper_id",
           "type": "uuid",
           "primaryKey": true,
           "notNull": true
         },
-        "vehicle_id": {
-          "name": "vehicle_id",
-          "type": "uuid",
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true
         },
-        "status": {
-          "name": "status",
-          "type": "service_order_status",
-          "typeSchema": "public",
+        "cpf": {
+          "name": "cpf",
+          "type": "varchar(11)",
           "primaryKey": false,
-          "notNull": true,
-          "default": "'received'"
+          "notNull": true
         },
-        "approved_by_customer": {
-          "name": "approved_by_customer",
-          "type": "boolean",
+        "phone": {
+          "name": "phone",
+          "type": "varchar(11)",
           "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "notes": {
-          "name": "notes",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "vehicle_mileage_at_entry": {
-          "name": "vehicle_mileage_at_entry",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "scheduled_at": {
-          "name": "scheduled_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "started_at": {
-          "name": "started_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "completed_at": {
-          "name": "completed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "delivered_at": {
-          "name": "delivered_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "created_at": {
           "name": "created_at",
@@ -971,29 +281,94 @@
         }
       },
       "indexes": {
-        "service_orders_vehicle_id_idx": {
-          "name": "service_orders_vehicle_id_idx",
+        "stock_keepers_cpf_active_unique": {
+          "name": "stock_keepers_cpf_active_unique",
           "columns": [
             {
-              "expression": "vehicle_id",
-              "isExpression": false,
+              "expression": "cpf",
               "asc": true,
-              "nulls": "last"
+              "nulls": "last",
+              "opclass": "text_ops",
+              "isExpression": false
             }
           ],
-          "isUnique": false,
+          "isUnique": true,
           "concurrently": false,
           "method": "btree",
+          "where": "(deleted_at IS NULL)",
           "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {},
+      "policies": {},
+      "isRLSEnabled": false
+    },
+    "public.stock_movements": {
+      "name": "stock_movements",
+      "schema": "",
+      "columns": {
+        "movement_id": {
+          "name": "movement_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
         },
-        "service_orders_completed_at_idx": {
-          "name": "service_orders_completed_at_idx",
+        "supply_id": {
+          "name": "supply_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "varchar(16)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quantity": {
+          "name": "quantity",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "service_order_reference": {
+          "name": "service_order_reference",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "performed_by_id": {
+          "name": "performed_by_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "performed_by_name": {
+          "name": "performed_by_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "stock_movements_supply_id_idx": {
+          "name": "stock_movements_supply_id_idx",
           "columns": [
             {
-              "expression": "completed_at",
-              "isExpression": false,
+              "expression": "supply_id",
               "asc": true,
-              "nulls": "last"
+              "nulls": "last",
+              "opclass": "uuid_ops",
+              "isExpression": false
             }
           ],
           "isUnique": false,
@@ -1003,15 +378,16 @@
         }
       },
       "foreignKeys": {
-        "service_orders_vehicle_id_vehicles_vehicle_id_fk": {
-          "name": "service_orders_vehicle_id_vehicles_vehicle_id_fk",
-          "tableFrom": "service_orders",
-          "tableTo": "vehicles",
+        "stock_movements_supply_id_supplies_supply_id_fk": {
+          "name": "stock_movements_supply_id_supplies_supply_id_fk",
+          "tableFrom": "stock_movements",
+          "tableTo": "supplies",
+          "schemaTo": "public",
           "columnsFrom": [
-            "vehicle_id"
+            "supply_id"
           ],
           "columnsTo": [
-            "vehicle_id"
+            "supply_id"
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
@@ -1019,8 +395,120 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
+      "checkConstraints": {
+        "stock_movements_quantity_positive": {
+          "name": "stock_movements_quantity_positive",
+          "value": "quantity > 0"
+        },
+        "stock_movements_type_valid": {
+          "name": "stock_movements_type_valid",
+          "value": "(type)::text = ANY ((ARRAY['IN'::character varying, 'RESERVE'::character varying, 'CONSUME'::character varying])::text[])"
+        },
+        "stock_movements_in_requires_performer": {
+          "name": "stock_movements_in_requires_performer",
+          "value": "((type)::text <> 'IN'::text) OR (performed_by_id IS NOT NULL)"
+        }
+      },
       "policies": {},
+      "isRLSEnabled": false
+    },
+    "public.services": {
+      "name": "services",
+      "schema": "",
+      "columns": {
+        "service_id": {
+          "name": "service_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "category": {
+          "name": "category",
+          "type": "service_category",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "labor_price_in_cents": {
+          "name": "labor_price_in_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "estimated_duration": {
+          "name": "estimated_duration",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "warranty_days": {
+          "name": "warranty_days",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "active": {
+          "name": "active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "services_name_active_unique": {
+          "name": "services_name_active_unique",
+          "columns": [
+            {
+              "expression": "name",
+              "asc": true,
+              "nulls": "last",
+              "opclass": "text_ops",
+              "isExpression": false
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "where": "(deleted_at IS NULL)",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
       "checkConstraints": {},
+      "policies": {},
       "isRLSEnabled": false
     },
     "public.diagnostics": {
@@ -1058,9 +546,10 @@
           "columns": [
             {
               "expression": "service_order_id",
-              "isExpression": false,
               "asc": true,
-              "nulls": "last"
+              "nulls": "last",
+              "opclass": "uuid_ops",
+              "isExpression": false
             }
           ],
           "isUnique": false,
@@ -1074,6 +563,7 @@
           "name": "diagnostics_service_order_id_service_orders_service_order_id_fk",
           "tableFrom": "diagnostics",
           "tableTo": "service_orders",
+          "schemaTo": "public",
           "columnsFrom": [
             "service_order_id"
           ],
@@ -1086,8 +576,8 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "policies": {},
       "checkConstraints": {},
+      "policies": {},
       "isRLSEnabled": false
     },
     "public.quotation_items": {
@@ -1144,9 +634,10 @@
           "columns": [
             {
               "expression": "quotation_id",
-              "isExpression": false,
               "asc": true,
-              "nulls": "last"
+              "nulls": "last",
+              "opclass": "uuid_ops",
+              "isExpression": false
             }
           ],
           "isUnique": false,
@@ -1160,6 +651,7 @@
           "name": "quotation_items_quotation_id_quotations_quotation_id_fk",
           "tableFrom": "quotation_items",
           "tableTo": "quotations",
+          "schemaTo": "public",
           "columnsFrom": [
             "quotation_id"
           ],
@@ -1172,17 +664,17 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "policies": {},
       "checkConstraints": {
         "quotation_items_quantity_positive": {
           "name": "quotation_items_quantity_positive",
-          "value": "\"quotation_items\".\"quantity\" > 0"
+          "value": "quantity > 0"
         },
         "quotation_items_unit_price_non_negative": {
           "name": "quotation_items_unit_price_non_negative",
-          "value": "\"quotation_items\".\"unit_price_in_cents\" >= 0"
+          "value": "unit_price_in_cents >= 0"
         }
       },
+      "policies": {},
       "isRLSEnabled": false
     },
     "public.quotations": {
@@ -1253,33 +745,35 @@
         }
       },
       "indexes": {
-        "quotations_service_order_unique": {
-          "name": "quotations_service_order_unique",
-          "columns": [
-            {
-              "expression": "service_order_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "quotations_approval_token_hash_unique": {
           "name": "quotations_approval_token_hash_unique",
           "columns": [
             {
               "expression": "approval_token_hash",
-              "isExpression": false,
               "asc": true,
-              "nulls": "last"
+              "nulls": "last",
+              "opclass": "text_ops",
+              "isExpression": false
             }
           ],
           "isUnique": true,
-          "where": "\"quotations\".\"approval_token_hash\" IS NOT NULL",
+          "concurrently": false,
+          "method": "btree",
+          "where": "(approval_token_hash IS NOT NULL)",
+          "with": {}
+        },
+        "quotations_service_order_unique": {
+          "name": "quotations_service_order_unique",
+          "columns": [
+            {
+              "expression": "service_order_id",
+              "asc": true,
+              "nulls": "last",
+              "opclass": "uuid_ops",
+              "isExpression": false
+            }
+          ],
+          "isUnique": true,
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -1290,6 +784,7 @@
           "name": "quotations_service_order_id_service_orders_service_order_id_fk",
           "tableFrom": "quotations",
           "tableTo": "service_orders",
+          "schemaTo": "public",
           "columnsFrom": [
             "service_order_id"
           ],
@@ -1302,8 +797,501 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "policies": {},
       "checkConstraints": {},
+      "policies": {},
+      "isRLSEnabled": false
+    },
+    "public.customers": {
+      "name": "customers",
+      "schema": "",
+      "columns": {
+        "customer_id": {
+          "name": "customer_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "person_type": {
+          "name": "person_type",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "document": {
+          "name": "document",
+          "type": "varchar(14)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "corporate_name": {
+          "name": "corporate_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "trade_name": {
+          "name": "trade_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "phone": {
+          "name": "phone",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "address": {
+          "name": "address",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "customers_deleted_at_idx": {
+          "name": "customers_deleted_at_idx",
+          "columns": [
+            {
+              "expression": "deleted_at",
+              "asc": true,
+              "nulls": "last",
+              "opclass": "timestamptz_ops",
+              "isExpression": false
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "customers_document_active_unique": {
+          "name": "customers_document_active_unique",
+          "columns": [
+            {
+              "expression": "document",
+              "asc": true,
+              "nulls": "last",
+              "opclass": "text_ops",
+              "isExpression": false
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "where": "(deleted_at IS NULL)",
+          "with": {}
+        },
+        "customers_email_idx": {
+          "name": "customers_email_idx",
+          "columns": [
+            {
+              "expression": "email",
+              "asc": true,
+              "nulls": "last",
+              "opclass": "text_ops",
+              "isExpression": false
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {},
+      "policies": {},
+      "isRLSEnabled": false
+    },
+    "public.vehicles": {
+      "name": "vehicles",
+      "schema": "",
+      "columns": {
+        "vehicle_id": {
+          "name": "vehicle_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "license_plate": {
+          "name": "license_plate",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "model": {
+          "name": "model",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "year": {
+          "name": "year",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "manufacturer": {
+          "name": "manufacturer",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "color": {
+          "name": "color",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fuel_type": {
+          "name": "fuel_type",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "odometer": {
+          "name": "odometer",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "idx_fuel_type": {
+          "name": "idx_fuel_type",
+          "columns": [
+            {
+              "expression": "fuel_type",
+              "asc": true,
+              "nulls": "last",
+              "opclass": "text_ops",
+              "isExpression": false
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_license_plate": {
+          "name": "idx_license_plate",
+          "columns": [
+            {
+              "expression": "license_plate",
+              "asc": true,
+              "nulls": "last",
+              "opclass": "text_ops",
+              "isExpression": false
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "vehicles_customer_id_idx": {
+          "name": "vehicles_customer_id_idx",
+          "columns": [
+            {
+              "expression": "customer_id",
+              "asc": true,
+              "nulls": "last",
+              "opclass": "uuid_ops",
+              "isExpression": false
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "vehicles_customer_id_customers_customer_id_fk": {
+          "name": "vehicles_customer_id_customers_customer_id_fk",
+          "tableFrom": "vehicles",
+          "tableTo": "customers",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "customer_id"
+          ],
+          "columnsTo": [
+            "customer_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "vehicles_license_plate_unique": {
+          "columns": [
+            "license_plate"
+          ],
+          "nullsNotDistinct": false,
+          "name": "vehicles_license_plate_unique"
+        }
+      },
+      "checkConstraints": {},
+      "policies": {},
+      "isRLSEnabled": false
+    },
+    "public.anamneses": {
+      "name": "anamneses",
+      "schema": "",
+      "columns": {
+        "anamnesis_id": {
+          "name": "anamnesis_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "service_order_id": {
+          "name": "service_order_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "consultant_id": {
+          "name": "consultant_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_by": {
+          "name": "updated_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "main_complaint": {
+          "name": "main_complaint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "problem_description": {
+          "name": "problem_description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "problem_started_at": {
+          "name": "problem_started_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "how_started": {
+          "name": "how_started",
+          "type": "anamnesis_how_started",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "evolution": {
+          "name": "evolution",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "occurrence_conditions": {
+          "name": "occurrence_conditions",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "frequency": {
+          "name": "frequency",
+          "type": "anamnesis_frequency",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "severity": {
+          "name": "severity",
+          "type": "anamnesis_severity",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "previous_occurrences": {
+          "name": "previous_occurrences",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "recent_maintenance": {
+          "name": "recent_maintenance",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "warning_lights": {
+          "name": "warning_lights",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "unusual_noises_smells": {
+          "name": "unusual_noises_smells",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "behavior_changes": {
+          "name": "behavior_changes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "usage_conditions": {
+          "name": "usage_conditions",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "customer_observations": {
+          "name": "customer_observations",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "idx_anamneses_service_order_id": {
+          "name": "idx_anamneses_service_order_id",
+          "columns": [
+            {
+              "expression": "service_order_id",
+              "asc": true,
+              "nulls": "last",
+              "opclass": "uuid_ops",
+              "isExpression": false
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "anamneses_service_order_id_service_orders_service_order_id_fk": {
+          "name": "anamneses_service_order_id_service_orders_service_order_id_fk",
+          "tableFrom": "anamneses",
+          "tableTo": "service_orders",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "service_order_id"
+          ],
+          "columnsTo": [
+            "service_order_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "anamneses_service_order_id_unique": {
+          "columns": [
+            "service_order_id"
+          ],
+          "nullsNotDistinct": false,
+          "name": "anamneses_service_order_id_unique"
+        }
+      },
+      "checkConstraints": {},
+      "policies": {},
       "isRLSEnabled": false
     },
     "public.payments": {
@@ -1353,9 +1341,10 @@
           "columns": [
             {
               "expression": "service_order_reference",
-              "isExpression": false,
               "asc": true,
-              "nulls": "last"
+              "nulls": "last",
+              "opclass": "uuid_ops",
+              "isExpression": false
             }
           ],
           "isUnique": true,
@@ -1367,20 +1356,464 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "policies": {},
       "checkConstraints": {
         "payments_amount_in_cents_positive": {
           "name": "payments_amount_in_cents_positive",
-          "value": "\"payments\".\"amount_in_cents\" > 0"
+          "value": "amount_in_cents > 0"
         }
       },
+      "policies": {},
+      "isRLSEnabled": false
+    },
+    "public.consultants": {
+      "name": "consultants",
+      "schema": "",
+      "columns": {
+        "consultant_id": {
+          "name": "consultant_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cpf": {
+          "name": "cpf",
+          "type": "varchar(11)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "phone": {
+          "name": "phone",
+          "type": "varchar(11)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "consultants_cpf_active_unique": {
+          "name": "consultants_cpf_active_unique",
+          "columns": [
+            {
+              "expression": "cpf",
+              "asc": true,
+              "nulls": "last",
+              "opclass": "text_ops",
+              "isExpression": false
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "where": "(deleted_at IS NULL)",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {},
+      "policies": {},
+      "isRLSEnabled": false
+    },
+    "public.service_orders": {
+      "name": "service_orders",
+      "schema": "",
+      "columns": {
+        "service_order_id": {
+          "name": "service_order_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "service_order_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'received'"
+        },
+        "approved_by_customer": {
+          "name": "approved_by_customer",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "vehicle_mileage_at_entry": {
+          "name": "vehicle_mileage_at_entry",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "scheduled_at": {
+          "name": "scheduled_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "vehicle_id": {
+          "name": "vehicle_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "delivered_at": {
+          "name": "delivered_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "opened_by_id": {
+          "name": "opened_by_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "opened_by_name": {
+          "name": "opened_by_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "service_orders_completed_at_idx": {
+          "name": "service_orders_completed_at_idx",
+          "columns": [
+            {
+              "expression": "completed_at",
+              "asc": true,
+              "nulls": "last",
+              "opclass": "timestamptz_ops",
+              "isExpression": false
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "service_orders_vehicle_id_idx": {
+          "name": "service_orders_vehicle_id_idx",
+          "columns": [
+            {
+              "expression": "vehicle_id",
+              "asc": true,
+              "nulls": "last",
+              "opclass": "uuid_ops",
+              "isExpression": false
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "service_orders_vehicle_id_vehicles_vehicle_id_fk": {
+          "name": "service_orders_vehicle_id_vehicles_vehicle_id_fk",
+          "tableFrom": "service_orders",
+          "tableTo": "vehicles",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "vehicle_id"
+          ],
+          "columnsTo": [
+            "vehicle_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {},
+      "policies": {},
+      "isRLSEnabled": false
+    },
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password_hash": {
+          "name": "password_hash",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role_id": {
+          "name": "role_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {},
+      "policies": {},
+      "isRLSEnabled": false
+    },
+    "public.service_supplies": {
+      "name": "service_supplies",
+      "schema": "",
+      "columns": {
+        "service_id": {
+          "name": "service_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "supply_id": {
+          "name": "supply_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quantity": {
+          "name": "quantity",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "service_supplies_service_id_services_service_id_fk": {
+          "name": "service_supplies_service_id_services_service_id_fk",
+          "tableFrom": "service_supplies",
+          "tableTo": "services",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "service_id"
+          ],
+          "columnsTo": [
+            "service_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "service_supplies_service_id_supply_id_pk": {
+          "name": "service_supplies_service_id_supply_id_pk",
+          "columns": [
+            "service_id",
+            "supply_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "service_supplies_quantity_positive": {
+          "name": "service_supplies_quantity_positive",
+          "value": "quantity > 0"
+        }
+      },
+      "policies": {},
+      "isRLSEnabled": false
+    },
+    "public.service_items": {
+      "name": "service_items",
+      "schema": "",
+      "columns": {
+        "service_order_id": {
+          "name": "service_order_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "service_id": {
+          "name": "service_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quantity": {
+          "name": "quantity",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "service_items_service_id_services_service_id_fk": {
+          "name": "service_items_service_id_services_service_id_fk",
+          "tableFrom": "service_items",
+          "tableTo": "services",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "service_id"
+          ],
+          "columnsTo": [
+            "service_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "service_items_service_order_id_fk": {
+          "name": "service_items_service_order_id_fk",
+          "tableFrom": "service_items",
+          "tableTo": "service_orders",
+          "schemaTo": "public",
+          "columnsFrom": [
+            "service_order_id"
+          ],
+          "columnsTo": [
+            "service_order_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "service_items_service_order_id_service_id_pk": {
+          "name": "service_items_service_order_id_service_id_pk",
+          "columns": [
+            "service_order_id",
+            "service_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "service_items_quantity_positive": {
+          "name": "service_items_quantity_positive",
+          "value": "quantity > 0"
+        }
+      },
+      "policies": {},
       "isRLSEnabled": false
     }
   },
   "enums": {
+    "public.anamnesis_frequency": {
+      "name": "anamnesis_frequency",
+      "values": [
+        "constant",
+        "intermittent",
+        "rare"
+      ],
+      "schema": "public"
+    },
+    "public.anamnesis_how_started": {
+      "name": "anamnesis_how_started",
+      "values": [
+        "sudden",
+        "gradual",
+        "after_event"
+      ],
+      "schema": "public"
+    },
+    "public.anamnesis_severity": {
+      "name": "anamnesis_severity",
+      "values": [
+        "light",
+        "moderate",
+        "severe"
+      ],
+      "schema": "public"
+    },
+    "public.quotation_item_kind": {
+      "name": "quotation_item_kind",
+      "values": [
+        "labor",
+        "part"
+      ],
+      "schema": "public"
+    },
+    "public.quotation_status": {
+      "name": "quotation_status",
+      "values": [
+        "issued",
+        "approved"
+      ],
+      "schema": "public"
+    },
     "public.service_category": {
       "name": "service_category",
-      "schema": "public",
       "values": [
         "mechanical",
         "electrical",
@@ -1392,11 +1825,11 @@
         "air_conditioning",
         "inspection",
         "other"
-      ]
+      ],
+      "schema": "public"
     },
     "public.service_order_status": {
       "name": "service_order_status",
-      "schema": "public",
       "values": [
         "received",
         "in_diagnosis",
@@ -1405,23 +1838,8 @@
         "in_execution",
         "finished",
         "delivered"
-      ]
-    },
-    "public.quotation_item_kind": {
-      "name": "quotation_item_kind",
-      "schema": "public",
-      "values": [
-        "labor",
-        "part"
-      ]
-    },
-    "public.quotation_status": {
-      "name": "quotation_status",
-      "schema": "public",
-      "values": [
-        "issued",
-        "approved"
-      ]
+      ],
+      "schema": "public"
     }
   },
   "schemas": {},
@@ -1430,8 +1848,11 @@
   "policies": {},
   "views": {},
   "_meta": {
-    "columns": {},
     "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
     "tables": {}
   }
 }
