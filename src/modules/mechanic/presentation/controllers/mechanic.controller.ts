@@ -155,11 +155,23 @@ export class MechanicController {
     return MechanicResponseMapper.toResponseDTO(mechanic);
   }
 
+  /**
+   * An operational escape hatch, not part of the normal flow: finishing the
+   * work already frees the mechanic. This one abandons the allocation without
+   * finishing it — the order stays in `in_execution` waiting for a new claim —
+   * which is why it is narrowed to ADMIN and a mechanic cannot walk off a job
+   * on their own.
+   */
+  @Roles(UserRole.ADMIN)
   @Post(':id/release')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Libera um mecânico alocado (release)' })
+  @ApiOperation({
+    summary:
+      'Libera um mecânico alocado sem concluir a OS (exceção operacional)',
+  })
   @ApiResponse({ status: 200, type: MechanicResponseDto })
   @ApiResponse({ status: 400, description: 'Payload inválido' })
+  @ApiResponse({ status: 403, description: 'Apenas ADMIN pode liberar' })
   @ApiResponse({ status: 404, description: 'Mecânico não encontrado' })
   @ApiResponse({
     status: 409,

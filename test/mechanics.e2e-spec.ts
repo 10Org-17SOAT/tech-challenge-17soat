@@ -383,12 +383,25 @@ describe('Mechanics (e2e)', () => {
 
   describe('POST /mechanics/:id/release', () => {
     const serviceOrderId = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
+    // Release is an operational exception, restricted to ADMIN.
+    const asAdmin = () => httpAs(app, tokenFor(app, UserRole.ADMIN));
+
+    it('forbids a mechanic from releasing themselves', async () => {
+      const mechanic = await seedMechanic();
+      mechanic.claim(serviceOrderId);
+
+      const res = await http()
+        .post(`/mechanics/${mechanic.getId()}/release`)
+        .send({ serviceOrderId });
+
+      expect(res.status).toBe(403);
+    });
 
     it('releases an allocated mechanic and marks it AVAILABLE', async () => {
       const mechanic = await seedMechanic();
       mechanic.claim(serviceOrderId);
 
-      const res = await http()
+      const res = await asAdmin()
         .post(`/mechanics/${mechanic.getId()}/release`)
         .send({ serviceOrderId });
 
@@ -399,7 +412,7 @@ describe('Mechanics (e2e)', () => {
     });
 
     it('returns 404 for an unknown id', async () => {
-      const res = await http()
+      const res = await asAdmin()
         .post('/mechanics/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11/release')
         .send({ serviceOrderId });
 
@@ -409,7 +422,7 @@ describe('Mechanics (e2e)', () => {
     it('returns 409 when the mechanic is not allocated', async () => {
       const mechanic = await seedMechanic();
 
-      const res = await http()
+      const res = await asAdmin()
         .post(`/mechanics/${mechanic.getId()}/release`)
         .send({ serviceOrderId });
 
@@ -420,7 +433,7 @@ describe('Mechanics (e2e)', () => {
       const mechanic = await seedMechanic();
       mechanic.claim(serviceOrderId);
 
-      const res = await http()
+      const res = await asAdmin()
         .post(`/mechanics/${mechanic.getId()}/release`)
         .send({ serviceOrderId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22' });
 
@@ -430,7 +443,7 @@ describe('Mechanics (e2e)', () => {
     it('rejects an invalid payload with 400', async () => {
       const mechanic = await seedMechanic();
 
-      const res = await http()
+      const res = await asAdmin()
         .post(`/mechanics/${mechanic.getId()}/release`)
         .send({});
 
