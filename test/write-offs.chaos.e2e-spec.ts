@@ -11,6 +11,7 @@ describe('Write-offs chaos (e2e)', () => {
   let app: INestApplication<App>;
   let pool: Pool;
   let publisher: RecordingDomainEventPublisher;
+  let stockKeeperId: string;
 
   beforeAll(async () => {
     publisher = new RecordingDomainEventPublisher();
@@ -32,6 +33,16 @@ describe('Write-offs chaos (e2e)', () => {
       password: process.env.DB_PASSWORD ?? 'postgres',
       database: process.env.DB_NAME ?? 'tech_challenge',
     });
+
+    stockKeeperId = await request(app.getHttpServer())
+      .post('/stock-keepers')
+      .send({
+        name: 'Estoquista de teste',
+        cpf: '33366699957',
+        phone: '11987654321',
+      })
+      .expect(201)
+      .then((res) => (res.body as { id: string }).id);
   });
 
   beforeEach(async () => {
@@ -63,7 +74,7 @@ describe('Write-offs chaos (e2e)', () => {
     const supplyId = (res.body as { id: string }).id;
     await http()
       .post(`/supplies/${supplyId}/stock-entries`)
-      .send({ quantity: inQuantity })
+      .send({ quantity: inQuantity, stockKeeperId })
       .expect(201);
     await http()
       .post(`/supplies/${supplyId}/reservations`)

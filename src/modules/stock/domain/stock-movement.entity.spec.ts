@@ -2,11 +2,16 @@ import { randomUUID } from 'node:crypto';
 import { InvalidStockMovementError } from './errors/invalid-stock-movement.error';
 import { MovementType, StockMovement } from './stock-movement.entity';
 
+const TEST_PERFORMER = {
+  id: '11111111-1111-1111-1111-111111111111',
+  name: 'Estoquista Teste',
+};
+
 describe('StockMovement', () => {
   const supplyId = randomUUID();
 
   it('creates an IN movement with a positive quantity', () => {
-    const movement = StockMovement.in(supplyId, 5);
+    const movement = StockMovement.in(supplyId, 5, TEST_PERFORMER);
 
     expect(movement.type).toBe(MovementType.In);
     expect(movement.supplyId).toBe(supplyId);
@@ -17,13 +22,13 @@ describe('StockMovement', () => {
   });
 
   it('rejects a movement with zero quantity', () => {
-    expect(() => StockMovement.in(supplyId, 0)).toThrow(
+    expect(() => StockMovement.in(supplyId, 0, TEST_PERFORMER)).toThrow(
       InvalidStockMovementError,
     );
   });
 
   it('rejects a movement with a negative quantity', () => {
-    expect(() => StockMovement.in(supplyId, -3)).toThrow(
+    expect(() => StockMovement.in(supplyId, -3, TEST_PERFORMER)).toThrow(
       InvalidStockMovementError,
     );
   });

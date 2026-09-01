@@ -130,6 +130,20 @@
       "when": 1788152899903,
       "tag": "20260831050819_aberrant_red_ghost",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1788128896177,
+      "tag": "20260830222816_add_stock_keepers",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1788128989508,
+      "tag": "20260830222949_require_stock_keeper_on_stock_entry",
+      "breakpoints": true
     }
   ]
 }

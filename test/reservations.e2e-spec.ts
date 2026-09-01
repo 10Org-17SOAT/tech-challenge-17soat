@@ -12,6 +12,7 @@ describe('Reservations (e2e)', () => {
   let app: INestApplication<App>;
   let pool: Pool;
   let publisher: RecordingDomainEventPublisher;
+  let stockKeeperId: string;
 
   beforeAll(async () => {
     publisher = new RecordingDomainEventPublisher();
@@ -33,6 +34,16 @@ describe('Reservations (e2e)', () => {
       password: process.env.DB_PASSWORD ?? 'postgres',
       database: process.env.DB_NAME ?? 'tech_challenge',
     });
+
+    stockKeeperId = await request(app.getHttpServer())
+      .post('/stock-keepers')
+      .send({
+        name: 'Estoquista de teste',
+        cpf: '11144477735',
+        phone: '11987654321',
+      })
+      .expect(201)
+      .then((res) => (res.body as { id: string }).id);
   });
 
   // Movements reference supplies, so they must be cleared first.
@@ -74,7 +85,7 @@ describe('Reservations (e2e)', () => {
     const supplyId = (res.body as { id: string }).id;
     await http()
       .post(`/supplies/${supplyId}/stock-entries`)
-      .send({ quantity })
+      .send({ quantity, stockKeeperId })
       .expect(201);
     return supplyId;
   };

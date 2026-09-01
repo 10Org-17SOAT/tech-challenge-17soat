@@ -31,6 +31,7 @@ describe('Stock entries (e2e)', () => {
   beforeEach(async () => {
     await pool.query('DELETE FROM stock_movements');
     await pool.query('DELETE FROM supplies');
+    await pool.query('DELETE FROM stock_keepers');
   });
 
   afterAll(async () => {
@@ -62,6 +63,19 @@ describe('Stock entries (e2e)', () => {
     return (res.body as { id: string }).id;
   };
 
+  // beforeEach clears stock_keepers, so a fixed CPF never collides across tests.
+  const createStockKeeper = async (): Promise<string> => {
+    const res = await http()
+      .post('/stock-keepers')
+      .send({
+        name: 'Estoquista de teste',
+        cpf: '52998224725',
+        phone: '11987654321',
+      })
+      .expect(201);
+    return (res.body as { id: string }).id;
+  };
+
   const balanceOf = async (supplyId: string): Promise<number> => {
     const { rows } = await pool.query<{ total: string }>(
       `select coalesce(sum(quantity), 0) as total
@@ -74,11 +88,12 @@ describe('Stock entries (e2e)', () => {
 
   it('registers an entry and raises the available balance by the given quantity', async () => {
     const supplyId = await createSupply();
+    const stockKeeperId = await createStockKeeper();
 
     const body = entryBody(
       await http()
         .post(`/supplies/${supplyId}/stock-entries`)
-        .send({ quantity: 12 })
+        .send({ quantity: 12, stockKeeperId })
         .expect(201),
     );
 
@@ -92,30 +107,45 @@ describe('Stock entries (e2e)', () => {
   });
 
   it('returns 404 for a supply that does not exist', async () => {
+    const stockKeeperId = await createStockKeeper();
+
     await http()
       .post(`/supplies/${randomUUID()}/stock-entries`)
-      .send({ quantity: 3 })
+      .send({ quantity: 3, stockKeeperId })
       .expect(404);
   });
 
   it('returns 404 for a soft deleted supply', async () => {
     const supplyId = await createSupply();
+    const stockKeeperId = await createStockKeeper();
     await http().delete(`/supplies/${supplyId}`).expect(204);
 
     await http()
       .post(`/supplies/${supplyId}/stock-entries`)
-      .send({ quantity: 3 })
+      .send({ quantity: 3, stockKeeperId })
       .expect(404);
+  });
+
+  it('returns 404 for a stock keeper that does not exist', async () => {
+    const supplyId = await createSupply();
+
+    await http()
+      .post(`/supplies/${supplyId}/stock-entries`)
+      .send({ quantity: 3, stockKeeperId: randomUUID() })
+      .expect(404);
+
+    await expect(balanceOf(supplyId)).resolves.toBe(0);
   });
 
   it.each([0, -5, 2.5, 'dez'])(
     'returns 400 for the invalid quantity %p',
     async (quantity) => {
       const supplyId = await createSupply();
+      const stockKeeperId = await createStockKeeper();
 
       await http()
         .post(`/supplies/${supplyId}/stock-entries`)
-        .send({ quantity })
+        .send({ quantity, stockKeeperId })
         .expect(400);
 
       await expect(balanceOf(supplyId)).resolves.toBe(0);
@@ -124,13 +154,14 @@ describe('Stock entries (e2e)', () => {
 
   it('applies concurrent entries for the same supply without a lost update', async () => {
     const supplyId = await createSupply();
+    const stockKeeperId = await createStockKeeper();
     const quantities = [5, 8, 13, 21];
 
     await Promise.all(
       quantities.map((quantity) =>
         http()
           .post(`/supplies/${supplyId}/stock-entries`)
-          .send({ quantity })
+          .send({ quantity, stockKeeperId })
           .expect(201),
       ),
     );
