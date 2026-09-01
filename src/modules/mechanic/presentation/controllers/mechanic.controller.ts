@@ -11,13 +11,19 @@ import {
   Query,
   UseFilters,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CreateMechanicUseCase } from '../../application/use-cases/create-mechanic.use-case';
 import { GetMechanicByIdUseCase } from '../../application/use-cases/get-mechanic-by-id.use-case';
 import { ListMechanicsUseCase } from '../../application/use-cases/list-mechanics.use-case';
 import { UpdateMechanicProfileUseCase } from '../../application/use-cases/update-mechanic-profile.use-case';
 import { DeactivateMechanicUseCase } from '../../application/use-cases/deactivate-mechanic.use-case';
 import { FindAvailableMechanicUseCase } from '../../application/use-cases/find-available-mechanic.use-case';
+import { CompleteExecutionUseCase } from '../../application/use-cases/complete-execution.use-case';
 import { ReleaseMechanicUseCase } from '../../application/use-cases/release-mechanic.use-case';
 import { MechanicResponseMapper } from '../../application/mappers/mechanic-response.mapper';
 import {
@@ -37,8 +43,12 @@ import {
   MechanicResponseDTO,
   PaginatedMechanicsDTO,
 } from '../../application/dto/mechanic.dto';
+import { Roles } from '../../../auth/decorators/roles.decorator';
+import { UserRole } from '../../../auth/roles/role.enum';
 
 @ApiTags('mechanics')
+@ApiBearerAuth()
+@Roles(UserRole.ADMIN, UserRole.MECHANIC)
 @Controller('mechanics')
 @UseFilters(MechanicErrorsFilter)
 export class MechanicController {
@@ -50,6 +60,7 @@ export class MechanicController {
     private readonly deactivateMechanic: DeactivateMechanicUseCase,
     private readonly findAvailableMechanic: FindAvailableMechanicUseCase,
     private readonly releaseMechanic: ReleaseMechanicUseCase,
+    private readonly completeExecution: CompleteExecutionUseCase,
   ) {}
 
   @Post()
@@ -151,6 +162,29 @@ export class MechanicController {
     @Body() body: ReleaseMechanicDto,
   ): Promise<MechanicResponseDTO> {
     const mechanic = await this.releaseMechanic.execute({
+      mechanicId: params.id,
+      serviceOrderId: body.serviceOrderId,
+    });
+    return MechanicResponseMapper.toResponseDTO(mechanic);
+  }
+
+  @Post(':id/complete-execution')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Mecânico conclui a execução da OS e é liberado',
+  })
+  @ApiResponse({ status: 200, type: MechanicResponseDto })
+  @ApiResponse({ status: 400, description: 'Payload inválido' })
+  @ApiResponse({ status: 404, description: 'Mecânico não encontrado' })
+  @ApiResponse({
+    status: 409,
+    description: 'Mecânico não está alocado ou service order incorreta',
+  })
+  async completeExecutionOnOrder(
+    @Param() params: MechanicIdParamDto,
+    @Body() body: ReleaseMechanicDto,
+  ): Promise<MechanicResponseDTO> {
+    const mechanic = await this.completeExecution.execute({
       mechanicId: params.id,
       serviceOrderId: body.serviceOrderId,
     });
