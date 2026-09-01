@@ -1,6 +1,7 @@
 import { ServiceOrderNotDeletableError } from '../domain/errors/service-order-not-deletable.error';
 import { ServiceOrderNotFoundError } from '../domain/errors/service-order-not-found.error';
 import { ServiceOrder } from '../domain/service-order.entity';
+import type { AnamnesisCascadePort } from '../domain/ports/anamnesis-cascade.port';
 import { InMemoryServiceOrderRepository } from '../__test__/in-memory-service-order.repository';
 import { DeleteServiceOrderUseCase } from './delete-service-order.usecase';
 
@@ -11,11 +12,13 @@ const OPENED_BY_NAME = 'Consultant Fixture';
 
 describe('DeleteServiceOrderUseCase', () => {
   let repository: InMemoryServiceOrderRepository;
+  let anamnesisCascade: AnamnesisCascadePort;
   let useCase: DeleteServiceOrderUseCase;
 
   beforeEach(() => {
     repository = new InMemoryServiceOrderRepository();
-    useCase = new DeleteServiceOrderUseCase(repository);
+    anamnesisCascade = { softDeleteByServiceOrderId: jest.fn().mockResolvedValue(undefined) };
+    useCase = new DeleteServiceOrderUseCase(repository, anamnesisCascade);
   });
 
   it('soft deletes an order in status received', async () => {

@@ -1,6 +1,7 @@
 import { InvalidServiceOrderTransitionError } from '../domain/errors/invalid-service-order-transition.error';
 import { ServiceOrderNotFoundError } from '../domain/errors/service-order-not-found.error';
 import { ServiceOrder } from '../domain/service-order.entity';
+import type { AnamnesisExistencePort } from '../domain/ports/anamnesis-existence.port';
 import { InMemoryServiceOrderRepository } from '../__test__/in-memory-service-order.repository';
 import { StartDiagnosisUseCase } from './start-diagnosis.usecase';
 
@@ -11,11 +12,13 @@ const OPENED_BY_NAME = 'Consultant Fixture';
 
 describe('StartDiagnosisUseCase', () => {
   let orders: InMemoryServiceOrderRepository;
+  let anamnesisExistence: AnamnesisExistencePort;
   let useCase: StartDiagnosisUseCase;
 
   beforeEach(() => {
     orders = new InMemoryServiceOrderRepository();
-    useCase = new StartDiagnosisUseCase(orders);
+    anamnesisExistence = { existsByServiceOrderId: jest.fn().mockResolvedValue(true) };
+    useCase = new StartDiagnosisUseCase(orders, anamnesisExistence);
   });
 
   it('moves a received order into diagnosis', async () => {

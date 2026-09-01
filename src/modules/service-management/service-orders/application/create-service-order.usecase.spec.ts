@@ -1,5 +1,5 @@
 import { InMemoryConsultantDirectoryQuery } from '../../../onboarding/consultant/__test__/in-memory-consultant-directory.query';
-import { InMemoryVehicleCatalogQuery } from '../../../onboarding/vehicles/__test__/in-memory-vehicle-catalog.query';
+import type { VehicleLookup } from '../../../../shared/domain/ports/vehicle-lookup';
 import { ConsultantNotFoundForServiceOrderError } from '../domain/errors/consultant-not-found-for-service-order.error';
 import { VehicleNotFoundForServiceOrderError } from '../domain/errors/vehicle-not-found-for-service-order.error';
 import { InMemoryServiceOrderRepository } from '../__test__/in-memory-service-order.repository';
@@ -11,24 +11,16 @@ const OPENED_BY_NAME = 'Consultant Fixture';
 
 describe('CreateServiceOrderUseCase', () => {
   let repository: InMemoryServiceOrderRepository;
-  let vehicles: InMemoryVehicleCatalogQuery;
+  let vehicleLookup: VehicleLookup;
   let consultants: InMemoryConsultantDirectoryQuery;
   let useCase: CreateServiceOrderUseCase;
 
   beforeEach(() => {
     repository = new InMemoryServiceOrderRepository();
-    vehicles = new InMemoryVehicleCatalogQuery();
-    vehicles.add({
-      id: VEHICLE_ID,
-      ownerId: '3f6a1b20-1c2d-4e3f-8a9b-0c1d2e3f4a5b',
-      manufacturer: 'Fiat',
-      model: 'Uno',
-      year: 2018,
-      licensePlate: 'ABC-1234',
-    });
+    vehicleLookup = { exists: jest.fn().mockResolvedValue(true) };
     consultants = new InMemoryConsultantDirectoryQuery();
     consultants.add({ id: OPENED_BY_ID, name: OPENED_BY_NAME });
-    useCase = new CreateServiceOrderUseCase(repository, vehicles, consultants);
+    useCase = new CreateServiceOrderUseCase(repository, vehicleLookup, consultants);
   });
 
   it('creates an order in status received and persists it', async () => {
@@ -52,6 +44,7 @@ describe('CreateServiceOrderUseCase', () => {
       vehicleId: VEHICLE_ID,
       openedById: OPENED_BY_ID,
     });
+    expect(order.vehicleId).toBe(VEHICLE_ID);
     expect(order.notes).toBeNull();
     expect(order.vehicleMileageAtEntry).toBeNull();
     expect(order.scheduledAt).toBeNull();
@@ -60,6 +53,8 @@ describe('CreateServiceOrderUseCase', () => {
   // Checked before the insert so the caller sees a 404 rather than a foreign
   // key violation surfacing as a 500.
   it('refuses an order for a vehicle that is not registered', async () => {
+    (vehicleLookup.exists as jest.Mock).mockResolvedValue(false);
+
     await expect(
       useCase.execute({
         vehicleId: 'f0000000-0000-4000-8000-000000000000',
@@ -69,6 +64,8 @@ describe('CreateServiceOrderUseCase', () => {
   });
 
   it('does not persist anything when the vehicle is unknown', async () => {
+    (vehicleLookup.exists as jest.Mock).mockResolvedValue(false);
+
     await expect(
       useCase.execute({
         vehicleId: 'f0000000-0000-4000-8000-000000000000',
@@ -78,6 +75,12 @@ describe('CreateServiceOrderUseCase', () => {
 
     const { total } = await repository.findMany({ page: 1, limit: 10 });
     expect(total).toBe(0);
+  });
+
+  it('checks that the vehicle exists before creating the order', async () => {
+    await useCase.execute({ vehicleId: VEHICLE_ID, openedById: OPENED_BY_ID });
+
+    expect(vehicleLookup.exists).toHaveBeenCalledWith(VEHICLE_ID);
   });
 
   // Same reasoning as the vehicle check: the name in the snapshot must come

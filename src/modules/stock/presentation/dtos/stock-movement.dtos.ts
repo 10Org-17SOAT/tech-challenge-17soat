@@ -4,6 +4,7 @@ import { StockMovement } from '../../domain/stock-movement.entity';
 
 export const registerStockEntrySchema = z.object({
   quantity: z.number().int().positive(),
+  stockKeeperId: z.uuid(),
 });
 
 export class RegisterStockEntryDto extends createZodDto(

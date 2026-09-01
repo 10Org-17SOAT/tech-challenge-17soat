@@ -6,6 +6,11 @@ import { InMemorySupplyRepository } from '../__test__/in-memory-supply.repositor
 import { RecordingDomainEventPublisher } from '../__test__/recording-domain-event.publisher';
 import { WriteOffReservedPartUseCase } from './write-off-reserved-part.usecase';
 
+const TEST_PERFORMER = {
+  id: '11111111-1111-1111-1111-111111111111',
+  name: 'Estoquista Teste',
+};
+
 describe('WriteOffReservedPartUseCase chaos', () => {
   let supplyRepository: InMemorySupplyRepository;
   let movementRepository: InMemoryStockMovementRepository;
@@ -19,7 +24,9 @@ describe('WriteOffReservedPartUseCase chaos', () => {
   ): Promise<string> => {
     const supply = Supply.create({ name: 'Amortecedor', priceInCents: 12000 });
     await supplyRepository.save(supply);
-    await movementRepository.save(StockMovement.in(supply.id, inQuantity));
+    await movementRepository.save(
+      StockMovement.in(supply.id, inQuantity, TEST_PERFORMER),
+    );
     await movementRepository.save(
       StockMovement.reserve(supply.id, reservedQuantity, serviceOrderReference),
     );

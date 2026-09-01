@@ -1,8 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CONSULTANT_DIRECTORY_QUERY } from '../../../onboarding/consultant/public/consultant-directory.query';
 import type { ConsultantDirectoryQuery } from '../../../onboarding/consultant/public/consultant-directory.query';
-import { VEHICLE_CATALOG_QUERY } from '../../../onboarding/vehicles/public/vehicle-catalog.query';
-import type { VehicleCatalogQuery } from '../../../onboarding/vehicles/public/vehicle-catalog.query';
+import { VEHICLE_LOOKUP } from '../../../../shared/domain/ports/vehicle-lookup';
+import type { VehicleLookup } from '../../../../shared/domain/ports/vehicle-lookup';
 import { ConsultantNotFoundForServiceOrderError } from '../domain/errors/consultant-not-found-for-service-order.error';
 import { VehicleNotFoundForServiceOrderError } from '../domain/errors/vehicle-not-found-for-service-order.error';
 import { ServiceOrder } from '../domain/service-order.entity';
@@ -22,15 +22,15 @@ export class CreateServiceOrderUseCase {
   constructor(
     @Inject(SERVICE_ORDER_REPOSITORY)
     private readonly orderRepository: ServiceOrderRepository,
-    @Inject(VEHICLE_CATALOG_QUERY)
-    private readonly vehicles: VehicleCatalogQuery,
+    @Inject(VEHICLE_LOOKUP)
+    private readonly vehicleLookup: VehicleLookup,
     @Inject(CONSULTANT_DIRECTORY_QUERY)
     private readonly consultants: ConsultantDirectoryQuery,
   ) {}
 
   async execute(input: CreateServiceOrderInput): Promise<ServiceOrder> {
-    const vehicle = await this.vehicles.findById(input.vehicleId);
-    if (!vehicle) {
+    const vehicleExists = await this.vehicleLookup.exists(input.vehicleId);
+    if (!vehicleExists) {
       throw new VehicleNotFoundForServiceOrderError(input.vehicleId);
     }
 

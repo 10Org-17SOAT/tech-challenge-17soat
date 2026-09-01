@@ -7,12 +7,10 @@ import {
   HttpStatus,
   Param,
   Patch,
-  Post,
   Query,
   UseFilters,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { CreateServiceOrderUseCase } from '../application/create-service-order.usecase';
 import { DeleteServiceOrderUseCase } from '../application/delete-service-order.usecase';
 import { GetAverageExecutionTimeUseCase } from '../application/get-average-execution-time.usecase';
 import { GetServiceOrderStatusUseCase } from '../application/get-service-order-status.usecase';
@@ -22,7 +20,6 @@ import { UpdateServiceOrderUseCase } from '../application/update-service-order.u
 import {
   AverageExecutionTimeQueryDto,
   AverageExecutionTimeResponseDto,
-  CreateServiceOrderDto,
   ListServiceOrdersQueryDto,
   ServiceOrderIdParamDto,
   ServiceOrderResponseDto,
@@ -38,7 +35,6 @@ import { ServiceOrderErrorsFilter } from './service-order-errors.filter';
 @UseFilters(ServiceOrderErrorsFilter)
 export class ServiceOrdersController {
   constructor(
-    private readonly createOrder: CreateServiceOrderUseCase,
     private readonly getOrder: GetServiceOrderUseCase,
     private readonly getOrderStatus: GetServiceOrderStatusUseCase,
     private readonly listOrders: ListServiceOrdersUseCase,
@@ -57,17 +53,6 @@ export class ServiceOrdersController {
     return { items: items.map(toServiceOrderResponse), total, page, limit };
   }
 
-  @Post()
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Abre uma OS em status received' })
-  @ApiResponse({ status: 201, type: ServiceOrderResponseDto })
-  async create(
-    @Body() body: CreateServiceOrderDto,
-  ): Promise<ServiceOrderResponseDto> {
-    const order = await this.createOrder.execute(body);
-    return toServiceOrderResponse(order);
-  }
-
   // Declared above `@Get(':id')` on purpose: Nest matches routes in
   // declaration order, so moving this below would make the literal path fall
   // into `getById` and fail the UUID check with a 400. The e2e test pins it.
@@ -76,8 +61,8 @@ export class ServiceOrdersController {
     summary: 'Tempo médio de execução das OSs finalizadas',
     description:
       'Média entre a entrada em in_execution (startedAt) e a finalização ' +
-      '(completedAt). Não inclui a espera por diagnóstico nem pela aprovação ' +
-      'do cliente. A janela from/to recorta por completedAt.',
+      "(completedAt). Não inclui a espera por diagnóstico nem pela aprovação " +
+      "do cliente. A janela from/to recorta por completedAt.",
   })
   @ApiResponse({ status: 200, type: AverageExecutionTimeResponseDto })
   @ApiResponse({ status: 400, description: '"from" posterior a "to"' })
@@ -86,7 +71,6 @@ export class ServiceOrdersController {
   ): Promise<AverageExecutionTimeResponseDto> {
     return this.getAverageExecutionTime.execute(query);
   }
-
   @Get(':id')
   @ApiOperation({ summary: 'Consulta uma OS por ID' })
   @ApiResponse({ status: 200, type: ServiceOrderResponseDto })

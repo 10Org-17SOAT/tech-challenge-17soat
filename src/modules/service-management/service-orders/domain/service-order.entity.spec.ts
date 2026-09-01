@@ -19,6 +19,7 @@ describe('ServiceOrder', () => {
     expect(order.id).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
     );
+    expect(order.vehicleId).toBe(VEHICLE_ID);
     expect(order.status).toBe('received');
     expect(order.approvedByCustomer).toBe(false);
     expect(order.notes).toBeNull();
@@ -48,6 +49,29 @@ describe('ServiceOrder', () => {
         notes: '   ',
       }).notes,
     ).toBeNull();
+  });
+
+  it('restores vehicleId from persisted props', () => {
+    const createdAt = new Date('2026-08-30T10:00:00Z');
+    const order = ServiceOrder.restore({
+      id: '33333333-3333-3333-3333-333333333333',
+      vehicleId: VEHICLE_ID,
+      openedById: OPENED_BY_ID,
+      openedByName: OPENED_BY_NAME,
+      status: 'received',
+      approvedByCustomer: false,
+      notes: null,
+      vehicleMileageAtEntry: null,
+      scheduledAt: null,
+      startedAt: null,
+      completedAt: null,
+      deliveredAt: null,
+      createdAt,
+      updatedAt: createdAt,
+      deletedAt: null,
+    });
+
+    expect(order.vehicleId).toBe(VEHICLE_ID);
   });
 
   it('rejects negative or non-integer mileage', () => {
