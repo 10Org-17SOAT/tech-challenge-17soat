@@ -38,6 +38,7 @@ const makeMechanic = (overrides?: {
   specialties?: Specialty[];
   availability?: MechanicAvailability;
   availableSince?: Date;
+  userId?: string | null;
 }): Mechanic => {
   const now = new Date();
   const availability =
@@ -46,7 +47,7 @@ const makeMechanic = (overrides?: {
 
   const mechanic = Mechanic.restore({
     id: overrides?.id ?? randomUUID(),
-    userId: null,
+    userId: overrides?.userId ?? null,
     name: overrides?.name ?? 'John Doe',
     cpf: new Cpf(overrides?.cpf ?? validCpf('111444777')),
     email: new Email('john.doe@example.com'),
@@ -140,6 +141,32 @@ export function describeMechanicRepositoryContract(
       await repository.deactivateIfNotAllocated(mechanic.getId());
 
       await expect(repository.findById(mechanic.getId())).resolves.toBeNull();
+    });
+  });
+
+  describe('findByUserId', () => {
+    it('returns the mechanic linked to the account', async () => {
+      const userId = randomUUID();
+      const mechanic = makeMechanic({ userId });
+      await repository.save(mechanic);
+
+      const found = await repository.findByUserId(userId);
+
+      expect(found?.getId()).toBe(mechanic.getId());
+    });
+
+    it('returns null for an account with no mechanic linked', async () => {
+      await expect(repository.findByUserId(randomUUID())).resolves.toBeNull();
+    });
+
+    // A deactivated mechanic must not be able to act, so the link goes with it.
+    it('returns null for a deactivated mechanic', async () => {
+      const userId = randomUUID();
+      const mechanic = makeMechanic({ userId });
+      await repository.save(mechanic);
+      await repository.deactivateIfNotAllocated(mechanic.getId());
+
+      await expect(repository.findByUserId(userId)).resolves.toBeNull();
     });
   });
 

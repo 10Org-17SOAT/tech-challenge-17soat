@@ -56,6 +56,12 @@ export interface MechanicRepository {
   save(mechanic: Mechanic): Promise<Mechanic>;
   updateProfile(mechanic: Mechanic): Promise<Mechanic | null>;
   findById(id: string): Promise<Mechanic | null>;
+  /**
+   * The mechanic acting as a given auth account, for proving that a caller is
+   * who they claim. `null` when no active mechanic is linked to it — `user_id`
+   * is nullable, so an account may have no profile at all.
+   */
+  findByUserId(userId: string): Promise<Mechanic | null>;
   findMany(params: FindMechanicsParams): Promise<PaginatedResult<Mechanic>>;
   claimIfAvailable(filter: ClaimFilter): Promise<Mechanic | null>;
   releaseIfAllocated(

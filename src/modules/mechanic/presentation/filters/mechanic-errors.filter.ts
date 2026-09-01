@@ -4,6 +4,7 @@ import {
   Catch,
   ConflictException,
   ExceptionFilter,
+  ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
 import { Response } from 'express';
@@ -14,6 +15,7 @@ import {
   InvalidEmailException,
   InvalidMechanicException,
   InvalidPhoneException,
+  MechanicIdentityMismatchException,
   MechanicNotAllocatedException,
   WrongServiceOrderException,
 } from '../../domain/exceptions/mechanic.exceptions';
@@ -28,6 +30,7 @@ import {
   DuplicateCpfException,
   AllocatedMechanicException,
   MechanicNotAllocatedException,
+  MechanicIdentityMismatchException,
   WrongServiceOrderException,
   InvalidMechanicException,
   InvalidCpfException,
@@ -49,6 +52,11 @@ export class MechanicErrorsFilter implements ExceptionFilter {
       exception instanceof NoAvailableMechanicException
     ) {
       return new NotFoundException(exception.message);
+    }
+    // The role was right and the identity was not, which is a 403 — never a
+    // 404, because the mechanic plainly exists.
+    if (exception instanceof MechanicIdentityMismatchException) {
+      return new ForbiddenException(exception.message);
     }
     if (
       exception instanceof DuplicateCpfException ||

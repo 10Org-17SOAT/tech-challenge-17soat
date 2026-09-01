@@ -44,6 +44,15 @@ import {
   PaginatedMechanicsDTO,
 } from '../../application/dto/mechanic.dto';
 import { Roles, UserRole } from '../../../auth/public/roles';
+import { CurrentUser } from '../../../auth/public/current-user';
+import type { AuthenticatedUser } from '../../../auth/public/current-user';
+
+/**
+ * A mechanic acts only as themselves; an admin acts for anyone, so it passes
+ * no identity and the use case skips the check.
+ */
+const actingMechanicOf = (user: AuthenticatedUser): string | undefined =>
+  user.role_id === UserRole.MECHANIC ? user.user_id : undefined;
 
 @ApiTags('mechanics')
 @ApiBearerAuth()
@@ -159,10 +168,12 @@ export class MechanicController {
   async release(
     @Param() params: MechanicIdParamDto,
     @Body() body: ReleaseMechanicDto,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<MechanicResponseDTO> {
     const mechanic = await this.releaseMechanic.execute({
       mechanicId: params.id,
       serviceOrderId: body.serviceOrderId,
+      actingUserId: actingMechanicOf(user),
     });
     return MechanicResponseMapper.toResponseDTO(mechanic);
   }
@@ -182,10 +193,12 @@ export class MechanicController {
   async completeExecutionOnOrder(
     @Param() params: MechanicIdParamDto,
     @Body() body: ReleaseMechanicDto,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<MechanicResponseDTO> {
     const mechanic = await this.completeExecution.execute({
       mechanicId: params.id,
       serviceOrderId: body.serviceOrderId,
+      actingUserId: actingMechanicOf(user),
     });
     return MechanicResponseMapper.toResponseDTO(mechanic);
   }

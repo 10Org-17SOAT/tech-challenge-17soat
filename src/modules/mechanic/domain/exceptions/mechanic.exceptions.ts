@@ -56,6 +56,17 @@ export class WrongServiceOrderException extends MechanicException {
   }
 }
 
+/**
+ * The caller is a mechanic acting on someone else's allocation. Distinct from
+ * a role failure: the role is right, the identity is not.
+ */
+export class MechanicIdentityMismatchException extends MechanicException {
+  constructor(id: string) {
+    super(`You may only act on your own allocation, not mechanic "${id}".`);
+    this.name = 'MechanicIdentityMismatchException';
+  }
+}
+
 export class AllocatedMechanicException extends MechanicException {
   constructor(id: string) {
     super(`Mechanic with id "${id}" is allocated and cannot be deactivated.`);

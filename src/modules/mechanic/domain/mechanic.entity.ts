@@ -203,6 +203,11 @@ export class Mechanic {
     return this.id;
   }
 
+  /** The auth account this mechanic acts as. Null only on legacy rows. */
+  getUserId(): string | null {
+    return this.userId;
+  }
+
   getName(): string {
     return this.name;
   }

@@ -58,6 +58,9 @@ export const mechanicsTable = pgTable(
       table.availableSince,
     ),
     index('mechanics_deleted_at_idx').on(table.deletedAt),
+    // Same access path as customers: proving the caller is the mechanic they
+    // claim to be starts from user_id.
+    index('mechanics_user_id_idx').on(table.userId),
     check(
       'mechanics_availability_valid',
       sql`${table.availability} in ('AVAILABLE', 'ALLOCATED', 'OFF_DUTY', 'INACTIVE')`,
