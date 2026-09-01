@@ -44,8 +44,16 @@ describe('FindAvailableMechanicUseCase chaos', () => {
       expect(stored?.getAvailability()).toBe(MECHANIC_AVAILABILITY.Allocated);
       expect(stored?.getCurrentServiceOrderId()).toBeDefined();
 
-      // Exactly one event: the winning claim.
-      expect(publisher.events).toHaveLength(1);
+      // Exactly one allocation: the winning claim. The loser must not have
+      // announced anything, so each event type appears once and only once.
+      expect(
+        publisher.events.filter(
+          (e) => e.name === 'mechanics.mechanic-allocated',
+        ),
+      ).toHaveLength(1);
+      expect(
+        publisher.events.filter((e) => e.name === 'mechanic.execution-started'),
+      ).toHaveLength(1);
     });
   });
 });
