@@ -28,6 +28,7 @@ export class CustomerMapper {
 
     return {
       id: primitives.id,
+      userId: primitives.userId,
       personType: primitives.personType,
       document: primitives.document,
       name: primitives.name,
@@ -50,6 +51,7 @@ export class CustomerMapper {
   static toDomain(row: CustomerRow): Customer {
     return Customer.restore({
       id: row.id,
+      userId: row.userId,
       personType: row.personType as PersonType,
       document: new Document(row.document),
       name: row.name,

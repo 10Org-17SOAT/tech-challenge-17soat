@@ -4,10 +4,12 @@ import { Document } from './value-objects/document.value-object';
 import { Email } from './value-objects/email.value-object';
 import { Phone } from './value-objects/phone.value-object';
 import { Address } from './value-objects/address.value-object';
+import { requireUserId } from '../../../../shared/domain/guards/require-user-id';
 import { InvalidCustomerException } from './exceptions/customer.exceptions';
 
 export interface CustomerProps {
   id?: string;
+  userId?: string | null;
   personType: PersonType;
   document: Document;
   name?: string | null;
@@ -23,6 +25,7 @@ export interface CustomerProps {
 
 export class Customer {
   private readonly id: string;
+  private userId: string | null;
   private readonly personType: PersonType;
   private readonly document: Document;
   private readonly name: string | null;
@@ -39,6 +42,7 @@ export class Customer {
     this.validate(props);
 
     this.id = props.id ?? randomUUID();
+    this.userId = props.userId ?? null;
     this.personType = props.personType;
     this.document = props.document;
     this.name = props.name ?? null;
@@ -53,8 +57,18 @@ export class Customer {
   }
 
   static create(
-    props: Omit<CustomerProps, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>,
+    props: Omit<
+      CustomerProps,
+      'id' | 'userId' | 'createdAt' | 'updatedAt' | 'deletedAt'
+    > & { userId: string },
   ): Customer {
+    requireUserId(
+      props.userId,
+      () =>
+        new InvalidCustomerException(
+          'A customer requires a linked user account.',
+        ),
+    );
     return new Customer(props);
   }
 
@@ -120,6 +134,7 @@ export class Customer {
 
   toPrimitives(): {
     id: string;
+    userId: string | null;
     personType: PersonType;
     document: string;
     name: string | null;
@@ -146,6 +161,7 @@ export class Customer {
   } {
     return {
       id: this.id,
+      userId: this.userId,
       personType: this.personType,
       document: this.document.getValue(),
       name: this.name,

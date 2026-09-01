@@ -13,6 +13,7 @@ import {
 } from './exceptions/mechanic.exceptions';
 
 const validProps = {
+  userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   name: 'John Doe',
   cpf: '11144477735',
   email: 'john.doe@example.com',
@@ -65,21 +66,32 @@ describe('Mechanic', () => {
         }),
       ).toThrow();
     });
+
+    it('rejects creation without a linked user account', () => {
+      expect(() => Mechanic.create({ ...validProps, userId: '' })).toThrow(
+        InvalidMechanicException,
+      );
+    });
   });
+
 
   describe('updateProfile', () => {
     it('updates only the provided fields', () => {
       const mechanic = makeMechanic();
 
+      const newHireDate = new Date('2025-02-01T00:00:00.000Z');
       mechanic.updateProfile({
         name: 'Jane Doe',
         email: 'jane.doe@example.com',
+        phone: { countryCode: '55', areaCode: '11', number: '987654321' },
+        hireDate: newHireDate,
       });
 
       expect(mechanic.getName()).toBe('Jane Doe');
       expect(mechanic.getEmail().getValue()).toBe('jane.doe@example.com');
       expect(mechanic.getCpf().getValue()).toBe('11144477735');
-      expect(mechanic.getPhone().getNumber()).toBe('912345678');
+      expect(mechanic.getPhone().getNumber()).toBe('987654321');
+      expect(mechanic.getHireDate()).toBe(newHireDate);
       expect(mechanic.getSpecialties()).toEqual(['mechanical', 'electrical']);
     });
 
@@ -136,6 +148,7 @@ describe('Mechanic', () => {
       const now = new Date();
       const mechanic = Mechanic.restore({
         id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+        userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         name: 'John Doe',
         cpf: new Cpf('11144477735'),
         email: new Email('john.doe@example.com'),
@@ -228,6 +241,7 @@ describe('Mechanic', () => {
       const now = new Date();
       const mechanic = Mechanic.restore({
         id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+        userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         name: 'John Doe',
         cpf: new Cpf('11144477735'),
         email: new Email('john.doe@example.com'),
@@ -256,6 +270,7 @@ describe('Mechanic', () => {
       expect(() =>
         Mechanic.restore({
           id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+          userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
           name: 'John Doe',
           cpf: new Cpf('123'),
           email: new Email('john.doe@example.com'),
@@ -286,6 +301,7 @@ describe('Mechanic', () => {
 
       const restored = Mechanic.restore({
         id: a.getId(),
+        userId: null,
         name: a.getName(),
         cpf: a.getCpf(),
         email: a.getEmail(),
@@ -312,6 +328,7 @@ describe('Mechanic', () => {
 
       expect(primitives).toEqual({
         id: mechanic.getId(),
+        userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         name: 'John Doe',
         cpf: '11144477735',
         email: 'john.doe@example.com',

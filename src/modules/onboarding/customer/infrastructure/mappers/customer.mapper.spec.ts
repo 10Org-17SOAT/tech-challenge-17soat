@@ -8,6 +8,7 @@ import { CustomerMapper, type CustomerRow } from './customer.mapper';
 
 const makePfCustomer = (): Customer =>
   Customer.create({
+    userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
     personType: PersonType.CPF,
     document: new Document('11144477735'),
     name: 'John Doe',
@@ -63,6 +64,7 @@ describe('CustomerMapper', () => {
     const now = new Date();
     const row: CustomerRow = {
       id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+      userId: null,
       personType: PersonType.CNPJ,
       document: '11444777000161',
       name: null,

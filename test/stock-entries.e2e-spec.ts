@@ -5,6 +5,7 @@ import { Pool } from 'pg';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
+import { givenUser } from './fixtures';
 
 describe('Stock entries (e2e)', () => {
   let app: INestApplication<App>;
@@ -65,9 +66,11 @@ describe('Stock entries (e2e)', () => {
 
   // beforeEach clears stock_keepers, so a fixed CPF never collides across tests.
   const createStockKeeper = async (): Promise<string> => {
+    const userId = (await givenUser(app.getHttpServer())).id;
     const res = await http()
       .post('/stock-keepers')
       .send({
+        userId,
         name: 'Estoquista de teste',
         cpf: '52998224725',
         phone: '11987654321',

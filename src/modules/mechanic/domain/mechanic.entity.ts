@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import { Cpf } from './value-objects/cpf.value-object';
 import { Email } from './value-objects/email.value-object';
 import { Phone, type PhoneProps } from './value-objects/phone.value-object';
+import { requireUserId } from '../../../shared/domain/guards/require-user-id';
 import {
   MECHANIC_AVAILABILITY,
   type MechanicAvailability,
@@ -16,6 +17,7 @@ import {
 } from './exceptions/mechanic.exceptions';
 
 export interface CreateMechanicProps {
+  userId: string;
   name: string;
   cpf: string;
   email: string;
@@ -26,6 +28,7 @@ export interface CreateMechanicProps {
 
 export interface MechanicProps {
   id: string;
+  userId: string | null;
   name: string;
   cpf: Cpf;
   email: Email;
@@ -67,6 +70,7 @@ export interface UpdateMechanicProfileProps {
  */
 export class Mechanic {
   private readonly id: string;
+  private userId: string | null;
   private readonly cpf: Cpf;
   private name: string;
   private email: Email;
@@ -82,6 +86,7 @@ export class Mechanic {
 
   private constructor(props: MechanicProps) {
     this.id = props.id;
+    this.userId = props.userId;
     this.name = props.name;
     this.cpf = props.cpf;
     this.email = props.email;
@@ -97,6 +102,14 @@ export class Mechanic {
   }
 
   static create(props: CreateMechanicProps): Mechanic {
+    const userId = requireUserId(
+      props.userId,
+      () =>
+        new InvalidMechanicException(
+          'A mechanic requires a linked user account.',
+        ),
+    );
+
     const name = this.validateName(props.name);
     this.validateSpecialties(props.specialties);
 
@@ -104,6 +117,7 @@ export class Mechanic {
 
     return new Mechanic({
       id: randomUUID(),
+      userId,
       name,
       cpf: new Cpf(props.cpf),
       email: new Email(props.email),
@@ -243,6 +257,7 @@ export class Mechanic {
 
   toPrimitives(): {
     id: string;
+    userId: string | null;
     name: string;
     cpf: string;
     email: string;
@@ -258,6 +273,7 @@ export class Mechanic {
   } {
     return {
       id: this.id,
+      userId: this.userId,
       name: this.name,
       cpf: this.cpf.getValue(),
       email: this.email.getValue(),

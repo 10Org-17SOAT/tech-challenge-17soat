@@ -5,6 +5,7 @@ import { CONSULTANT_REPOSITORY } from '../domain/consultant.repository';
 import type { ConsultantRepository } from '../domain/consultant.repository';
 
 export interface CreateConsultantInput {
+  userId: string;
   name: string;
   cpf: string;
   phone: string;

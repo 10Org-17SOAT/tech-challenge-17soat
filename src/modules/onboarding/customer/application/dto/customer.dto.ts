@@ -1,6 +1,7 @@
 import { PersonType } from '../../domain/value-objects/person-type.enum';
 
 export interface CreateCustomerInput {
+  userId: string;
   personType: PersonType;
   document: string;
   name?: string;

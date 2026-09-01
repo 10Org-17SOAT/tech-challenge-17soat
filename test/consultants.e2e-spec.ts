@@ -52,7 +52,7 @@ describe('Consultants (e2e)', () => {
     it('creates a consultant', async () => {
       const res = await http()
         .post('/consultants')
-        .send({ name: 'Carlos Consultor', cpf: '529.982.247-25', phone: '(11) 98765-4321' })
+        .send({ userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', name: 'Carlos Consultor', cpf: '529.982.247-25', phone: '(11) 98765-4321' })
         .expect(201);
 
       const body = res.body as ConsultantResponse;
@@ -65,17 +65,17 @@ describe('Consultants (e2e)', () => {
     it('rejects a duplicate active CPF', async () => {
       await http()
         .post('/consultants')
-        .send({ name: 'Carlos Consultor', cpf: '52998224725', phone: '11987654321' })
+        .send({ userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', name: 'Carlos Consultor', cpf: '52998224725', phone: '11987654321' })
         .expect(201);
 
       await http()
         .post('/consultants')
-        .send({ name: 'Outra Pessoa', cpf: '52998224725', phone: '11912345678' })
+        .send({ userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', name: 'Outra Pessoa', cpf: '52998224725', phone: '11912345678' })
         .expect(409);
     });
 
     it('rejects an invalid payload', async () => {
-      await http().post('/consultants').send({ name: '', cpf: '1', phone: '1' }).expect(400);
+      await http().post('/consultants').send({ userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', name: '', cpf: '1', phone: '1' }).expect(400);
     });
   });
 
@@ -83,7 +83,7 @@ describe('Consultants (e2e)', () => {
     it('returns an existing consultant', async () => {
       const created = await http()
         .post('/consultants')
-        .send({ name: 'Carlos Consultor', cpf: '52998224725', phone: '11987654321' })
+        .send({ userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', name: 'Carlos Consultor', cpf: '52998224725', phone: '11987654321' })
         .expect(201);
 
       const res = await http()
@@ -103,11 +103,11 @@ describe('Consultants (e2e)', () => {
     it('paginates and filters by name', async () => {
       await http()
         .post('/consultants')
-        .send({ name: 'Carlos Consultor', cpf: '52998224725', phone: '11987654321' })
+        .send({ userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', name: 'Carlos Consultor', cpf: '52998224725', phone: '11987654321' })
         .expect(201);
       await http()
         .post('/consultants')
-        .send({ name: 'Ana Consultora', cpf: '15350946056', phone: '11911112222' })
+        .send({ userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', name: 'Ana Consultora', cpf: '15350946056', phone: '11911112222' })
         .expect(201);
 
       const all = await http().get('/consultants').expect(200);
@@ -124,7 +124,7 @@ describe('Consultants (e2e)', () => {
     it('updates name and phone, keeping the CPF immutable', async () => {
       const created = await http()
         .post('/consultants')
-        .send({ name: 'Carlos Consultor', cpf: '52998224725', phone: '11987654321' })
+        .send({ userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', name: 'Carlos Consultor', cpf: '52998224725', phone: '11987654321' })
         .expect(201);
       const id = (created.body as ConsultantResponse).id;
 
@@ -150,7 +150,7 @@ describe('Consultants (e2e)', () => {
     it('soft deletes a consultant', async () => {
       const created = await http()
         .post('/consultants')
-        .send({ name: 'Carlos Consultor', cpf: '52998224725', phone: '11987654321' })
+        .send({ userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', name: 'Carlos Consultor', cpf: '52998224725', phone: '11987654321' })
         .expect(201);
       const id = (created.body as ConsultantResponse).id;
 

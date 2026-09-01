@@ -4,10 +4,12 @@ import { Pool } from 'pg';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
+import { givenUser } from './fixtures';
 
 describe('Stock keepers (e2e)', () => {
   let app: INestApplication<App>;
   let pool: Pool;
+  let userId: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -24,6 +26,8 @@ describe('Stock keepers (e2e)', () => {
       password: process.env.DB_PASSWORD ?? 'postgres',
       database: process.env.DB_NAME ?? 'tech_challenge',
     });
+
+    userId = (await givenUser(app.getHttpServer())).id;
   });
 
   beforeEach(async () => {
@@ -85,7 +89,7 @@ describe('Stock keepers (e2e)', () => {
   describe('POST /stock-keepers', () => {
     it('creates a stock keeper and returns 201', async () => {
       const body = stockKeeperBody(
-        await http().post('/stock-keepers').send(validStockKeeper).expect(201),
+        await http().post('/stock-keepers').send({ userId, ...validStockKeeper }).expect(201),
       );
 
       expect(body).toMatchObject(validStockKeeper);
@@ -98,6 +102,7 @@ describe('Stock keepers (e2e)', () => {
         await http()
           .post('/stock-keepers')
           .send({
+            userId,
             name: 'Maria Estoquista',
             cpf: '529.982.247-25',
             phone: '(11) 98765-4321',
@@ -112,15 +117,15 @@ describe('Stock keepers (e2e)', () => {
     it('rejects invalid payloads', async () => {
       await http()
         .post('/stock-keepers')
-        .send({ ...validStockKeeper, name: '' })
+        .send({ userId, ...validStockKeeper, name: '' })
         .expect(400);
       await http()
         .post('/stock-keepers')
-        .send({ ...validStockKeeper, cpf: '11111111111' })
+        .send({ userId, ...validStockKeeper, cpf: '11111111111' })
         .expect(400);
       await http()
         .post('/stock-keepers')
-        .send({ ...validStockKeeper, phone: '123' })
+        .send({ userId, ...validStockKeeper, phone: '123' })
         .expect(400);
       await http()
         .post('/stock-keepers')
@@ -132,15 +137,15 @@ describe('Stock keepers (e2e)', () => {
       const body = stockKeeperBody(
         await http()
           .post('/stock-keepers')
-          .send({ ...validStockKeeper, role: 'admin' })
+          .send({ userId, ...validStockKeeper, role: 'admin' })
           .expect(201),
       );
       expect(body).not.toHaveProperty('role');
     });
 
     it('returns 409 for a duplicated active CPF', async () => {
-      await http().post('/stock-keepers').send(validStockKeeper).expect(201);
-      await http().post('/stock-keepers').send(validStockKeeper).expect(409);
+      await http().post('/stock-keepers').send({ userId, ...validStockKeeper }).expect(201);
+      await http().post('/stock-keepers').send({ userId, ...validStockKeeper }).expect(409);
     });
   });
 
@@ -150,6 +155,7 @@ describe('Stock keepers (e2e)', () => {
         await http()
           .post('/stock-keepers')
           .send({
+            userId,
             name: `Estoquista ${i}`,
             cpf: validCpf(i),
             phone: '11987654321',
@@ -183,7 +189,7 @@ describe('Stock keepers (e2e)', () => {
         for (const { name, cpf } of people) {
           await http()
             .post('/stock-keepers')
-            .send({ name, cpf, phone: '11987654321' })
+            .send({ userId, name, cpf, phone: '11987654321' })
             .expect(201);
         }
       };
@@ -251,7 +257,7 @@ describe('Stock keepers (e2e)', () => {
   describe('GET /stock-keepers/:id', () => {
     it('returns the stock keeper', async () => {
       const created = stockKeeperBody(
-        await http().post('/stock-keepers').send(validStockKeeper),
+        await http().post('/stock-keepers').send({ userId, ...validStockKeeper }),
       );
 
       const body = stockKeeperBody(
@@ -271,7 +277,7 @@ describe('Stock keepers (e2e)', () => {
   describe('PATCH /stock-keepers/:id', () => {
     it('updates only the provided fields', async () => {
       const created = stockKeeperBody(
-        await http().post('/stock-keepers').send(validStockKeeper),
+        await http().post('/stock-keepers').send({ userId, ...validStockKeeper }),
       );
 
       const body = stockKeeperBody(
@@ -297,7 +303,7 @@ describe('Stock keepers (e2e)', () => {
 
     it('rejects invalid fields and ignores unknown ones, including cpf', async () => {
       const created = stockKeeperBody(
-        await http().post('/stock-keepers').send(validStockKeeper),
+        await http().post('/stock-keepers').send({ userId, ...validStockKeeper }),
       );
 
       await http()
@@ -318,7 +324,7 @@ describe('Stock keepers (e2e)', () => {
   describe('DELETE /stock-keepers/:id', () => {
     it('soft deletes: 204, then 404 on reads and gone from listing', async () => {
       const created = stockKeeperBody(
-        await http().post('/stock-keepers').send(validStockKeeper),
+        await http().post('/stock-keepers').send({ userId, ...validStockKeeper }),
       );
       const id = created.id;
 
@@ -338,11 +344,11 @@ describe('Stock keepers (e2e)', () => {
 
     it('frees the CPF for a new registration', async () => {
       const created = stockKeeperBody(
-        await http().post('/stock-keepers').send(validStockKeeper),
+        await http().post('/stock-keepers').send({ userId, ...validStockKeeper }),
       );
       await http().delete(`/stock-keepers/${created.id}`).expect(204);
 
-      await http().post('/stock-keepers').send(validStockKeeper).expect(201);
+      await http().post('/stock-keepers').send({ userId, ...validStockKeeper }).expect(201);
     });
   });
 });

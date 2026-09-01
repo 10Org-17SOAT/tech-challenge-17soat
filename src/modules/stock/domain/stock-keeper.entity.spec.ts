@@ -4,6 +4,7 @@ import { StockKeeper } from './stock-keeper.entity';
 describe('StockKeeper', () => {
   it('creates a stock keeper with generated UUID and timestamps', () => {
     const stockKeeper = StockKeeper.create({
+      userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       name: 'Maria Estoquista',
       cpf: '52998224725',
       phone: '11987654321',
@@ -22,6 +23,7 @@ describe('StockKeeper', () => {
 
   it('normalizes formatted CPF and phone', () => {
     const stockKeeper = StockKeeper.create({
+      userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       name: 'Maria Estoquista',
       cpf: '529.982.247-25',
       phone: '(11) 98765-4321',
@@ -34,6 +36,7 @@ describe('StockKeeper', () => {
   it('rejects an invalid CPF', () => {
     expect(() =>
       StockKeeper.create({
+        userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         name: 'Maria Estoquista',
         cpf: '11111111111',
         phone: '11987654321',
@@ -44,6 +47,7 @@ describe('StockKeeper', () => {
   it('rejects an invalid phone', () => {
     expect(() =>
       StockKeeper.create({
+        userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         name: 'Maria Estoquista',
         cpf: '52998224725',
         phone: '123',
@@ -53,15 +57,16 @@ describe('StockKeeper', () => {
 
   it('updates only the provided fields, keeping the CPF immutable', () => {
     const stockKeeper = StockKeeper.create({
+      userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       name: 'Maria Estoquista',
       cpf: '52998224725',
       phone: '11987654321',
     });
     const before = stockKeeper.updatedAt;
 
-    stockKeeper.update({ phone: '11912345678' });
+    stockKeeper.update({ name: 'Marcia Estoquista', phone: '11912345678' });
 
-    expect(stockKeeper.name).toBe('Maria Estoquista');
+    expect(stockKeeper.name).toBe('Marcia Estoquista');
     expect(stockKeeper.phone).toBe('11912345678');
     expect(stockKeeper.cpf).toBe('52998224725');
     expect(stockKeeper.updatedAt.getTime()).toBeGreaterThanOrEqual(
@@ -72,8 +77,21 @@ describe('StockKeeper', () => {
     );
   });
 
+  it('rejects creation without a linked user account', () => {
+    expect(() =>
+      StockKeeper.create({
+        userId: '',
+        name: 'Maria Estoquista',
+        cpf: '52998224725',
+        phone: '11987654321',
+      }),
+    ).toThrow(InvalidStockKeeperError);
+  });
+
+
   it('soft deletes by stamping deletedAt', () => {
     const stockKeeper = StockKeeper.create({
+      userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       name: 'Maria Estoquista',
       cpf: '52998224725',
       phone: '11987654321',

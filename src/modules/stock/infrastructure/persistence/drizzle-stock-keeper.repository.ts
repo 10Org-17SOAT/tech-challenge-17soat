@@ -70,6 +70,7 @@ export class DrizzleStockKeeperRepository implements StockKeeperRepository {
   async save(stockKeeper: StockKeeper): Promise<void> {
     const row: StockKeeperRow = {
       id: stockKeeper.id,
+      userId: stockKeeper.userId,
       name: stockKeeper.name,
       cpf: stockKeeper.cpf,
       phone: stockKeeper.phone,

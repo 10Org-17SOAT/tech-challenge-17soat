@@ -15,11 +15,13 @@ describe('ListConsultantsUseCase', () => {
 
   it('paginates active consultants', async () => {
     await createUseCase.execute({
+      userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       name: 'Carlos Consultor',
       cpf: '52998224725',
       phone: '11987654321',
     });
     await createUseCase.execute({
+      userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       name: 'Ana Consultora',
       cpf: '15350946056',
       phone: '11911112222',
@@ -35,11 +37,13 @@ describe('ListConsultantsUseCase', () => {
 
   it('filters by name (case-insensitive)', async () => {
     await createUseCase.execute({
+      userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       name: 'Carlos Consultor',
       cpf: '52998224725',
       phone: '11987654321',
     });
     await createUseCase.execute({
+      userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       name: 'Ana Consultora',
       cpf: '15350946056',
       phone: '11911112222',

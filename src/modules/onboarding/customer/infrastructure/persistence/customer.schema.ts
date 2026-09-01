@@ -11,10 +11,14 @@ import {
 import type { AddressProps } from '../../domain/value-objects/address.value-object';
 import type { PhoneProps } from '../../domain/value-objects/phone.value-object';
 
+// No FK to auth's `users` table: user_id is validated at the domain layer
+// instead, keeping this module's schema free of any import from auth's
+// infrastructure (modular monolith boundary — no cross-context FK).
 export const customersTable = pgTable(
   'customers',
   {
     id: uuid('customer_id').primaryKey().defaultRandom(),
+    userId: uuid('user_id'),
     personType: varchar('person_type', { length: 10 }).notNull(),
     document: varchar('document', { length: 14 }).notNull(),
     name: varchar('name', { length: 255 }),

@@ -25,6 +25,7 @@ describe('Customer entity', () => {
   describe('PF creation', () => {
     it('creates a valid PF customer', () => {
       const customer = Customer.create({
+        userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         personType: PersonType.CPF,
         document: new Document('52998224725'),
         name: 'João Silva',
@@ -41,9 +42,24 @@ describe('Customer entity', () => {
       expect(customer.getCreatedAt()).toBeInstanceOf(Date);
     });
 
+    it('rejects creation without a linked user account', () => {
+      expect(() =>
+        Customer.create({
+          userId: '',
+          personType: PersonType.CPF,
+          document: new Document('52998224725'),
+          name: 'João Silva',
+          email: new Email('joao@example.com'),
+          phone: validPhone,
+          address: validAddress,
+        }),
+      ).toThrow(InvalidCustomerException);
+    });
+
     it('rejects PF without name', () => {
       expect(() =>
         Customer.create({
+          userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
           personType: PersonType.CPF,
           document: new Document('52998224725'),
           email: new Email('joao@example.com'),
@@ -56,6 +72,7 @@ describe('Customer entity', () => {
     it('rejects PF with corporateName', () => {
       expect(() =>
         Customer.create({
+          userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
           personType: PersonType.CPF,
           document: new Document('52998224725'),
           name: 'João Silva',
@@ -70,6 +87,7 @@ describe('Customer entity', () => {
     it('rejects PF with tradeName', () => {
       expect(() =>
         Customer.create({
+          userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
           personType: PersonType.CPF,
           document: new Document('52998224725'),
           name: 'João Silva',
@@ -85,6 +103,7 @@ describe('Customer entity', () => {
   describe('PJ creation', () => {
     it('creates a valid PJ customer', () => {
       const customer = Customer.create({
+        userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         personType: PersonType.CNPJ,
         document: new Document('12345678000195'),
         corporateName: 'Empresa Exemplo LTDA',
@@ -103,6 +122,7 @@ describe('Customer entity', () => {
     it('rejects PJ without corporateName', () => {
       expect(() =>
         Customer.create({
+          userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
           personType: PersonType.CNPJ,
           document: new Document('12345678000195'),
           tradeName: 'Empresa',
@@ -116,6 +136,7 @@ describe('Customer entity', () => {
     it('rejects PJ without tradeName', () => {
       expect(() =>
         Customer.create({
+          userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
           personType: PersonType.CNPJ,
           document: new Document('12345678000195'),
           corporateName: 'Empresa LTDA',
@@ -129,6 +150,7 @@ describe('Customer entity', () => {
     it('rejects PJ with name', () => {
       expect(() =>
         Customer.create({
+          userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
           personType: PersonType.CNPJ,
           document: new Document('12345678000195'),
           name: 'João Silva',
@@ -168,6 +190,7 @@ describe('Customer entity', () => {
   describe('behavior', () => {
     it('soft delete sets deletedAt', () => {
       const customer = Customer.create({
+        userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         personType: PersonType.CPF,
         document: new Document('52998224725'),
         name: 'João Silva',
@@ -267,6 +290,7 @@ describe('Customer entity', () => {
 
       expect(primitives).toEqual({
         id: '123e4567-e89b-12d3-a456-426614174000',
+        userId: null,
         personType: PersonType.CPF,
         document: '52998224725',
         name: 'João Silva',

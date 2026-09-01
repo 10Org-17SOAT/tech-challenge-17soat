@@ -13,6 +13,7 @@ describe('CreateStockKeeperUseCase', () => {
 
   it('creates a stock keeper and persists it', async () => {
     const stockKeeper = await useCase.execute({
+      userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       name: 'Maria Estoquista',
       cpf: '52998224725',
       phone: '11987654321',
@@ -25,6 +26,7 @@ describe('CreateStockKeeperUseCase', () => {
 
   it('rejects a CPF already used by an active stock keeper', async () => {
     await useCase.execute({
+      userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       name: 'Maria Estoquista',
       cpf: '52998224725',
       phone: '11987654321',
@@ -32,6 +34,7 @@ describe('CreateStockKeeperUseCase', () => {
 
     await expect(
       useCase.execute({
+        userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         name: 'Outra Pessoa',
         cpf: '529.982.247-25',
         phone: '11912345678',

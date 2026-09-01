@@ -83,6 +83,7 @@ describe('Mechanics (e2e)', () => {
   };
 
   const createPayload = (overrides: Record<string, unknown> = {}) => ({
+    userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
     name: 'John Doe',
     cpf: validCpf('111444777'),
     email: 'john.doe@example.com',
@@ -94,6 +95,7 @@ describe('Mechanics (e2e)', () => {
 
   const seedMechanic = async (overrides: Record<string, unknown> = {}) => {
     const mechanic = Mechanic.create({
+      userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       name: 'John Doe',
       cpf: validCpf('111444777'),
       email: 'john.doe@example.com',

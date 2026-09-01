@@ -27,6 +27,7 @@ const makeMechanic = (overrides: {
   availability?: string;
 }): Mechanic => {
   const mechanic = Mechanic.create({
+    userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
     name: overrides.name,
     cpf: overrides.cpf,
     email: `${overrides.name.toLowerCase().replace(/\s/g, '.')}@example.com`,

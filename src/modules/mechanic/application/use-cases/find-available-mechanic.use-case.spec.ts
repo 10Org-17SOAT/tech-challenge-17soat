@@ -28,6 +28,7 @@ describe('FindAvailableMechanicUseCase', () => {
   ): Mechanic => {
     const mechanic = Mechanic.restore({
       id,
+      userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       name: `Mechanic ${id.slice(0, 4)}`,
       cpf: new Cpf('11144477735'),
       email: new Email(`mechanic-${id.slice(0, 4)}@example.com`),

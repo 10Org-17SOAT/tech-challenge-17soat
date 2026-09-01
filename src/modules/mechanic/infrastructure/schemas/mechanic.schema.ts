@@ -32,6 +32,7 @@ const PhoneSchema = z
 
 export const CreateMechanicSchema = z
   .object({
+    userId: z.uuid(),
     name: z
       .string()
       .trim()

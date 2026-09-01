@@ -19,6 +19,7 @@ export class CreateCustomerUseCase {
 
   async execute(input: CreateCustomerInput): Promise<CustomerResponseDTO> {
     const customer = Customer.create({
+      userId: input.userId,
       personType: input.personType,
       document: new Document(input.document),
       name: input.name,

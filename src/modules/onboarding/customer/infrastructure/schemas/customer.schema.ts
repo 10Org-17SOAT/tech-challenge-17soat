@@ -32,6 +32,7 @@ const AddressSchema = z
 
 export const CreateCustomerSchema = z
   .object({
+    userId: z.uuid(),
     personType: z.enum(['CPF', 'CNPJ']),
     document: z.string().trim().min(1, 'Document is required'),
     name: z.string().trim().optional(),

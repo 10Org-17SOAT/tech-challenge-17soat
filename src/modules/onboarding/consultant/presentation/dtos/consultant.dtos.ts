@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { Consultant } from '../../domain/consultant.entity';
 
 export const createConsultantSchema = z.object({
+  userId: z.uuid(),
   name: z.string().trim().min(1).max(255),
   cpf: z.string().trim().min(11).max(14),
   phone: z.string().trim().min(10).max(15),

@@ -104,7 +104,7 @@
       "idx": 14,
       "version": "7",
       "when": 1788131293000,
-      "tag": "20260830230813_overconfident_warpath",
+      "tag": "20260830230813_link_vehicle_customer_and_quotation_approval",
       "breakpoints": true
     },
     {
@@ -147,6 +147,27 @@
       "version": "7",
       "when": 1788220583871,
       "tag": "20260831235623_slippery_dreadnoughts",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1788261257814,
+      "tag": "20260901111417_perpetual_gauntlet",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1788265457733,
+      "tag": "20260901122417_amusing_wong",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1788275613852,
+      "tag": "20260901151333_deep_toro",
       "breakpoints": true
     }
   ]

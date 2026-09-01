@@ -13,6 +13,7 @@ describe('CreateConsultantUseCase', () => {
 
   it('creates a consultant and persists it', async () => {
     const consultant = await useCase.execute({
+      userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       name: 'Carlos Consultor',
       cpf: '52998224725',
       phone: '11987654321',
@@ -23,6 +24,7 @@ describe('CreateConsultantUseCase', () => {
 
   it('rejects a CPF already used by an active consultant', async () => {
     await useCase.execute({
+      userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       name: 'Carlos Consultor',
       cpf: '52998224725',
       phone: '11987654321',
@@ -30,6 +32,7 @@ describe('CreateConsultantUseCase', () => {
 
     await expect(
       useCase.execute({
+        userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         name: 'Outra Pessoa',
         cpf: '529.982.247-25',
         phone: '11912345678',

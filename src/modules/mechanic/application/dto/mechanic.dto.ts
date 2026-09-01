@@ -3,6 +3,7 @@ import type { MechanicAvailability } from '../../domain/value-objects/mechanic-a
 import type { PhoneProps } from '../../domain/value-objects/phone.value-object';
 
 export interface CreateMechanicInput {
+  userId: string;
   name: string;
   cpf: string;
   email: string;

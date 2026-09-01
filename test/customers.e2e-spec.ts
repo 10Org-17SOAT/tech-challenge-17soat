@@ -79,6 +79,7 @@ describe('Customers (e2e)', () => {
   };
 
   const validPf = {
+    userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
     personType: 'CPF',
     document: '11144477735',
     name: 'John Doe',
@@ -95,6 +96,7 @@ describe('Customers (e2e)', () => {
   };
 
   const validPj = {
+    userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
     personType: 'CNPJ',
     document: '11444777000161',
     corporateName: 'Acme LTDA',
