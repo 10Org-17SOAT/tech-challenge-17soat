@@ -52,6 +52,12 @@ import { ServiceOrdersController } from './presentation/service-orders.controlle
   ],
   // StartDiagnosisUseCase and the order repository are consumed by the
   // diagnostics and quotations modules — direct calls, same bounded context.
-  exports: [SERVICE_ORDER_REPOSITORY, StartDiagnosisUseCase],
+  // CreateServiceOrderUseCase is consumed by the anamnesis module, which opens
+  // the service order as the entry point of the flow.
+  exports: [
+    SERVICE_ORDER_REPOSITORY,
+    StartDiagnosisUseCase,
+    CreateServiceOrderUseCase,
+  ],
 })
 export class ServiceOrdersModule {}
