@@ -79,7 +79,12 @@ export class ServiceOrdersController {
   async averageExecutionTime(
     @Query() query: AverageExecutionTimeQueryDto,
   ): Promise<AverageExecutionTimeResponseDto> {
-    return this.getAverageExecutionTime.execute(query);
+    // A janela chega como texto ISO e vira instante aqui, na fronteira: o caso
+    // de uso e o repositório falam `Date`.
+    return this.getAverageExecutionTime.execute({
+      from: query.from ? new Date(query.from) : undefined,
+      to: query.to ? new Date(query.to) : undefined,
+    });
   }
   @Get(':id')
   @ApiOperation({ summary: 'Consulta uma OS por ID' })
@@ -125,7 +130,17 @@ export class ServiceOrdersController {
     @Param() params: ServiceOrderIdParamDto,
     @Body() body: UpdateServiceOrderDto,
   ): Promise<ServiceOrderResponseDto> {
-    const order = await this.updateOrder.execute(params.id, body);
+    const { scheduledAt, ...changes } = body;
+
+    // Ausente e nulo dizem coisas diferentes — "não mexa" e "limpe" — e a
+    // entidade distingue os dois. Por isso a chave só entra no payload quando
+    // veio no corpo, em vez de virar `undefined` na conversão para `Date`.
+    const order = await this.updateOrder.execute(params.id, {
+      ...changes,
+      ...(scheduledAt !== undefined && {
+        scheduledAt: scheduledAt === null ? null : new Date(scheduledAt),
+      }),
+    });
     return toServiceOrderResponse(order);
   }
 
