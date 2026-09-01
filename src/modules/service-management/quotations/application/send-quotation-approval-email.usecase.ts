@@ -11,6 +11,16 @@ import { QUOTATION_REPOSITORY } from '../domain/quotation.repository';
 import type { QuotationRepository } from '../domain/quotation.repository';
 import { renderQuotationApprovalEmail } from '../presentation/quotation-approval-email.template';
 
+function stripTrailingSlashes(value: string): string {
+  let end = value.length;
+
+  while (end > 0 && value[end - 1] === '/') {
+    end--;
+  }
+
+  return value.slice(0, end);
+}
+
 /**
  * Mints an approval link and emails it to the customer.
  *
@@ -50,7 +60,7 @@ export class SendQuotationApprovalEmailUseCase {
     await this.quotationRepository.save(quotation);
 
     const baseUrl = this.config.getOrThrow<string>('APP_BASE_URL');
-    const approvalUrl = `${baseUrl.replace(/\/+$/, '')}/quotations/approve?token=${encodeURIComponent(rawToken)}`;
+    const approvalUrl = `${stripTrailingSlashes(baseUrl)}/quotations/approve?token=${encodeURIComponent(rawToken)}`;
 
     await this.emailSender.send({
       to: recipient.email,
