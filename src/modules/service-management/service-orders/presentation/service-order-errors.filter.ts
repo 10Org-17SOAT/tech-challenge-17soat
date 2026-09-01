@@ -5,26 +5,22 @@ import {
   ConflictException,
   ExceptionFilter,
   NotFoundException,
-  UnprocessableEntityException,
 } from '@nestjs/common';
 import { Response } from 'express';
+import { ConsultantNotFoundForServiceOrderError } from '../domain/errors/consultant-not-found-for-service-order.error';
 import { InvalidServiceOrderError } from '../domain/errors/invalid-service-order.error';
 import { InvalidServiceOrderTransitionError } from '../domain/errors/invalid-service-order-transition.error';
 import { ServiceOrderNotDeletableError } from '../domain/errors/service-order-not-deletable.error';
 import { ServiceOrderNotFoundError } from '../domain/errors/service-order-not-found.error';
 import { VehicleNotFoundForServiceOrderError } from '../domain/errors/vehicle-not-found-for-service-order.error';
-import { VehicleNotFoundError } from '../domain/errors/vehicle-not-found.error';
 
 @Catch(
   ServiceOrderNotFoundError,
   InvalidServiceOrderError,
   InvalidServiceOrderTransitionError,
   ServiceOrderNotDeletableError,
-  InvalidServiceOrderError,
-  InvalidServiceOrderTransitionError,
-  ServiceOrderNotDeletableError,
   VehicleNotFoundForServiceOrderError,
-  VehicleNotFoundError,
+  ConsultantNotFoundForServiceOrderError,
 )
 export class ServiceOrderErrorsFilter implements ExceptionFilter {
   catch(error: Error, host: ArgumentsHost) {
@@ -36,7 +32,8 @@ export class ServiceOrderErrorsFilter implements ExceptionFilter {
   private toHttpException(error: Error) {
     if (
       error instanceof ServiceOrderNotFoundError ||
-      error instanceof VehicleNotFoundForServiceOrderError
+      error instanceof VehicleNotFoundForServiceOrderError ||
+      error instanceof ConsultantNotFoundForServiceOrderError
     ) {
       return new NotFoundException(error.message);
     }
@@ -45,10 +42,6 @@ export class ServiceOrderErrorsFilter implements ExceptionFilter {
       error instanceof ServiceOrderNotDeletableError
     ) {
       return new ConflictException(error.message);
-    }
-    // The request is well-formed, but the referenced vehicle does not exist.
-    if (error instanceof VehicleNotFoundError) {
-      return new UnprocessableEntityException(error.message);
     }
     return new BadRequestException(error.message);
   }

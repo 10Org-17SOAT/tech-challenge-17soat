@@ -5,7 +5,7 @@ import { Pool } from 'pg';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
-import { CLEANUP_TABLES, givenOwnedVehicle } from './fixtures';
+import { CLEANUP_TABLES, givenConsultant, givenOwnedVehicle } from './fixtures';
 import { ExecutionCompleted } from './../src/modules/service-management/service-orders/domain/events/execution-completed.event';
 import { ExecutionStarted } from './../src/modules/service-management/service-orders/domain/events/execution-started.event';
 import type { DomainEvent } from './../src/shared/domain/events/domain-event';
@@ -15,8 +15,9 @@ describe('ServiceOrders (e2e)', () => {
   let pool: Pool;
   // An order is always about a car, so every test needs one first.
   let vehicleId: string;
+  // ...and about who opened it.
+  let openedById: string;
   let emitter: EventEmitter2;
-  let vehicleId: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -45,6 +46,7 @@ describe('ServiceOrders (e2e)', () => {
     }
 
     vehicleId = (await givenOwnedVehicle(app.getHttpServer())).vehicleId;
+    openedById = await givenConsultant(app.getHttpServer());
   });
 
   afterAll(async () => {
@@ -129,7 +131,7 @@ describe('ServiceOrders (e2e)', () => {
       .post('/service-order/anamnesis')
       .send({
         vehicleId,
-        consultantId: '22222222-2222-4222-8222-222222222222',
+        consultantId: openedById,
         mainComplaint: 'Barulho na suspensão',
         problemDescription: 'Estalo ao passar em lombadas',
       })

@@ -2,7 +2,10 @@ import { ServiceOrder } from '../domain/service-order.entity';
 import { InMemoryServiceOrderRepository } from '../__test__/in-memory-service-order.repository';
 import { ListServiceOrdersUseCase } from './list-service-orders.usecase';
 
-const vehicleId = '11111111-1111-1111-1111-111111111111';
+// Orders always reference a vehicle; which one is irrelevant here.
+const VEHICLE_ID = '9f1d3c40-5f0e-4a1e-9a1b-6c2d7e8f0a11';
+const OPENED_BY_ID = '3a6e9f2b-1c4d-4e5a-8f6b-2d9c0e1f3a5b';
+const OPENED_BY_NAME = 'Consultant Fixture';
 
 describe('ListServiceOrdersUseCase', () => {
   let repository: InMemoryServiceOrderRepository;
@@ -15,7 +18,13 @@ describe('ListServiceOrdersUseCase', () => {
 
   it('paginates and reports total', async () => {
     for (let i = 0; i < 5; i++) {
-      await repository.save(ServiceOrder.create({ vehicleId }));
+      await repository.save(
+        ServiceOrder.create({
+          vehicleId: VEHICLE_ID,
+          openedById: OPENED_BY_ID,
+          openedByName: OPENED_BY_NAME,
+        }),
+      );
     }
 
     const first = await useCase.execute({ page: 1, limit: 2 });
@@ -29,8 +38,16 @@ describe('ListServiceOrdersUseCase', () => {
   });
 
   it('filters by status', async () => {
-    const a = ServiceOrder.create({ vehicleId });
-    const b = ServiceOrder.create({ vehicleId });
+    const a = ServiceOrder.create({
+      vehicleId: VEHICLE_ID,
+      openedById: OPENED_BY_ID,
+      openedByName: OPENED_BY_NAME,
+    });
+    const b = ServiceOrder.create({
+      vehicleId: VEHICLE_ID,
+      openedById: OPENED_BY_ID,
+      openedByName: OPENED_BY_NAME,
+    });
     b.transitionTo('in_diagnosis');
     await repository.save(a);
     await repository.save(b);
@@ -45,7 +62,11 @@ describe('ListServiceOrdersUseCase', () => {
   });
 
   it('excludes soft-deleted orders', async () => {
-    const order = ServiceOrder.create({ vehicleId });
+    const order = ServiceOrder.create({
+      vehicleId: VEHICLE_ID,
+      openedById: OPENED_BY_ID,
+      openedByName: OPENED_BY_NAME,
+    });
     await repository.save(order);
     order.delete();
     await repository.save(order);

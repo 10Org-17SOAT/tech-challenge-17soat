@@ -11,10 +11,10 @@ import {
   text,
   timestamp,
   uuid,
+  varchar,
 } from 'drizzle-orm/pg-core';
 import { vehiclesTable } from '../../../../onboarding/vehicles/infrastructure/persistence/vehicle.schema';
 import { services } from '../../../services/infrastructure/persistence/schema';
-import { vehiclesTable } from '../../../../onboarding/vehicles/infrastructure/persistence/vehicle.schema';
 import { ORDER_STATUSES } from '../../domain/service-order.entity';
 
 export const serviceOrderStatusEnum = pgEnum(
@@ -31,6 +31,11 @@ export const serviceOrders = pgTable(
     vehicleId: uuid('vehicle_id')
       .notNull()
       .references(() => vehiclesTable.vehicle_id),
+    // Snapshot, not a FK: the order must stay truthful about who opened it
+    // even if that consultant is later renamed or deleted, the same pattern
+    // as `performed_by` on the stock ledger (see stock_movements).
+    openedById: uuid('opened_by_id').notNull(),
+    openedByName: varchar('opened_by_name', { length: 255 }).notNull(),
     status: serviceOrderStatusEnum('status').notNull().default('received'),
     approvedByCustomer: boolean('approved_by_customer')
       .notNull()

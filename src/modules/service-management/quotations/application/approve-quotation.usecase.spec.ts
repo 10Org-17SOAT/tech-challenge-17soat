@@ -8,7 +8,10 @@ import { Quotation } from '../domain/quotation.entity';
 import { InMemoryQuotationRepository } from '../__test__/in-memory-quotation.repository';
 import { ApproveQuotationUseCase } from './approve-quotation.usecase';
 
-const vehicleId = '11111111-1111-1111-1111-111111111111';
+// Orders always reference a vehicle; which one is irrelevant here.
+const VEHICLE_ID = '9f1d3c40-5f0e-4a1e-9a1b-6c2d7e8f0a11';
+const OPENED_BY_ID = '3a6e9f2b-1c4d-4e5a-8f6b-2d9c0e1f3a5b';
+const OPENED_BY_NAME = 'Consultant Fixture';
 
 describe('ApproveQuotationUseCase', () => {
   let quotations: InMemoryQuotationRepository;
@@ -25,7 +28,11 @@ describe('ApproveQuotationUseCase', () => {
     order: ServiceOrder;
     quotation: Quotation;
   }> => {
-    const order = ServiceOrder.create({ vehicleId });
+    const order = ServiceOrder.create({
+      vehicleId: VEHICLE_ID,
+      openedById: OPENED_BY_ID,
+      openedByName: OPENED_BY_NAME,
+    });
     order.transitionTo('in_diagnosis');
     order.transitionTo('awaiting_approval');
     await orders.save(order);
@@ -70,7 +77,11 @@ describe('ApproveQuotationUseCase', () => {
   // order that cannot advance leaves the quotation untouched. Without a
   // transaction this ordering is the only thing keeping the two in step.
   it('leaves the quotation unapproved when the order cannot advance', async () => {
-    const order = ServiceOrder.create({ vehicleId });
+    const order = ServiceOrder.create({
+      vehicleId: VEHICLE_ID,
+      openedById: OPENED_BY_ID,
+      openedByName: OPENED_BY_NAME,
+    });
     await orders.save(order);
     const quotation = Quotation.issue({
       serviceOrderId: order.id,

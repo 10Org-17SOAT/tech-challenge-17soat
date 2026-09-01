@@ -4,11 +4,13 @@ import { Pool } from 'pg';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
+import { CLEANUP_TABLES, givenConsultant, givenOwnedVehicle } from './fixtures';
 
 describe('Anamnesis (e2e)', () => {
   let app: INestApplication<App>;
   let pool: Pool;
   let vehicleId: string;
+  let consultantId: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -28,14 +30,11 @@ describe('Anamnesis (e2e)', () => {
   });
 
   beforeEach(async () => {
-    await pool.query('DELETE FROM quotation_items');
-    await pool.query('DELETE FROM quotations');
-    await pool.query('DELETE FROM diagnostics');
-    await pool.query('DELETE FROM service_items');
-    await pool.query('DELETE FROM anamneses');
-    await pool.query('DELETE FROM service_orders');
-    await pool.query('DELETE FROM services');
-    vehicleId = await givenVehicle();
+    for (const table of CLEANUP_TABLES) {
+      await pool.query(`DELETE FROM ${table}`);
+    }
+    vehicleId = (await givenOwnedVehicle(app.getHttpServer())).vehicleId;
+    consultantId = await givenConsultant(app.getHttpServer());
   });
 
   afterAll(async () => {
@@ -72,28 +71,12 @@ describe('Anamnesis (e2e)', () => {
 
   const anamnesisBody = (res: request.Response) => res.body as AnamnesisResponse;
 
-  async function givenVehicle(): Promise<string> {
-    const res = await http()
-      .post('/vehicles')
-      .send({
-        licensePlate: `ABC${Math.floor(Math.random() * 9000 + 1000)}`,
-        model: 'Gol',
-        year: 2020,
-        manufacturer: 'Volkswagen',
-        color: 'Preto',
-        fuelType: 'GASOLINE',
-        odometer: 50000,
-      })
-      .expect(201);
-    return (res.body as { vehicle_id: string }).vehicle_id;
-  }
-
   async function givenAnamnesis(): Promise<AnamnesisResponse> {
     const res = await http()
-.post('/service-order/anamnesis')
+      .post('/service-order/anamnesis')
       .send({
         vehicleId,
-        consultantId: '22222222-2222-4222-8222-222222222222',
+        consultantId,
         mainComplaint: 'Barulho na suspensão',
         problemDescription: 'Estalo ao passar em lombadas',
       })
@@ -101,10 +84,14 @@ describe('Anamnesis (e2e)', () => {
     return anamnesisBody(res);
   }
 
-.post('/service-order/anamnesis')
+  describe('POST /service-order/anamnesis', () => {
+    it('creates the anamnesis and opens the OS in received (AC-01)', async () => {
+      const body = anamnesisBody(
+        await http()
+          .post('/service-order/anamnesis')
           .send({
             vehicleId,
-            consultantId: '22222222-2222-4222-8222-222222222222',
+            consultantId,
             mainComplaint: '  Barulho na suspensão  ',
             problemDescription: 'Estalo ao passar em lombadas',
             frequency: 'intermittent',
@@ -126,28 +113,28 @@ describe('Anamnesis (e2e)', () => {
       expect((order.body as { status: string }).status).toBe('received');
     });
 
-    it('rejects an unknown vehicle with 422 (AC-02)', async () => {
+    it('rejects an unknown vehicle with 404 (AC-02)', async () => {
       await http()
-.post('/service-order/anamnesis')
+        .post('/service-order/anamnesis')
         .send({
           vehicleId: '6f2c8e0a-0b0e-4f6e-9e1e-000000000000',
-          consultantId: '22222222-2222-4222-8222-222222222222',
+          consultantId,
           mainComplaint: 'Barulho',
           problemDescription: 'Estalo',
         })
-        .expect(422);
+        .expect(404);
     });
 
     it('rejects missing mandatory fields with 400 (AC-03)', async () => {
       await http()
-.post('/service-order/anamnesis')
+        .post('/service-order/anamnesis')
         .send({
           vehicleId,
-          consultantId: '22222222-2222-4222-8222-222222222222',
+          consultantId,
         })
         .expect(400);
       await http()
-.post('/service-order/anamnesis')
+        .post('/service-order/anamnesis')
         .send({
           vehicleId,
           mainComplaint: 'Barulho',
@@ -158,10 +145,10 @@ describe('Anamnesis (e2e)', () => {
 
     it('rejects an invalid enum with 400 (AC-04)', async () => {
       await http()
-.post('/service-order/anamnesis')
+        .post('/service-order/anamnesis')
         .send({
           vehicleId,
-          consultantId: '22222222-2222-4222-8222-222222222222',
+          consultantId,
           mainComplaint: 'Barulho',
           problemDescription: 'Estalo',
           frequency: 'always',

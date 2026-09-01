@@ -26,7 +26,11 @@ describe('GetAnamnesisUseCase', () => {
   });
 
   it('returns the anamnesis for an existing order', async () => {
-    const order = ServiceOrder.create({ vehicleId });
+    const order = ServiceOrder.create({
+      vehicleId,
+      openedById: '3a6e9f2b-1c4d-4e5a-8f6b-2d9c0e1f3a5b',
+      openedByName: 'Consultant Fixture',
+    });
     const anamnesis = Anamnesis.create({
       serviceOrderId: order.id,
       consultantId,
@@ -54,7 +58,11 @@ describe('GetAnamnesisUseCase', () => {
   });
 
   it('throws AnamnesisNotFoundException when the anamnesis is missing', async () => {
-    const order = ServiceOrder.create({ vehicleId });
+    const order = ServiceOrder.create({
+      vehicleId,
+      openedById: '3a6e9f2b-1c4d-4e5a-8f6b-2d9c0e1f3a5b',
+      openedByName: 'Consultant Fixture',
+    });
     (orderRepository.findById as jest.Mock).mockResolvedValue(order);
     (anamnesisRepository.findByServiceOrderId as jest.Mock).mockResolvedValue(
       null,

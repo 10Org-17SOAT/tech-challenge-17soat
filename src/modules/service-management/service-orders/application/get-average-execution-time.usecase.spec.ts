@@ -3,6 +3,8 @@ import { InMemoryServiceOrderRepository } from '../__test__/in-memory-service-or
 import { GetAverageExecutionTimeUseCase } from './get-average-execution-time.usecase';
 
 const VEHICLE_ID = '9f1d3c40-5f0e-4a1e-9a1b-6c2d7e8f0a11';
+const OPENED_BY_ID = '3a6e9f2b-1c4d-4e5a-8f6b-2d9c0e1f3a5b';
+const OPENED_BY_NAME = 'Consultant Fixture';
 
 // `transitionTo` stamps startedAt/completedAt with `new Date()`, so an order
 // with a known duration has to be rebuilt through `restore`.
@@ -10,6 +12,8 @@ function finishedOrder(startedAt: Date, completedAt: Date): ServiceOrder {
   return ServiceOrder.restore({
     id: crypto.randomUUID(),
     vehicleId: VEHICLE_ID,
+    openedById: OPENED_BY_ID,
+    openedByName: OPENED_BY_NAME,
     status: 'finished',
     approvedByCustomer: true,
     notes: null,
@@ -52,7 +56,13 @@ describe('GetAverageExecutionTimeUseCase', () => {
   });
 
   it('reports null with a zero sample when nothing finished in the window', async () => {
-    await repository.save(ServiceOrder.create({ vehicleId: VEHICLE_ID }));
+    await repository.save(
+      ServiceOrder.create({
+        vehicleId: VEHICLE_ID,
+        openedById: OPENED_BY_ID,
+        openedByName: OPENED_BY_NAME,
+      }),
+    );
 
     const result = await useCase.execute({});
 
@@ -106,6 +116,8 @@ describe('GetAverageExecutionTimeUseCase', () => {
       ServiceOrder.restore({
         id: crypto.randomUUID(),
         vehicleId: VEHICLE_ID,
+        openedById: OPENED_BY_ID,
+        openedByName: OPENED_BY_NAME,
         status: 'finished',
         approvedByCustomer: true,
         notes: null,
@@ -120,7 +132,11 @@ describe('GetAverageExecutionTimeUseCase', () => {
       }),
     );
 
-    const running = ServiceOrder.create({ vehicleId: VEHICLE_ID });
+    const running = ServiceOrder.create({
+      vehicleId: VEHICLE_ID,
+      openedById: OPENED_BY_ID,
+      openedByName: OPENED_BY_NAME,
+    });
     running.transitionTo('in_diagnosis');
     await repository.save(running);
 

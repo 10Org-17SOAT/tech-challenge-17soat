@@ -30,7 +30,11 @@ describe('UpdateAnamnesisUseCase', () => {
   });
 
   it('updates the anamnesis while the order is received', async () => {
-    const order = ServiceOrder.create({ vehicleId });
+    const order = ServiceOrder.create({
+      vehicleId,
+      openedById: '3a6e9f2b-1c4d-4e5a-8f6b-2d9c0e1f3a5b',
+      openedByName: 'Consultant Fixture',
+    });
     const anamnesis = Anamnesis.create({
       serviceOrderId: order.id,
       consultantId,
@@ -66,7 +70,11 @@ if (actualVehicleId !== undefined) {
   });
 
   it('throws AnamnesisNotFoundException when the anamnesis is missing', async () => {
-    const order = ServiceOrder.create({ vehicleId });
+    const order = ServiceOrder.create({
+      vehicleId,
+      openedById: '3a6e9f2b-1c4d-4e5a-8f6b-2d9c0e1f3a5b',
+      openedByName: 'Consultant Fixture',
+    });
     (orderRepository.findById as jest.Mock).mockResolvedValue(order);
     (anamnesisRepository.findByServiceOrderId as jest.Mock).mockResolvedValue(
       null,
@@ -78,7 +86,11 @@ if (actualVehicleId !== undefined) {
   });
 
   it('throws AnamnesisLockedException when the order is not received', async () => {
-    const order = ServiceOrder.create({ vehicleId });
+    const order = ServiceOrder.create({
+      vehicleId,
+      openedById: '3a6e9f2b-1c4d-4e5a-8f6b-2d9c0e1f3a5b',
+      openedByName: 'Consultant Fixture',
+    });
     order.transitionTo('in_diagnosis');
     const anamnesis = Anamnesis.create({
       serviceOrderId: order.id,

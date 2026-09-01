@@ -7,6 +7,7 @@ const serviceOrderStatusValues = serviceOrderStatusEnum.enumValues;
 
 export const createServiceOrderSchema = z.object({
   vehicleId: z.uuid(),
+  openedById: z.uuid(),
   notes: z.string().trim().max(2000).optional(),
   vehicleMileageAtEntry: z.number().int().nonnegative().optional(),
   scheduledAt: z.coerce.date().optional(),
@@ -38,6 +39,8 @@ export class ServiceOrderIdParamDto extends createZodDto(
 export const serviceOrderResponseSchema = z.object({
   id: z.uuid(),
   vehicleId: z.uuid(),
+  openedById: z.uuid(),
+  openedByName: z.string(),
   status: z.enum(serviceOrderStatusValues),
   approvedByCustomer: z.boolean(),
   notes: z.string().nullable(),
@@ -115,6 +118,8 @@ export function toServiceOrderResponse(
   return {
     id: order.id,
     vehicleId: order.vehicleId,
+    openedById: order.openedById,
+    openedByName: order.openedByName,
     status: order.status,
     approvedByCustomer: order.approvedByCustomer,
     notes: order.notes,

@@ -71,6 +71,8 @@ export class DrizzleServiceOrderRepository implements ServiceOrderRepository {
     const row: ServiceOrderRow = {
       id: order.id,
       vehicleId: order.vehicleId,
+      openedById: order.openedById,
+      openedByName: order.openedByName,
       status: order.status,
       approvedByCustomer: order.approvedByCustomer,
       notes: order.notes,

@@ -6,7 +6,7 @@ import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 import { EMAIL_SENDER } from './../src/modules/service-management/quotations/domain/email-sender.port';
 import { RecordingEmailSender } from './../src/modules/service-management/quotations/__test__/recording-email.sender';
-import { CLEANUP_TABLES, givenOwnedVehicle } from './fixtures';
+import { CLEANUP_TABLES, givenConsultant, givenOwnedVehicle } from './fixtures';
 
 /**
  * The whole approval path over HTTP: a diagnosis emails the quotation, and the
@@ -22,6 +22,7 @@ describe('Quotation approval by email (e2e)', () => {
   let pool: Pool;
   let emails: RecordingEmailSender;
   let vehicleId: string;
+  let openedById: string;
   let customerEmail: string;
 
   beforeAll(() => {
@@ -53,6 +54,7 @@ describe('Quotation approval by email (e2e)', () => {
     const owned = await givenOwnedVehicle(app.getHttpServer());
     vehicleId = owned.vehicleId;
     customerEmail = owned.email;
+    openedById = await givenConsultant(app.getHttpServer());
   });
 
   afterEach(async () => {
@@ -93,10 +95,15 @@ describe('Quotation approval by email (e2e)', () => {
       .expect(200);
 
     const order = await http()
-      .post('/service-orders')
-      .send({ vehicleId })
+      .post('/service-order/anamnesis')
+      .send({
+        vehicleId,
+        consultantId: openedById,
+        mainComplaint: 'Barulho na suspensão',
+        problemDescription: 'Estalo ao passar em lombadas',
+      })
       .expect(201);
-    const orderId = (order.body as { id: string }).id;
+    const orderId = (order.body as { serviceOrderId: string }).serviceOrderId;
     await http().post(`/service-orders/${orderId}/diagnosis/start`).expect(200);
 
     const diagnosis = await http()

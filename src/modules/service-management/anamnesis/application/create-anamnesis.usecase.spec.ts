@@ -1,6 +1,6 @@
 import { CreateServiceOrderUseCase } from '../../service-orders/application/create-service-order.usecase';
 import { ServiceOrder } from '../../service-orders/domain/service-order.entity';
-import { VehicleNotFoundError } from '../../service-orders/domain/errors/vehicle-not-found.error';
+import { VehicleNotFoundForServiceOrderError } from '../../service-orders/domain/errors/vehicle-not-found-for-service-order.error';
 import type { AnamnesisRepository } from '../domain/anamnesis.repository';
 import { CreateAnamnesisUseCase } from './create-anamnesis.usecase';
 
@@ -22,7 +22,11 @@ describe('CreateAnamnesisUseCase', () => {
   });
 
   it('creates the service order and attaches the anamnesis to it', async () => {
-    const order = ServiceOrder.create({ vehicleId });
+    const order = ServiceOrder.create({
+      vehicleId,
+      openedById: '3a6e9f2b-1c4d-4e5a-8f6b-2d9c0e1f3a5b',
+      openedByName: 'Consultant Fixture',
+    });
     (createOrder.execute as jest.Mock).mockResolvedValue(order);
 
     const { anamnesis, vehicleId: resultVehicleId } = await useCase.execute({
@@ -32,7 +36,10 @@ describe('CreateAnamnesisUseCase', () => {
       problemDescription: 'Estalo ao passar em lombadas',
     });
 
-    expect(createOrder.execute).toHaveBeenCalledWith({ vehicleId });
+    expect(createOrder.execute).toHaveBeenCalledWith({
+      vehicleId,
+      openedById: consultantId,
+    });
     expect(resultVehicleId).toBe(vehicleId);
     expect(anamnesis.serviceOrderId).toBe(order.id);
     expect(anamnesis.consultantId).toBe(consultantId);
@@ -40,9 +47,9 @@ describe('CreateAnamnesisUseCase', () => {
     expect(anamnesisRepository.save).toHaveBeenCalledWith(anamnesis);
   });
 
-  it('propagates VehicleNotFoundError when the vehicle does not exist', async () => {
+  it('propagates VehicleNotFoundForServiceOrderError when the vehicle does not exist', async () => {
     (createOrder.execute as jest.Mock).mockRejectedValue(
-      new VehicleNotFoundError(vehicleId),
+      new VehicleNotFoundForServiceOrderError(vehicleId),
     );
 
     await expect(
@@ -52,7 +59,7 @@ describe('CreateAnamnesisUseCase', () => {
         mainComplaint: 'Barulho',
         problemDescription: 'Estalo',
       }),
-    ).rejects.toThrow(VehicleNotFoundError);
+    ).rejects.toThrow(VehicleNotFoundForServiceOrderError);
     expect(anamnesisRepository.save).not.toHaveBeenCalled();
   });
 

@@ -4,12 +4,13 @@ import { Pool } from 'pg';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
-import { CLEANUP_TABLES, givenOwnedVehicle } from './fixtures';
+import { CLEANUP_TABLES, givenConsultant, givenOwnedVehicle } from './fixtures';
 
 describe('Quotations (e2e)', () => {
   let app: INestApplication<App>;
   let pool: Pool;
   let vehicleId: string;
+  let openedById: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -34,6 +35,7 @@ describe('Quotations (e2e)', () => {
     }
 
     vehicleId = (await givenOwnedVehicle(app.getHttpServer())).vehicleId;
+    openedById = await givenConsultant(app.getHttpServer());
   });
 
   afterAll(async () => {
@@ -114,7 +116,7 @@ describe('Quotations (e2e)', () => {
       .post('/service-order/anamnesis')
       .send({
         vehicleId,
-        consultantId: '22222222-2222-4222-8222-222222222222',
+        consultantId: openedById,
         mainComplaint: 'Barulho na suspensão',
         problemDescription: 'Estalo ao passar em lombadas',
       })
@@ -193,7 +195,7 @@ describe('Quotations (e2e)', () => {
         .post('/service-order/anamnesis')
         .send({
           vehicleId,
-          consultantId: '22222222-2222-4222-8222-222222222222',
+          consultantId: openedById,
           mainComplaint: 'Barulho na suspensão',
           problemDescription: 'Estalo ao passar em lombadas',
         })

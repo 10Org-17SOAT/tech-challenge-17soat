@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../../../shared/config/database/database.module';
+import { ConsultantModule } from '../../onboarding/consultant/consultant.module';
 import { VehicleManagementModule } from '../../onboarding/vehicles/vehicle-management.module';
 import { VEHICLE_LOOKUP } from '../../../shared/domain/ports/vehicle-lookup';
 import { CreateServiceOrderUseCase } from './application/create-service-order.usecase';
@@ -24,8 +25,10 @@ import { ServiceOrdersController } from './presentation/service-orders.controlle
 
 @Module({
   // VehicleManagementModule exports only VEHICLE_CATALOG_QUERY, used to reject
-  // an order opened for a vehicle that does not exist.
-  imports: [DatabaseModule, VehicleManagementModule],
+  // an order opened for a vehicle that does not exist. ConsultantModule
+  // exports only CONSULTANT_DIRECTORY_QUERY, used the same way to resolve
+  // and validate the consultant opening the order.
+  imports: [DatabaseModule, VehicleManagementModule, ConsultantModule],
   controllers: [ServiceOrdersController],
   providers: [
     {
@@ -44,14 +47,6 @@ import { ServiceOrdersController } from './presentation/service-orders.controlle
       provide: VEHICLE_LOOKUP,
       useClass: DrizzleVehicleLookupAdapter,
     },
-    {
-      provide: ANAMNESIS_EXISTENCE_PORT,
-      useClass: DrizzleAnamnesisExistenceAdapter,
-    },
-    {
-      provide: ANAMNESIS_CASCADE_PORT,
-      useClass: DrizzleAnamnesisCascadeAdapter,
-    },
     CreateServiceOrderUseCase,
     GetServiceOrderUseCase,
     GetServiceOrderStatusUseCase,
@@ -63,9 +58,6 @@ import { ServiceOrdersController } from './presentation/service-orders.controlle
     ExecutionStartedHandler,
     ExecutionCompletedHandler,
     PaymentReceivedHandler,
-  ],
-  // StartDiagnosisUseCase and the order repository are consumed by the
-  // diagnostics and quotations modules — direct calls, same bounded context.
   ],
   // StartDiagnosisUseCase and the order repository are consumed by the
   // diagnostics and quotations modules — direct calls, same bounded context.

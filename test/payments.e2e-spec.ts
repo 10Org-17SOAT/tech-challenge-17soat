@@ -8,12 +8,13 @@ import { AppModule } from './../src/app.module';
 import { ExecutionCompleted } from './../src/modules/service-management/service-orders/domain/events/execution-completed.event';
 import { ExecutionStarted } from './../src/modules/service-management/service-orders/domain/events/execution-started.event';
 import type { DomainEvent } from './../src/shared/domain/events/domain-event';
-import { CLEANUP_TABLES, givenOwnedVehicle } from './fixtures';
+import { CLEANUP_TABLES, givenConsultant, givenOwnedVehicle } from './fixtures';
 
 describe('Payments (e2e)', () => {
   let app: INestApplication<App>;
   let pool: Pool;
   let vehicleId: string;
+  let openedById: string;
   let emitter: EventEmitter2;
 
   beforeAll(async () => {
@@ -41,6 +42,7 @@ describe('Payments (e2e)', () => {
     }
 
     vehicleId = (await givenOwnedVehicle(app.getHttpServer())).vehicleId;
+    openedById = await givenConsultant(app.getHttpServer());
   });
 
   afterAll(async () => {
@@ -90,10 +92,16 @@ describe('Payments (e2e)', () => {
     laborPriceInCents = 15000,
   ): Promise<{ orderId: string; totalInCents: number }> {
     const created = await http()
-      .post('/service-orders')
-      .send({ vehicleId })
+      .post('/service-order/anamnesis')
+      .send({
+        vehicleId,
+        consultantId: openedById,
+        mainComplaint: 'Barulho na suspensão',
+        problemDescription: 'Estalo ao passar em lombadas',
+      })
       .expect(201);
-    const orderId = (created.body as { id: string }).id;
+    const orderId = (created.body as { serviceOrderId: string })
+      .serviceOrderId;
 
     await http()
       .post(`/service-orders/${orderId}/diagnosis/start`)
@@ -182,13 +190,21 @@ describe('Payments (e2e)', () => {
 
     it('returns 404 for an order that has not been quoted yet', async () => {
       const created = await http()
-        .post('/service-orders')
-        .send({ vehicleId })
+        .post('/service-order/anamnesis')
+        .send({
+          vehicleId,
+          consultantId: openedById,
+          mainComplaint: 'Barulho na suspensão',
+          problemDescription: 'Estalo ao passar em lombadas',
+        })
         .expect(201);
 
       await http()
         .post('/payments')
-        .send({ serviceOrderId: (created.body as { id: string }).id })
+        .send({
+          serviceOrderId: (created.body as { serviceOrderId: string })
+            .serviceOrderId,
+        })
         .expect(404);
     });
 

@@ -27,7 +27,5 @@ CREATE TABLE "anamneses" (
 	CONSTRAINT "anamneses_service_order_id_unique" UNIQUE("service_order_id")
 );
 --> statement-breakpoint
-ALTER TABLE "service_orders" ADD COLUMN "vehicle_id" uuid NOT NULL;--> statement-breakpoint
 ALTER TABLE "anamneses" ADD CONSTRAINT "anamneses_service_order_id_service_orders_service_order_id_fk" FOREIGN KEY ("service_order_id") REFERENCES "public"."service_orders"("service_order_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-CREATE INDEX "idx_anamneses_service_order_id" ON "anamneses" USING btree ("service_order_id");--> statement-breakpoint
-ALTER TABLE "service_orders" ADD CONSTRAINT "service_orders_vehicle_id_vehicles_vehicle_id_fk" FOREIGN KEY ("vehicle_id") REFERENCES "public"."vehicles"("vehicle_id") ON DELETE no action ON UPDATE no action;
+CREATE INDEX "idx_anamneses_service_order_id" ON "anamneses" USING btree ("service_order_id");

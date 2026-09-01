@@ -49,6 +49,7 @@ export class CreateAnamnesisUseCase {
     // to it. Simple orchestration — no cross-aggregate transaction.
     const order = await this.createOrder.execute({
       vehicleId: input.vehicleId,
+      openedById: input.consultantId,
     });
 
     const props: CreateAnamnesisProps = {

@@ -6,6 +6,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
 import { MechanicModule } from './modules/mechanic/mechanic.module';
+import { ConsultantModule } from './modules/onboarding/consultant/consultant.module';
 import { CustomerModule } from './modules/onboarding/customer/customer.module';
 import { VehicleManagementModule } from './modules/onboarding/vehicles/vehicle-management.module';
 import { PaymentModule } from './modules/payment/payment.module';
@@ -28,6 +29,7 @@ import { SharedEventsModule } from './shared/events/events.module';
     ServiceOrderModule,
     VehicleManagementModule,
     CustomerModule,
+    ConsultantModule,
     MechanicModule,
     PaymentModule,
     AuthModule,

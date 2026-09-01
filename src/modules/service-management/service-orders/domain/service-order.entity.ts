@@ -40,6 +40,8 @@ const OPERATIONAL_LOCKED_STATUSES = new Set<ServiceOrderStatus>([
 export interface ServiceOrderProps {
   id: string;
   vehicleId: string;
+  openedById: string;
+  openedByName: string;
   status: ServiceOrderStatus;
   approvedByCustomer: boolean;
   notes: string | null;
@@ -55,6 +57,8 @@ export interface ServiceOrderProps {
 
 export interface CreateServiceOrderProps {
   vehicleId: string;
+  openedById: string;
+  openedByName: string;
   notes?: string | null;
   vehicleMileageAtEntry?: number | null;
   scheduledAt?: Date | null;
@@ -74,6 +78,8 @@ export class ServiceOrder {
     return new ServiceOrder({
       id: randomUUID(),
       vehicleId: ServiceOrder.validateVehicleId(props.vehicleId),
+      openedById: props.openedById,
+      openedByName: props.openedByName,
       status: 'received',
       approvedByCustomer: false,
       notes: ServiceOrder.normalizeNotes(props.notes ?? null),
@@ -195,6 +201,17 @@ export class ServiceOrder {
 
   get vehicleId(): string {
     return this.props.vehicleId;
+  }
+
+  // Snapshot, not a live reference: the order must stay truthful about who
+  // opened it even if that consultant is later renamed or deleted, the same
+  // pattern as `performed_by` on the stock ledger. Never edited after create.
+  get openedById(): string {
+    return this.props.openedById;
+  }
+
+  get openedByName(): string {
+    return this.props.openedByName;
   }
 
   get status(): ServiceOrderStatus {
