@@ -1,6 +1,10 @@
 import { randomUUID } from 'node:crypto';
-import { Cpf } from './value-objects/cpf.vo';
+import { Cpf } from '../../../../shared/domain/value-objects/cpf.vo';
+import { InvalidConsultantError } from './errors/invalid-consultant.error';
 import { Phone } from './value-objects/phone.vo';
+
+const invalidCpf = (raw: string) =>
+  new InvalidConsultantError(`Invalid CPF: "${raw}"`);
 
 export interface ConsultantProps {
   id: string;
@@ -36,7 +40,7 @@ export class Consultant {
     return new Consultant({
       id: randomUUID(),
       name: props.name,
-      cpf: Cpf.create(props.cpf),
+      cpf: Cpf.create(props.cpf, invalidCpf),
       phone: Phone.create(props.phone),
       createdAt: now,
       updatedAt: now,
@@ -48,7 +52,7 @@ export class Consultant {
     return new Consultant({
       id: props.id,
       name: props.name,
-      cpf: Cpf.create(props.cpf),
+      cpf: Cpf.create(props.cpf, invalidCpf),
       phone: Phone.create(props.phone),
       createdAt: props.createdAt,
       updatedAt: props.updatedAt,
