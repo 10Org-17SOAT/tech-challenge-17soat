@@ -15,7 +15,6 @@ export const createServiceOrderSchema = z.object({
 export class CreateServiceOrderDto extends createZodDto(
   createServiceOrderSchema,
 ) {}
-
 export const updateServiceOrderSchema = z
   .object({
     notes: z.string().trim().max(2000).nullable(),

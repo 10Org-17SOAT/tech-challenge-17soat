@@ -14,6 +14,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { vehiclesTable } from '../../../../onboarding/vehicles/infrastructure/persistence/vehicle.schema';
 import { services } from '../../../services/infrastructure/persistence/schema';
+import { vehiclesTable } from '../../../../onboarding/vehicles/infrastructure/persistence/vehicle.schema';
 import { ORDER_STATUSES } from '../../domain/service-order.entity';
 
 export const serviceOrderStatusEnum = pgEnum(

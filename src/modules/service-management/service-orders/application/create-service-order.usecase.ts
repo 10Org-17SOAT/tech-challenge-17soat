@@ -1,8 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { VEHICLE_CATALOG_QUERY } from '../../../onboarding/vehicles/public/vehicle-catalog.query';
 import type { VehicleCatalogQuery } from '../../../onboarding/vehicles/public/vehicle-catalog.query';
+import { VEHICLE_LOOKUP } from '../../../../shared/domain/ports/vehicle-lookup';
+import type { VehicleLookup } from '../../../../shared/domain/ports/vehicle-lookup';
 import { VehicleNotFoundForServiceOrderError } from '../domain/errors/vehicle-not-found-for-service-order.error';
 import { ServiceOrder } from '../domain/service-order.entity';
+import { VehicleNotFoundError } from '../domain/errors/vehicle-not-found.error';
 import { SERVICE_ORDER_REPOSITORY } from '../domain/service-order.repository';
 import type { ServiceOrderRepository } from '../domain/service-order.repository';
 
