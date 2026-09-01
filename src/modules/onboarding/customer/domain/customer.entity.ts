@@ -4,6 +4,7 @@ import { Document } from './value-objects/document.value-object';
 import { Email } from './value-objects/email.value-object';
 import { Phone } from './value-objects/phone.value-object';
 import { Address } from './value-objects/address.value-object';
+import { requireUserId } from '../../../../shared/domain/guards/require-user-id';
 import { InvalidCustomerException } from './exceptions/customer.exceptions';
 
 export interface CustomerProps {
@@ -61,11 +62,13 @@ export class Customer {
       'id' | 'userId' | 'createdAt' | 'updatedAt' | 'deletedAt'
     > & { userId: string },
   ): Customer {
-    if (!props.userId?.trim()) {
-      throw new InvalidCustomerException(
-        'A customer requires a linked user account.',
-      );
-    }
+    requireUserId(
+      props.userId,
+      () =>
+        new InvalidCustomerException(
+          'A customer requires a linked user account.',
+        ),
+    );
     return new Customer(props);
   }
 

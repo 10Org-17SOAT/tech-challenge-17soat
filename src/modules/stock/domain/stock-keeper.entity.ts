@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { Cpf } from '../../../shared/domain/value-objects/cpf.vo';
+import { requireUserId } from '../../../shared/domain/guards/require-user-id';
 import { InvalidStockKeeperError } from './errors/invalid-stock-keeper.error';
 import { Phone } from './value-objects/phone.vo';
 
@@ -39,16 +40,18 @@ export class StockKeeper {
   private constructor(private readonly props: InternalProps) {}
 
   static create(props: CreateStockKeeperProps): StockKeeper {
-    if (!props.userId?.trim()) {
-      throw new InvalidStockKeeperError(
-        'A stock keeper requires a linked user account.',
-      );
-    }
+    const userId = requireUserId(
+      props.userId,
+      () =>
+        new InvalidStockKeeperError(
+          'A stock keeper requires a linked user account.',
+        ),
+    );
 
     const now = new Date();
     return new StockKeeper({
       id: randomUUID(),
-      userId: props.userId,
+      userId,
       name: props.name,
       cpf: Cpf.create(props.cpf, invalidCpf),
       phone: Phone.create(props.phone),

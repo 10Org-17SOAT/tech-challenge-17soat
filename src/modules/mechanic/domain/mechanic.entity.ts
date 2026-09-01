@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import { Cpf } from './value-objects/cpf.value-object';
 import { Email } from './value-objects/email.value-object';
 import { Phone, type PhoneProps } from './value-objects/phone.value-object';
+import { requireUserId } from '../../../shared/domain/guards/require-user-id';
 import {
   MECHANIC_AVAILABILITY,
   type MechanicAvailability,
@@ -101,11 +102,13 @@ export class Mechanic {
   }
 
   static create(props: CreateMechanicProps): Mechanic {
-    if (!props.userId?.trim()) {
-      throw new InvalidMechanicException(
-        'A mechanic requires a linked user account.',
-      );
-    }
+    const userId = requireUserId(
+      props.userId,
+      () =>
+        new InvalidMechanicException(
+          'A mechanic requires a linked user account.',
+        ),
+    );
 
     const name = this.validateName(props.name);
     this.validateSpecialties(props.specialties);
@@ -114,7 +117,7 @@ export class Mechanic {
 
     return new Mechanic({
       id: randomUUID(),
-      userId: props.userId,
+      userId,
       name,
       cpf: new Cpf(props.cpf),
       email: new Email(props.email),
