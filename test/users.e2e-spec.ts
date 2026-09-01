@@ -4,6 +4,7 @@ import { Pool } from 'pg';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
+import { CLEANUP_TABLES_WITH_USERS } from './fixtures';
 
 describe('Users (e2e)', () => {
   let app: INestApplication<App>;
@@ -27,7 +28,9 @@ describe('Users (e2e)', () => {
   });
 
   beforeEach(async () => {
-    await pool.query('DELETE FROM users');
+    for (const table of CLEANUP_TABLES_WITH_USERS) {
+      await pool.query(`DELETE FROM ${table}`);
+    }
   });
 
   afterAll(async () => {

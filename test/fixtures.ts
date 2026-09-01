@@ -46,13 +46,37 @@ const uniquePlate = () => {
   return `${letters}-${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`;
 };
 
+/**
+ * Every profile entity (customer, consultant, stock-keeper, mechanic) now
+ * requires a linked auth user (user_id FK). `POST /user` is the admin-style
+ * endpoint that creates one; e2e suites reuse it to obtain a real id instead
+ * of a fake UUID that would violate the FK against a real Postgres.
+ */
+export async function givenUser(
+  app: App,
+  email = `usuario-${unique()}@example.com`,
+): Promise<{ id: string; email: string }> {
+  const res = await request(app)
+    .post('/user')
+    .send({
+      name: 'Usuario de Teste',
+      email,
+      password_hash: 'a-fake-hash-with-min-length',
+      role_id: 1,
+    })
+    .expect(201);
+  return { id: (res.body as { user_id: string }).user_id, email };
+}
+
 export async function givenCustomer(
   app: App,
   email = `cliente-${unique()}@example.com`,
 ): Promise<{ id: string; email: string }> {
+  const user = await givenUser(app);
   const res = await request(app)
     .post('/customers')
     .send({
+      userId: user.id,
       personType: 'CPF',
       document: uniqueDocument(),
       name: 'Ana Souza',
@@ -108,9 +132,11 @@ export async function givenOwnedVehicle(
 const uniqueCpf = (): string => uniqueDocument().slice(0, 11);
 
 export async function givenConsultant(app: App): Promise<string> {
+  const user = await givenUser(app);
   const res = await request(app)
     .post('/consultants')
     .send({
+      userId: user.id,
       name: 'Carlos Consultor',
       cpf: uniqueCpf(),
       phone: '11987654321',
@@ -138,4 +164,14 @@ export const CLEANUP_TABLES = [
   'vehicles',
   'customers',
   'consultants',
+  'stock_keepers',
+  'mechanics',
 ] as const;
+
+/**
+ * `CLEANUP_TABLES` plus `users` itself, for suites that own the `users`
+ * table (auth/users e2e specs) and need every FK-referencing row gone
+ * first — otherwise a leftover customer/consultant/stock-keeper/mechanic
+ * row created by another suite (via `givenUser`) blocks the delete.
+ */
+export const CLEANUP_TABLES_WITH_USERS = [...CLEANUP_TABLES, 'users'] as const;

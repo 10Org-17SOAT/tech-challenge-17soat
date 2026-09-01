@@ -4,6 +4,7 @@ import { Pool } from 'pg';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
+import { givenUser } from './fixtures';
 import { DOMAIN_EVENT_PUBLISHER } from './../src/shared/domain/events/domain-event-publisher';
 import { RecordingDomainEventPublisher } from './../src/modules/stock/__test__/recording-domain-event.publisher';
 
@@ -34,9 +35,11 @@ describe('Write-offs chaos (e2e)', () => {
       database: process.env.DB_NAME ?? 'tech_challenge',
     });
 
+    const stockKeeperUserId = (await givenUser(app.getHttpServer())).id;
     stockKeeperId = await request(app.getHttpServer())
       .post('/stock-keepers')
       .send({
+        userId: stockKeeperUserId,
         name: 'Estoquista de teste',
         cpf: '33366699957',
         phone: '11987654321',
