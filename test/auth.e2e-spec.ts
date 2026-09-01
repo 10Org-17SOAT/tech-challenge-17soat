@@ -4,7 +4,7 @@ import { Pool } from 'pg';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
-import { CLEANUP_TABLES_WITH_USERS } from './fixtures';
+import { CLEANUP_TABLES_WITH_USERS, httpAs, tokenFor } from './fixtures';
 import { UserRole } from '../src/modules/auth/roles/role.enum';
 
 describe('Auth (e2e)', () => {
@@ -50,11 +50,13 @@ describe('Auth (e2e)', () => {
 
   const password = 'a-fake-password-12345';
 
+  // Creating a user is itself an ADMIN route now, so this helper needs a
+  // token of its own before it can seed the user the test logs in as.
   const givenUser = async (
     role_id: UserRole,
     email = `login-${Math.random().toString(36).slice(2, 8)}@example.com`,
   ) => {
-    await http()
+    await httpAs(app, tokenFor(app, UserRole.ADMIN))
       .post('/user')
       .send({ name: 'Maria Silva', email, password_hash: password, role_id })
       .expect(201);
@@ -70,14 +72,14 @@ describe('Auth (e2e)', () => {
 
   describe('POST /auth/login', () => {
     it('returns an access token and the user for valid credentials', async () => {
-      const email = await givenUser(UserRole.CLIENTE);
+      const email = await givenUser(UserRole.CUSTOMER);
 
       const body = loginBody(
         await http().post('/auth/login').send({ email, password }).expect(200),
       );
 
       expect(body.access_token).toEqual(expect.any(String));
-      expect(body.user).toMatchObject({ email, role_id: UserRole.CLIENTE });
+      expect(body.user).toMatchObject({ email, role_id: UserRole.CUSTOMER });
     });
 
     it('rejects an unknown email', async () => {
@@ -88,7 +90,7 @@ describe('Auth (e2e)', () => {
     });
 
     it('rejects a wrong password', async () => {
-      const email = await givenUser(UserRole.CLIENTE);
+      const email = await givenUser(UserRole.CUSTOMER);
 
       await http()
         .post('/auth/login')
@@ -106,7 +108,7 @@ describe('Auth (e2e)', () => {
 
   describe('GET /auth/me', () => {
     it('returns the authenticated user', async () => {
-      const email = await givenUser(UserRole.CLIENTE);
+      const email = await givenUser(UserRole.CUSTOMER);
       const token = await login(email);
 
       const res = await http()
@@ -114,7 +116,7 @@ describe('Auth (e2e)', () => {
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
 
-      expect(res.body).toMatchObject({ email, role_id: UserRole.CLIENTE });
+      expect(res.body).toMatchObject({ email, role_id: UserRole.CUSTOMER });
     });
 
     it('rejects a missing token', async () => {
@@ -129,47 +131,37 @@ describe('Auth (e2e)', () => {
     });
   });
 
-  describe('GET /auth/admin-only', () => {
-    it('allows an admin', async () => {
-      const email = await givenUser(UserRole.ADMIN);
+  describe('role enforcement on real routes', () => {
+    it('lets a stock keeper reach the stock context', async () => {
+      const email = await givenUser(UserRole.STOCK_KEEPER);
       const token = await login(email);
 
       await http()
-        .get('/auth/admin-only')
+        .get('/supplies')
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
     });
 
-    it('forbids a non-admin', async () => {
-      const email = await givenUser(UserRole.CLIENTE);
+    it('forbids a customer outside the order status endpoint', async () => {
+      const email = await givenUser(UserRole.CUSTOMER);
       const token = await login(email);
 
       await http()
-        .get('/auth/admin-only')
+        .get('/supplies')
         .set('Authorization', `Bearer ${token}`)
         .expect(403);
     });
-  });
 
-  describe('GET /auth/technical-only', () => {
-    it('allows a consultor tecnico', async () => {
-      const email = await givenUser(UserRole.CONSULTOR_TECNICO);
-      const token = await login(email);
-
-      await http()
-        .get('/auth/technical-only')
-        .set('Authorization', `Bearer ${token}`)
-        .expect(200);
+    it('rejects an anonymous request to a protected route', async () => {
+      await http().get('/supplies').expect(401);
     });
 
-    it('forbids a cliente', async () => {
-      const email = await givenUser(UserRole.CLIENTE);
-      const token = await login(email);
-
+    it('keeps login and the root route public', async () => {
+      await http().get('/').expect(200);
       await http()
-        .get('/auth/technical-only')
-        .set('Authorization', `Bearer ${token}`)
-        .expect(403);
+        .post('/auth/login')
+        .send({ email: 'missing@example.com', password })
+        .expect(401);
     });
   });
 });

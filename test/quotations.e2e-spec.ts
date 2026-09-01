@@ -1,13 +1,20 @@
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Pool } from 'pg';
-import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
-import { CLEANUP_TABLES, givenConsultant, givenOwnedVehicle } from './fixtures';
+import {
+  CLEANUP_TABLES,
+  givenConsultant,
+  givenOwnedVehicle,
+  httpAs,
+  tokenFor,
+} from './fixtures';
+import { UserRole } from './../src/modules/auth/roles/role.enum';
 
 describe('Quotations (e2e)', () => {
   let app: INestApplication<App>;
+  let token: string;
   let pool: Pool;
   let vehicleId: string;
   let openedById: string;
@@ -19,6 +26,7 @@ describe('Quotations (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     await app.init();
+    token = tokenFor(app, UserRole.ADMIN);
 
     pool = new Pool({
       host: process.env.DB_HOST ?? 'localhost',
@@ -34,8 +42,8 @@ describe('Quotations (e2e)', () => {
       await pool.query(`DELETE FROM ${table}`);
     }
 
-    vehicleId = (await givenOwnedVehicle(app.getHttpServer())).vehicleId;
-    openedById = await givenConsultant(app.getHttpServer());
+    vehicleId = (await givenOwnedVehicle(app.getHttpServer(), token)).vehicleId;
+    openedById = await givenConsultant(app.getHttpServer(), token);
   });
 
   afterAll(async () => {
@@ -43,7 +51,7 @@ describe('Quotations (e2e)', () => {
     await app.close();
   });
 
-  const http = () => request(app.getHttpServer());
+  const http = () => httpAs(app, token);
   const unique = () => Math.random().toString(36).slice(2, 10);
 
   interface QuotationItemResponse {

@@ -2,11 +2,14 @@ import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Pool } from 'pg';
 import request from 'supertest';
+import { httpAs, tokenFor } from './fixtures';
+import { UserRole } from './../src/modules/auth/roles/role.enum';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 
 describe('Services (e2e)', () => {
   let app: INestApplication<App>;
+  let token: string;
   let pool: Pool;
 
   beforeAll(async () => {
@@ -16,6 +19,7 @@ describe('Services (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     await app.init();
+    token = tokenFor(app, UserRole.ADMIN);
 
     pool = new Pool({
       host: process.env.DB_HOST ?? 'localhost',
@@ -33,7 +37,7 @@ describe('Services (e2e)', () => {
     await app.close();
   });
 
-  const http = () => request(app.getHttpServer());
+  const http = () => httpAs(app, token);
 
   interface ServiceResponse {
     id: string;

@@ -5,12 +5,17 @@ import { Pool } from 'pg';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
-import { givenUser } from './fixtures';
+import { givenUser, httpAs, tokenFor } from './fixtures';
+import { UserRole } from './../src/modules/auth/roles/role.enum';
 import { DOMAIN_EVENT_PUBLISHER } from './../src/shared/domain/events/domain-event-publisher';
 import { RecordingDomainEventPublisher } from './../src/modules/stock/__test__/recording-domain-event.publisher';
 
 describe('Write-offs (e2e)', () => {
   let app: INestApplication<App>;
+  let token: string;
+  // Seeding through the API goes over ADMIN-only routes, whatever role the
+  // suite itself exercises.
+  let adminToken: string;
   let pool: Pool;
   let publisher: RecordingDomainEventPublisher;
   let stockKeeperId: string;
@@ -27,6 +32,8 @@ describe('Write-offs (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     await app.init();
+    token = tokenFor(app, UserRole.STOCK_KEEPER);
+    adminToken = tokenFor(app, UserRole.ADMIN);
 
     pool = new Pool({
       host: process.env.DB_HOST ?? 'localhost',
@@ -36,8 +43,9 @@ describe('Write-offs (e2e)', () => {
       database: process.env.DB_NAME ?? 'tech_challenge',
     });
 
-    const stockKeeperUserId = (await givenUser(app.getHttpServer())).id;
-    stockKeeperId = await request(app.getHttpServer())
+    const stockKeeperUserId = (await givenUser(app.getHttpServer(), adminToken))
+      .id;
+    stockKeeperId = await http()
       .post('/stock-keepers')
       .send({
         userId: stockKeeperUserId,
@@ -60,7 +68,7 @@ describe('Write-offs (e2e)', () => {
     await app.close();
   });
 
-  const http = () => request(app.getHttpServer());
+  const http = () => httpAs(app, token);
 
   interface WriteOffResponse {
     movementId: string;

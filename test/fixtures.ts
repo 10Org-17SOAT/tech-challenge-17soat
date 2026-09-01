@@ -1,5 +1,9 @@
+import { randomUUID } from 'node:crypto';
+import type { INestApplication } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import request from 'supertest';
 import { App } from 'supertest/types';
+import { UserRole } from './../src/modules/auth/roles/role.enum';
 
 /**
  * Shared setup for the graph a service order now hangs off: a service order
@@ -8,6 +12,43 @@ import { App } from 'supertest/types';
  */
 
 const unique = () => Math.random().toString(36).slice(2, 10);
+
+/**
+ * Every route is behind the global JwtAuthGuard, so an e2e suite has to carry
+ * a token. Signing one with the app's own JwtService beats logging in: it
+ * needs no seeded user and lets a suite pick the exact role a route demands.
+ */
+export function tokenFor(
+  app: INestApplication,
+  role: UserRole = UserRole.ADMIN,
+): string {
+  return app.get(JwtService).sign({
+    sub: randomUUID(),
+    email: `e2e-${unique()}@example.com`,
+    role_id: role,
+  });
+}
+
+export const bearer = (token: string) => `Bearer ${token}`;
+
+/**
+ * Drop-in replacement for `request(app.getHttpServer())` that carries the
+ * token on every verb, so a suite keeps its existing `http().get(...)` calls.
+ */
+export function httpAs(app: INestApplication, token: string) {
+  const server = app.getHttpServer() as App;
+  const verb =
+    (method: 'get' | 'post' | 'patch' | 'put' | 'delete') => (url: string) =>
+      request(server)[method](url).set('Authorization', bearer(token));
+
+  return {
+    get: verb('get'),
+    post: verb('post'),
+    patch: verb('patch'),
+    put: verb('put'),
+    delete: verb('delete'),
+  };
+}
 
 /**
  * A syntactically valid CPF with correct check digits — the Document value
@@ -54,10 +95,12 @@ const uniquePlate = () => {
  */
 export async function givenUser(
   app: App,
+  token: string,
   email = `usuario-${unique()}@example.com`,
 ): Promise<{ id: string; email: string }> {
   const res = await request(app)
     .post('/user')
+    .set('Authorization', bearer(token))
     .send({
       name: 'Usuario de Teste',
       email,
@@ -70,11 +113,13 @@ export async function givenUser(
 
 export async function givenCustomer(
   app: App,
+  token: string,
   email = `cliente-${unique()}@example.com`,
 ): Promise<{ id: string; email: string }> {
-  const user = await givenUser(app);
+  const user = await givenUser(app, token);
   const res = await request(app)
     .post('/customers')
+    .set('Authorization', bearer(token))
     .send({
       userId: user.id,
       personType: 'CPF',
@@ -97,10 +142,12 @@ export async function givenCustomer(
 
 export async function givenVehicle(
   app: App,
+  token: string,
   customerId: string,
 ): Promise<string> {
   const res = await request(app)
     .post('/vehicles')
+    .set('Authorization', bearer(token))
     .send({
       customerId,
       licensePlate: uniquePlate(),
@@ -118,9 +165,10 @@ export async function givenVehicle(
 /** Customer + vehicle in one call, for suites that do not care about either. */
 export async function givenOwnedVehicle(
   app: App,
+  token: string,
 ): Promise<{ customerId: string; vehicleId: string; email: string }> {
-  const customer = await givenCustomer(app);
-  const vehicleId = await givenVehicle(app, customer.id);
+  const customer = await givenCustomer(app, token);
+  const vehicleId = await givenVehicle(app, token, customer.id);
   return { customerId: customer.id, vehicleId, email: customer.email };
 }
 
@@ -131,10 +179,14 @@ export async function givenOwnedVehicle(
  */
 const uniqueCpf = (): string => uniqueDocument().slice(0, 11);
 
-export async function givenConsultant(app: App): Promise<string> {
-  const user = await givenUser(app);
+export async function givenConsultant(
+  app: App,
+  token: string,
+): Promise<string> {
+  const user = await givenUser(app, token);
   const res = await request(app)
     .post('/consultants')
+    .set('Authorization', bearer(token))
     .send({
       userId: user.id,
       name: 'Carlos Consultor',

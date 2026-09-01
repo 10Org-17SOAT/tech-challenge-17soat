@@ -1,12 +1,18 @@
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Pool } from 'pg';
-import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 import { EMAIL_SENDER } from './../src/modules/service-management/quotations/domain/email-sender.port';
 import { RecordingEmailSender } from './../src/modules/service-management/quotations/__test__/recording-email.sender';
-import { CLEANUP_TABLES, givenConsultant, givenOwnedVehicle } from './fixtures';
+import {
+  CLEANUP_TABLES,
+  givenConsultant,
+  givenOwnedVehicle,
+  httpAs,
+  tokenFor,
+} from './fixtures';
+import { UserRole } from './../src/modules/auth/roles/role.enum';
 
 /**
  * The whole approval path over HTTP: a diagnosis emails the quotation, and the
@@ -19,6 +25,7 @@ import { CLEANUP_TABLES, givenConsultant, givenOwnedVehicle } from './fixtures';
  */
 describe('Quotation approval by email (e2e)', () => {
   let app: INestApplication<App>;
+  let token: string;
   let pool: Pool;
   let emails: RecordingEmailSender;
   let vehicleId: string;
@@ -46,15 +53,16 @@ describe('Quotation approval by email (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     await app.init();
+    token = tokenFor(app, UserRole.ADMIN);
 
     for (const table of CLEANUP_TABLES) {
       await pool.query(`DELETE FROM ${table}`);
     }
 
-    const owned = await givenOwnedVehicle(app.getHttpServer());
+    const owned = await givenOwnedVehicle(app.getHttpServer(), token);
     vehicleId = owned.vehicleId;
     customerEmail = owned.email;
-    openedById = await givenConsultant(app.getHttpServer());
+    openedById = await givenConsultant(app.getHttpServer(), token);
   });
 
   afterEach(async () => {
@@ -65,7 +73,7 @@ describe('Quotation approval by email (e2e)', () => {
     await pool.end();
   });
 
-  const http = () => request(app.getHttpServer());
+  const http = () => httpAs(app, token);
   const unique = () => Math.random().toString(36).slice(2, 10);
 
   async function givenQuotedOrder(): Promise<{
