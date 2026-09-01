@@ -5,7 +5,7 @@
 > **Ferramentas:** SonarCloud (SonarQube Cloud) — análise estática do código-fonte · `npm audit` — análise de dependências
 > **Dashboard:** <https://sonarcloud.io/summary/overall?id=10Org-17SOAT_tech-challenge-17soat>
 > **Análise inicial:** 30/08/2026, 22:08
-> **Análise final:** 01/09/2026, 19:07
+> **Análise final:** 01/09/2026, 20:33
 > **Fuso horário:** todos os horários deste relatório estão em America/São_Paulo (UTC−3)
 
 ---
@@ -238,7 +238,7 @@ quanto em `REVIEWED`. Não há hotspot a revisar ou justificar.
 ## 4. Correções não necessárias
 
 Nenhuma issue de **Security** e nenhum **security hotspot** foi apontado pelo SonarCloud
-em qualquer análise. As decisões que sustentam esse resultado estão na seção 2.1.
+em qualquer análise.
 
 ---
 
@@ -265,7 +265,7 @@ Justificativa:
 
 **Plano de reavaliação:** acompanhar as releases do `drizzle-kit` e aplicar o bump assim
 que a cadeia for atualizada. Como o `npm audit` não roda no CI hoje, é verificação
-manual — automatizá-la é a recomendação 1 da seção 7.
+manual.
 
 ---
 
