@@ -8,6 +8,10 @@ export function setupSwagger(app: INestApplication): void {
     .setTitle('Tech Challenge API')
     .setDescription('Documentação da API do Tech Challenge')
     .setVersion('1.0')
+    .addBearerAuth(
+      { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+      'bearer',
+    )
     .build();
 
   const document = cleanupOpenApiDoc(SwaggerModule.createDocument(app, config));
