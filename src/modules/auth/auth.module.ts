@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import type { Env } from '../../shared/config/env/env.schema';
@@ -40,9 +41,11 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     UpdateUserUseCase,
     DeleteUserUseCase,
     JwtStrategy,
-    JwtAuthGuard,
-    RolesGuard,
+    // Registered globally: every route requires a valid token unless it opts
+    // out with @Public(), and RolesGuard runs after it so @Roles() can rely on
+    // request.user being populated.
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
   ],
-  exports: [JwtAuthGuard, RolesGuard],
 })
 export class AuthModule {}
