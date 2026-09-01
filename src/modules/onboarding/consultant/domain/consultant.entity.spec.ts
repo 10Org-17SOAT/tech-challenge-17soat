@@ -4,6 +4,7 @@ import { Consultant } from './consultant.entity';
 describe('Consultant', () => {
   it('creates a consultant with generated UUID and timestamps', () => {
     const consultant = Consultant.create({
+      userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       name: 'Carlos Consultor',
       cpf: '52998224725',
       phone: '11987654321',
@@ -22,6 +23,7 @@ describe('Consultant', () => {
 
   it('normalizes formatted CPF and phone', () => {
     const consultant = Consultant.create({
+      userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       name: 'Carlos Consultor',
       cpf: '529.982.247-25',
       phone: '(11) 98765-4321',
@@ -34,6 +36,7 @@ describe('Consultant', () => {
   it('rejects an invalid CPF', () => {
     expect(() =>
       Consultant.create({
+        userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         name: 'Carlos Consultor',
         cpf: '11111111111',
         phone: '11987654321',
@@ -44,6 +47,7 @@ describe('Consultant', () => {
   it('rejects an invalid phone', () => {
     expect(() =>
       Consultant.create({
+        userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         name: 'Carlos Consultor',
         cpf: '52998224725',
         phone: '123',
@@ -53,6 +57,7 @@ describe('Consultant', () => {
 
   it('updates only the provided fields, keeping the CPF immutable', () => {
     const consultant = Consultant.create({
+      userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       name: 'Carlos Consultor',
       cpf: '52998224725',
       phone: '11987654321',
@@ -74,6 +79,7 @@ describe('Consultant', () => {
 
   it('soft deletes by stamping deletedAt', () => {
     const consultant = Consultant.create({
+      userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       name: 'Carlos Consultor',
       cpf: '52998224725',
       phone: '11987654321',

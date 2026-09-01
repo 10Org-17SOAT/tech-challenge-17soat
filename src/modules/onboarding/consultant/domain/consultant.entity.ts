@@ -18,7 +18,7 @@ export interface ConsultantProps {
 }
 
 export interface CreateConsultantProps {
-  userId?: string | null;
+  userId: string;
   name: string;
   cpf: string;
   phone: string;
@@ -39,10 +39,16 @@ export class Consultant {
   private constructor(private readonly props: InternalProps) {}
 
   static create(props: CreateConsultantProps): Consultant {
+    if (!props.userId?.trim()) {
+      throw new InvalidConsultantError(
+        'A consultant requires a linked user account.',
+      );
+    }
+
     const now = new Date();
     return new Consultant({
       id: randomUUID(),
-      userId: props.userId ?? null,
+      userId: props.userId,
       name: props.name,
       cpf: Cpf.create(props.cpf, invalidCpf),
       phone: Phone.create(props.phone),

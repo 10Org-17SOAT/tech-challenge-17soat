@@ -6,6 +6,7 @@ import { MECHANIC_AVAILABILITY } from '../../domain/value-objects/mechanic-avail
 describe('MechanicMapper', () => {
   const makeMechanic = (): Mechanic =>
     Mechanic.create({
+      userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       name: 'John Doe',
       cpf: '11144477735',
       email: 'john.doe@example.com',

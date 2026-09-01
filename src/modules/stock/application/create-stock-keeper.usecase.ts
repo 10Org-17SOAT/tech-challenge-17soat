@@ -5,6 +5,7 @@ import { STOCK_KEEPER_REPOSITORY } from '../domain/stock-keeper.repository';
 import type { StockKeeperRepository } from '../domain/stock-keeper.repository';
 
 export interface CreateStockKeeperInput {
+  userId: string;
   name: string;
   cpf: string;
   phone: string;

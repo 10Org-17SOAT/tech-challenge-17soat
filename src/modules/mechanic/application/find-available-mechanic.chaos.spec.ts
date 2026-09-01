@@ -19,6 +19,7 @@ describe('FindAvailableMechanicUseCase chaos', () => {
   describe('concurrency: two claims racing a single available mechanic', () => {
     it('never lets both claims succeed — the mechanic is allocated exactly once', async () => {
       const mechanic = Mechanic.create({
+        userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         name: 'John Doe',
         cpf: '11144477735',
         email: 'john.doe@example.com',

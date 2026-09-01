@@ -14,6 +14,7 @@ describe('GetStockKeeperUseCase', () => {
 
   it('returns the stock keeper by id', async () => {
     const stockKeeper = StockKeeper.create({
+      userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       name: 'Maria Estoquista',
       cpf: '52998224725',
       phone: '11987654321',

@@ -36,6 +36,7 @@ describe('ListStockKeepersUseCase', () => {
     for (let i = 1; i <= 25; i++) {
       await repository.save(
         StockKeeper.create({
+          userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
           name: `Estoquista ${i}`,
           cpf: validCpf(i),
           phone: '11987654321',
@@ -60,7 +61,12 @@ describe('ListStockKeepersUseCase', () => {
       ];
       for (const { name, cpf } of people) {
         await repository.save(
-          StockKeeper.create({ name, cpf, phone: '11987654321' }),
+          StockKeeper.create({
+            userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+            name,
+            cpf,
+            phone: '11987654321',
+          }),
         );
       }
     };

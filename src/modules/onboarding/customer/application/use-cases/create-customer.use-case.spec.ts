@@ -10,6 +10,7 @@ describe('CreateCustomerUseCase', () => {
   let repository: jest.Mocked<CustomerRepository>;
 
   const validPFInput: CreateCustomerInput = {
+    userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
     personType: PersonType.CPF,
     document: '52998224725',
     name: 'João Silva',
@@ -26,6 +27,7 @@ describe('CreateCustomerUseCase', () => {
   };
 
   const validPJInput: CreateCustomerInput = {
+    userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
     personType: PersonType.CNPJ,
     document: '12345678000195',
     corporateName: 'Empresa Exemplo LTDA',

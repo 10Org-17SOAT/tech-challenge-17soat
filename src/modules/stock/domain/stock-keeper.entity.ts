@@ -18,7 +18,7 @@ export interface StockKeeperProps {
 }
 
 export interface CreateStockKeeperProps {
-  userId?: string | null;
+  userId: string;
   name: string;
   cpf: string;
   phone: string;
@@ -39,10 +39,16 @@ export class StockKeeper {
   private constructor(private readonly props: InternalProps) {}
 
   static create(props: CreateStockKeeperProps): StockKeeper {
+    if (!props.userId?.trim()) {
+      throw new InvalidStockKeeperError(
+        'A stock keeper requires a linked user account.',
+      );
+    }
+
     const now = new Date();
     return new StockKeeper({
       id: randomUUID(),
-      userId: props.userId ?? null,
+      userId: props.userId,
       name: props.name,
       cpf: Cpf.create(props.cpf, invalidCpf),
       phone: Phone.create(props.phone),

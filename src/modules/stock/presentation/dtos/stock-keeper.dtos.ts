@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { StockKeeper } from '../../domain/stock-keeper.entity';
 
 export const createStockKeeperSchema = z.object({
+  userId: z.uuid(),
   name: z.string().trim().min(1).max(255),
   cpf: z.string().trim().min(11).max(14),
   phone: z.string().trim().min(10).max(15),

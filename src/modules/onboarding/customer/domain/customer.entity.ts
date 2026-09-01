@@ -56,8 +56,16 @@ export class Customer {
   }
 
   static create(
-    props: Omit<CustomerProps, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>,
+    props: Omit<
+      CustomerProps,
+      'id' | 'userId' | 'createdAt' | 'updatedAt' | 'deletedAt'
+    > & { userId: string },
   ): Customer {
+    if (!props.userId?.trim()) {
+      throw new InvalidCustomerException(
+        'A customer requires a linked user account.',
+      );
+    }
     return new Customer(props);
   }
 

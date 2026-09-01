@@ -46,6 +46,7 @@ const makeMechanic = (overrides?: {
 
   const mechanic = Mechanic.restore({
     id: overrides?.id ?? randomUUID(),
+    userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
     name: overrides?.name ?? 'John Doe',
     cpf: new Cpf(overrides?.cpf ?? validCpf('111444777')),
     email: new Email('john.doe@example.com'),

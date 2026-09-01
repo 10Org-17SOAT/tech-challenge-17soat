@@ -13,6 +13,7 @@ import {
 } from './exceptions/mechanic.exceptions';
 
 const validProps = {
+  userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   name: 'John Doe',
   cpf: '11144477735',
   email: 'john.doe@example.com',
@@ -136,6 +137,7 @@ describe('Mechanic', () => {
       const now = new Date();
       const mechanic = Mechanic.restore({
         id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+        userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         name: 'John Doe',
         cpf: new Cpf('11144477735'),
         email: new Email('john.doe@example.com'),
@@ -228,6 +230,7 @@ describe('Mechanic', () => {
       const now = new Date();
       const mechanic = Mechanic.restore({
         id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+        userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         name: 'John Doe',
         cpf: new Cpf('11144477735'),
         email: new Email('john.doe@example.com'),
@@ -256,6 +259,7 @@ describe('Mechanic', () => {
       expect(() =>
         Mechanic.restore({
           id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+          userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
           name: 'John Doe',
           cpf: new Cpf('123'),
           email: new Email('john.doe@example.com'),
@@ -286,6 +290,7 @@ describe('Mechanic', () => {
 
       const restored = Mechanic.restore({
         id: a.getId(),
+        userId: a.getUserId(),
         name: a.getName(),
         cpf: a.getCpf(),
         email: a.getEmail(),
@@ -312,6 +317,7 @@ describe('Mechanic', () => {
 
       expect(primitives).toEqual({
         id: mechanic.getId(),
+        userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         name: 'John Doe',
         cpf: '11144477735',
         email: 'john.doe@example.com',
