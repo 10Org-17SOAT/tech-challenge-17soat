@@ -56,26 +56,6 @@ describe('Customer entity', () => {
       ).toThrow(InvalidCustomerException);
     });
 
-    it('links a user account, stamping updatedAt', () => {
-      const customer = Customer.create({
-        userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-        personType: PersonType.CPF,
-        document: new Document('52998224725'),
-        name: 'João Silva',
-        email: new Email('joao@example.com'),
-        phone: validPhone,
-        address: validAddress,
-      });
-      const before = customer.getUpdatedAt();
-
-      customer.linkUser('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22');
-
-      expect(customer.getUserId()).toBe('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22');
-      expect(customer.getUpdatedAt().getTime()).toBeGreaterThanOrEqual(
-        before.getTime(),
-      );
-    });
-
     it('rejects PF without name', () => {
       expect(() =>
         Customer.create({

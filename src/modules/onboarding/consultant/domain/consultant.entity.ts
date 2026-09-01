@@ -84,11 +84,6 @@ export class Consultant {
     this.props.updatedAt = new Date();
   }
 
-  linkUser(userId: string): void {
-    this.props.userId = userId;
-    this.props.updatedAt = new Date();
-  }
-
   delete(): void {
     this.props.deletedAt = new Date();
     this.props.updatedAt = this.props.deletedAt;

@@ -80,15 +80,6 @@ export class Customer {
     return this.id;
   }
 
-  getUserId(): string | null {
-    return this.userId;
-  }
-
-  linkUser(userId: string): void {
-    this.userId = userId;
-    this.updatedAt = new Date();
-  }
-
   getPersonType(): PersonType {
     return this.personType;
   }

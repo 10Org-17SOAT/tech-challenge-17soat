@@ -203,15 +203,6 @@ export class Mechanic {
     return this.id;
   }
 
-  getUserId(): string | null {
-    return this.userId;
-  }
-
-  linkUser(userId: string): void {
-    this.userId = userId;
-    this.updatedAt = new Date();
-  }
-
   getName(): string {
     return this.name;
   }

@@ -88,22 +88,6 @@ describe('StockKeeper', () => {
     ).toThrow(InvalidStockKeeperError);
   });
 
-  it('links a user account, stamping updatedAt', () => {
-    const stockKeeper = StockKeeper.create({
-      userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-      name: 'Maria Estoquista',
-      cpf: '52998224725',
-      phone: '11987654321',
-    });
-    const before = stockKeeper.updatedAt;
-
-    stockKeeper.linkUser('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22');
-
-    expect(stockKeeper.userId).toBe('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22');
-    expect(stockKeeper.updatedAt.getTime()).toBeGreaterThanOrEqual(
-      before.getTime(),
-    );
-  });
 
   it('soft deletes by stamping deletedAt', () => {
     const stockKeeper = StockKeeper.create({

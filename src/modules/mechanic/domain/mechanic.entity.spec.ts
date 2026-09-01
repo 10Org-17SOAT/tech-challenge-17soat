@@ -74,19 +74,6 @@ describe('Mechanic', () => {
     });
   });
 
-  describe('linkUser', () => {
-    it('links a user account, stamping updatedAt', () => {
-      const mechanic = makeMechanic();
-      const before = mechanic.getUpdatedAt();
-
-      mechanic.linkUser('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22');
-
-      expect(mechanic.getUserId()).toBe('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22');
-      expect(mechanic.getUpdatedAt().getTime()).toBeGreaterThanOrEqual(
-        before.getTime(),
-      );
-    });
-  });
 
   describe('updateProfile', () => {
     it('updates only the provided fields', () => {
@@ -314,7 +301,7 @@ describe('Mechanic', () => {
 
       const restored = Mechanic.restore({
         id: a.getId(),
-        userId: a.getUserId(),
+        userId: null,
         name: a.getName(),
         cpf: a.getCpf(),
         email: a.getEmail(),
