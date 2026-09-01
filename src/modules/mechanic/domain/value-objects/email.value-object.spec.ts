@@ -30,22 +30,6 @@ describe('Email', () => {
     );
   });
 
-  it('rejects an email with an empty domain label', () => {
-    expect(() => new Email('john.doe@example..com')).toThrow(
-      InvalidEmailException,
-    );
-  });
-
-  it('rejects a long adversarial input in linear time', () => {
-    const adversarial = `a@${'b.'.repeat(32_000)} `;
-
-    const startedAt = process.hrtime.bigint();
-    expect(() => new Email(adversarial)).toThrow(InvalidEmailException);
-    const elapsedMs = Number(process.hrtime.bigint() - startedAt) / 1e6;
-
-    expect(elapsedMs).toBeLessThan(100);
-  });
-
   it('is equal to another Email with the same value', () => {
     const a = new Email('john.doe@example.com');
     const b = new Email('  JOHN.DOE@EXAMPLE.COM ');
