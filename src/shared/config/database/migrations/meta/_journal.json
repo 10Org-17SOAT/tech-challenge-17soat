@@ -1,0 +1,181 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1786557169542,
+      "tag": "0000_vehicles",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786557170000,
+      "tag": "0001_add_deleted_at_to_vehicles",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786672421114,
+      "tag": "20260814015341_known_stingray",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1786817235809,
+      "tag": "0002_hard_scourge",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1786817473948,
+      "tag": "0003_small_greymalkin",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1786817899435,
+      "tag": "0004_stiff_psynapse",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1786982324959,
+      "tag": "20260817155844_bitter_terrax",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1787009167491,
+      "tag": "20260817232607_abandoned_patriot",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1787186021824,
+      "tag": "20260820003341_careless_sway",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1787612197819,
+      "tag": "20260824225637_opposite_white_queen",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788033579798,
+      "tag": "20260829195939_thin_the_anarchist",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1788128896177,
+      "tag": "20260830222816_add_stock_keepers",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1788128989508,
+      "tag": "20260830222949_require_stock_keeper_on_stock_entry",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1788131292354,
+      "tag": "20260830230812_familiar_mister_fear",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1788131293000,
+      "tag": "20260830230813_link_vehicle_customer_and_quotation_approval",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1788152899903,
+      "tag": "20260831050819_aberrant_red_ghost",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1788175504087,
+      "tag": "20260831112504_nappy_santa_claus",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1788194206176,
+      "tag": "20260831163646_add_consultants",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1788194441422,
+      "tag": "20260831164041_add_service_order_consultant_attribution",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1788215927704,
+      "tag": "20260831223847_foamy_gorgon",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1788220583871,
+      "tag": "20260831235623_slippery_dreadnoughts",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1788261257814,
+      "tag": "20260901111417_perpetual_gauntlet",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1788265457733,
+      "tag": "20260901122417_amusing_wong",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1788275613852,
+      "tag": "20260901151333_deep_toro",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1788295468750,
+      "tag": "20260901204428_first_christian_walker",
+      "breakpoints": true
+    }
+  ]
+}

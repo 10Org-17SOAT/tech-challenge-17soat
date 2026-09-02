@@ -1,0 +1,27 @@
+import { INestApplication } from '@nestjs/common';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { apiReference } from '@scalar/nestjs-api-reference';
+import { cleanupOpenApiDoc } from 'nestjs-zod';
+
+export function setupSwagger(app: INestApplication): void {
+  const config = new DocumentBuilder()
+    .setTitle('Tech Challenge API')
+    .setDescription('Documentação da API do Tech Challenge')
+    .setVersion('1.0')
+    .addBearerAuth(
+      { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+      'bearer',
+    )
+    .build();
+
+  const document = cleanupOpenApiDoc(SwaggerModule.createDocument(app, config));
+
+  SwaggerModule.setup('docs', app, document);
+
+  app.use(
+    '/reference',
+    apiReference({
+      content: document,
+    }),
+  );
+}

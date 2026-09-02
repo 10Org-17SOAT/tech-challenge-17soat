@@ -1,0 +1,24 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": "..",
+  "testEnvironment": "node",
+  "testRegex": ".e2e-spec.ts$",
+  "transform": {
+    "^.+\\.(t|j)s$": "ts-jest"
+  },
+  "maxWorkers": 1,
+  "collectCoverage": true,
+  "collectCoverageFrom": [
+    "src/modules/onboarding/vehicles/application/use-cases/**/*.ts",
+    "!src/**/*.spec.ts"
+  ],
+  "coverageThreshold": {
+    "global": {
+      "branches": 100,
+      "functions": 100,
+      "lines": 100,
+      "statements": 100
+    }
+  },
+  "coverageDirectory": "coverage/e2e"
+}
