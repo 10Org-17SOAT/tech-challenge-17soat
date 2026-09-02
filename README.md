@@ -419,10 +419,56 @@ Quadro completo no Miro: <https://miro.com/app/board/uXjVH7iT7WY=/>
 
 ### Requisitos
 
-- Node.js 20+ e npm 10+
-- Docker e Docker Compose (para o PostgreSQL)
+- Docker e Docker Compose — suficientes para subir tudo
+- Node.js 20+ e npm 10+ — apenas para desenvolvimento local
 
-### Subindo o ambiente do zero
+### Subindo com Docker (recomendado)
+
+Um comando levanta a API e o banco, aplica as migrações e carrega os dados de
+demonstração:
+
+```bash
+git clone git@github.com:10Org-17SOAT/tech-challenge-17soat.git
+cd tech-challenge-17soat
+
+docker compose up -d --build
+```
+
+Crie um `.env` na root do projeto. Na primeira subida a API
+espera o PostgreSQL ficar saudável, aplica as 25 migrações e roda o seed —
+acompanhe por `docker compose logs -f api`.
+
+Quando aparecer `Nest application successfully started`, a aplicação está em:
+
+- **Scalar (documentação interativa):** <http://localhost:3000/reference>
+- **Swagger:** <http://localhost:3000/docs>
+
+**Contas criadas pelo seed** — senha `Oficina@2026` para todas:
+
+| Conta | Papel |
+| --- | --- |
+| `admin@oficina.dev` | ADMIN |
+| `consultor@oficina.dev` | ADMIN |
+| `bruno@oficina.dev` | MECHANIC |
+| `diego@oficina.dev` | MECHANIC |
+| `estoquista@oficina.dev` | STOCK_KEEPER |
+| `ana@example.com` | CUSTOMER |
+
+Junto vêm dois clientes, três veículos, cinco serviços com ficha técnica e cinco
+insumos com saldo em estoque. O seed é idempotente: rodar de novo não duplica nada.
+
+Para parar, `docker compose down`. Para recomeçar do zero (apagando o banco),
+`docker compose down -v`.
+
+> **Notas.** O `docker-compose.yml` é um ambiente de demonstração: ele define
+> `NODE_ENV=development` e `RUN_SEED=true`, porque o seed se recusa a rodar em
+> produção. Um deploy real usa a imagem sem essas duas variáveis, e aí o
+> `NODE_ENV=production` do `Dockerfile` prevalece e nenhum dado de exemplo é
+> criado. O envio de e-mail vem como `MAIL_DRIVER=log`, que apenas escreve a
+> mensagem no log — nada é enviado de fato. Se existir um `.env` na raiz, o
+> Docker Compose usa os valores dele no lugar dos padrões acima.
+
+### Desenvolvimento local
 
 ```bash
 # Clone o repositório
@@ -439,8 +485,8 @@ openssl rand -base64 32   # cole o resultado em JWT_SECRET
 # opcional: preencha BOOTSTRAP_ADMIN_EMAIL e BOOTSTRAP_ADMIN_PASSWORD
 # para que o primeiro administrador seja criado no boot
 
-# Suba o PostgreSQL
-docker compose up -d
+# Suba apenas o PostgreSQL (o serviço `api` fica de fora aqui)
+docker compose up -d postgres
 
 # Aplique as migrações
 npm run db:migrate
