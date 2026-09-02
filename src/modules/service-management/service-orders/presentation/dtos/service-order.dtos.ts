@@ -5,12 +5,14 @@ import { serviceOrderStatusEnum } from '../../infrastructure/persistence/schema'
 
 const serviceOrderStatusValues = serviceOrderStatusEnum.enumValues;
 
+const isoDateTime = z.iso.datetime({ offset: true });
+
 export const createServiceOrderSchema = z.object({
   vehicleId: z.uuid(),
   openedById: z.uuid(),
   notes: z.string().trim().max(2000).optional(),
   vehicleMileageAtEntry: z.number().int().nonnegative().optional(),
-  scheduledAt: z.coerce.date().optional(),
+  scheduledAt: isoDateTime.optional(),
 });
 
 export class CreateServiceOrderDto extends createZodDto(
@@ -20,7 +22,7 @@ export const updateServiceOrderSchema = z
   .object({
     notes: z.string().trim().max(2000).nullable(),
     vehicleMileageAtEntry: z.number().int().nonnegative().nullable(),
-    scheduledAt: z.coerce.date().nullable(),
+    scheduledAt: isoDateTime.nullable(),
   })
   .partial();
 
@@ -91,13 +93,17 @@ export class PaginatedServiceOrdersResponseDto extends createZodDto(
 // timezone question and the API never has to guess the shop's.
 export const averageExecutionTimeQuerySchema = z
   .object({
-    from: z.coerce.date().optional(),
-    to: z.coerce.date().optional(),
+    from: isoDateTime.optional(),
+    to: isoDateTime.optional(),
   })
-  .refine((query) => !query.from || !query.to || query.from <= query.to, {
-    message: '"from" must be earlier than or equal to "to"',
-    path: ['from'],
-  });
+  .refine(
+    (query) =>
+      !query.from || !query.to || new Date(query.from) <= new Date(query.to),
+    {
+      message: '"from" must be earlier than or equal to "to"',
+      path: ['from'],
+    },
+  );
 
 export class AverageExecutionTimeQueryDto extends createZodDto(
   averageExecutionTimeQuerySchema,
