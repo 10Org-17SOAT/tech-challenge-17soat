@@ -132,9 +132,6 @@ export class ServiceOrdersController {
   ): Promise<ServiceOrderResponseDto> {
     const { scheduledAt, ...changes } = body;
 
-    // Ausente e nulo dizem coisas diferentes — "não mexa" e "limpe" — e a
-    // entidade distingue os dois. Por isso a chave só entra no payload quando
-    // veio no corpo, em vez de virar `undefined` na conversão para `Date`.
     const order = await this.updateOrder.execute(params.id, {
       ...changes,
       ...(scheduledAt !== undefined && {

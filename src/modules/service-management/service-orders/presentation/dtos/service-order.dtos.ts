@@ -5,20 +5,6 @@ import { serviceOrderStatusEnum } from '../../infrastructure/persistence/schema'
 
 const serviceOrderStatusValues = serviceOrderStatusEnum.enumValues;
 
-/**
- * Datas de entrada trafegam como texto ISO 8601 com offset, nunca como
- * `z.coerce.date()`. São duas razões, e as duas importam:
- *
- * - `Date` não tem representação em JSON Schema, e todo DTO é convertido para
- *   JSON Schema na montagem do Swagger. Um `z.coerce.date()` aqui derruba a
- *   aplicação no boot, antes de servir a primeira requisição.
- * - `coerce` aceita qualquer coisa que o construtor de `Date` engula
- *   (`"quinta"` vira Invalid Date, `"2026-01-01"` assume UTC em silêncio).
- *   Exigir o offset devolve a pergunta do fuso a quem chama.
- *
- * A conversão para `Date` acontece no controller, na fronteira — o domínio
- * continua recebendo `Date`, como sempre recebeu.
- */
 const isoDateTime = z.iso.datetime({ offset: true });
 
 export const createServiceOrderSchema = z.object({
@@ -110,8 +96,6 @@ export const averageExecutionTimeQuerySchema = z
     from: isoDateTime.optional(),
     to: isoDateTime.optional(),
   })
-  // Comparado como instante, não como texto: "2026-08-01T00:00:00-03:00" é
-  // posterior a "2026-08-01T00:00:00Z", e a ordem lexicográfica diz o oposto.
   .refine(
     (query) =>
       !query.from || !query.to || new Date(query.from) <= new Date(query.to),

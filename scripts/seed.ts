@@ -12,7 +12,6 @@ if (process.env.NODE_ENV === 'production') {
   );
 }
 
-/** Senha de todas as contas semeadas. 12 caracteres: serve também como BOOTSTRAP_ADMIN_PASSWORD. */
 const SEED_PASSWORD = 'Oficina@2026';
 
 const USER = {
@@ -90,8 +89,6 @@ async function seed(): Promise<void> {
   const passwordHash = await bcrypt.hash(SEED_PASSWORD, 10);
 
   try {
-    // Contas de acesso. Todo perfil (cliente, consultor, mecânico, estoquista)
-    // aponta para uma delas por user_id — validado no domínio, sem FK.
     await db
       .insert(schema.users)
       .values([
@@ -102,9 +99,6 @@ async function seed(): Promise<void> {
           password_hash: passwordHash,
           role_id: 1,
         },
-        // O consultor opera endpoints marcados como ADMIN (clientes, veículos,
-        // anamnese, OS), então a conta dele é ADMIN — o perfil é que o
-        // identifica como consultor.
         {
           user_id: USER.consultant,
           name: 'Carla Menezes',
@@ -200,8 +194,6 @@ async function seed(): Promise<void> {
       ])
       .onConflictDoNothing();
 
-    // Dois carros da Ana para o guia poder rodar o fluxo duas vezes sem
-    // esbarrar em "esse veículo já tem OS aberta".
     await db
       .insert(schema.vehiclesTable)
       .values([
@@ -259,8 +251,6 @@ async function seed(): Promise<void> {
       ])
       .onConflictDoNothing();
 
-    // `availableSince` separado por uma hora: a alocação é FIFO, então quem
-    // está livre há mais tempo — o Bruno — assume o primeiro claim.
     const brunoAvailableSince = new Date(now.getTime() - 2 * 60 * 60 * 1000);
     const diegoAvailableSince = new Date(now.getTime() - 1 * 60 * 60 * 1000);
 
@@ -357,8 +347,6 @@ async function seed(): Promise<void> {
       ])
       .onConflictDoNothing();
 
-    // A quantidade disponível nunca é uma coluna: ela sai destes movimentos.
-    // Sem estas entradas o estoque nasce zerado e nenhuma reserva passa.
     await db
       .insert(schema.stockMovements)
       .values([
@@ -481,8 +469,6 @@ async function seed(): Promise<void> {
       ])
       .onConflictDoNothing();
 
-    // Ficha técnica: é por ela que peças entram no orçamento. Serviço sem
-    // insumo (alinhamento, revisão elétrica) gera orçamento só de mão de obra.
     await db
       .insert(schema.serviceSupplies)
       .values([
