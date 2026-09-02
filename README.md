@@ -434,7 +434,7 @@ cd tech-challenge-17soat
 docker compose up -d --build
 ```
 
-Não é preciso criar `.env` nem instalar dependências. Na primeira subida a API
+Crie um `.env` na root do projeto. Na primeira subida a API
 espera o PostgreSQL ficar saudável, aplica as 25 migrações e roda o seed —
 acompanhe por `docker compose logs -f api`.
 
