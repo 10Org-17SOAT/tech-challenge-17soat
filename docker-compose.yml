@@ -17,5 +17,38 @@ services:
       timeout: 5s
       retries: 5
 
+  api:
+    build: .
+    container_name: tech-challenge-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      # `development` is deliberate: the seed refuses to run under
+      # NODE_ENV=production, and this compose exists to hand over a populated
+      # environment. Deploying for real means dropping RUN_SEED and letting the
+      # image keep its own NODE_ENV=production.
+      NODE_ENV: development
+      RUN_SEED: "true"
+      PORT: 3000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-tech_challenge}
+      JWT_SECRET: demo-only-secret-with-at-least-32-characters
+      JWT_EXPIRES_IN: 8h
+      APP_BASE_URL: http://localhost:3000
+      # Fixed, not interpolated: a stray `.env` in the working copy must never
+      # turn this demo into a real sender. `log` writes the message to the
+      # application log and sends nothing. Point it at a provider through a
+      # docker-compose.override.yml if you actually want delivery.
+      MAIL_DRIVER: log
+      MAIL_FROM: oficina@example.com
+      MAIL_FROM_NAME: Oficina
+
 volumes:
   postgres_data:
