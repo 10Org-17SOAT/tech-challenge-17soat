@@ -1202,18 +1202,15 @@ npm run db:studio     # Inspeciona os dados no Drizzle Studio
 <details>
 <summary>Expandir para mais detalhes</summary>
 
-As decisões arquiteturais estão registradas em [`docs/adr/`](./docs/adr/README.md):
+As decisões arquiteturais estão registradas em [`docs/adr/`](./docs/adr/):
 
 | ADR | Decisão |
 |-----|---------|
-| [0001](./docs/adr/0001-usar-nestjs-com-typescript.md) | Usar NestJS com TypeScript |
-| [0002](./docs/adr/0002-organizacao-por-modulos-de-dominio.md) | Organização por módulos de domínio |
-| [0003](./docs/adr/0003-persistencia-com-postgresql-e-drizzle.md) | Persistência com PostgreSQL e Drizzle ORM |
-| [0004](./docs/adr/0004-validacao-com-zod-e-dtos.md) | Validação com Zod e DTOs |
-| [0005](./docs/adr/0005-testes-com-jest-e-supertest.md) | Testes com Jest e Supertest |
-| [0006](./docs/adr/0006-autenticacao-jwt-roles-e-usuarios.md) | Autenticação com JWT, usuários e roles |
-
-Convenções de código, arquitetura e commits estão em [`GUIDELINES.md`](./GUIDELINES.md).
+| [0001](./docs/adr/0001-monolito-modular.md) | Monolito modular |
+| [0002](./docs/adr/0002-usar-nestjs-com-typescript.md) | Escolha de linguagem e framework |
+| [0003](./docs/adr/0003-clean-architecture.md) | Escolha de arquitetura |
+| [0004](./docs/adr/0004-persistencia-com-postgresql-e-drizzle.md) | Escolha de banco de dados |
+| [0005](./docs/adr/0005-validacao-com-zod-e-dtos.md) | Validação com Zod e DTOs |
 
 </details>
 
