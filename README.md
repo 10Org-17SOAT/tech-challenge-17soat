@@ -14,6 +14,8 @@
 
 API de gestão de ordens de serviço para uma oficina mecânica de veículos, desenvolvida como parte do curso de Arquitetura de Software da FIAP (Tech Challenge — SOAT 17).
 
+> 📌 O código entregue na **Fase 1** está congelado na [release v1.0.0](../../releases/tag/v1.0.0). A branch `main` segue para a Fase 2.
+
 <div align="center">
   <a href="#visao-geral">Visão Geral</a> •
   <a href="#arquitetura">Arquitetura</a> •
