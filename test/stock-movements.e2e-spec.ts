@@ -2,19 +2,19 @@ import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { randomUUID } from 'node:crypto';
 import { AppModule } from './../src/app.module';
-import { describeStockMovementRepositoryContract } from './../src/modules/stock/__test__/stock-movement-repository.contract';
-import { StockMovement } from './../src/modules/stock/domain/stock-movement.entity';
-import { STOCK_MOVEMENT_REPOSITORY } from './../src/modules/stock/domain/stock-movement.repository';
-import type { StockMovementRepository } from './../src/modules/stock/domain/stock-movement.repository';
-import { SUPPLY_REPOSITORY } from './../src/modules/stock/domain/supply.repository';
-import type { SupplyRepository } from './../src/modules/stock/domain/supply.repository';
-import { Supply } from './../src/modules/stock/domain/supply.entity';
+import { describeStockMovementRepositoryContract } from './../src/modules/stock/inventory/__test__/stock-movement-repository.contract';
+import { StockMovement } from './../src/modules/stock/inventory/domain/stock-movement.entity';
+import { STOCK_MOVEMENT_REPOSITORY } from './../src/modules/stock/inventory/domain/stock-movement.repository';
+import type { StockMovementRepository } from './../src/modules/stock/inventory/domain/stock-movement.repository';
+import { SUPPLY_REPOSITORY } from './../src/modules/stock/inventory/domain/supply.repository';
+import type { SupplyRepository } from './../src/modules/stock/inventory/domain/supply.repository';
+import { Supply } from './../src/modules/stock/inventory/domain/supply.entity';
 import { DATABASE_CONNECTION } from './../src/shared/config/database/database.constants';
 import type { DrizzleDatabase } from './../src/shared/config/database/drizzle.provider';
 import {
   stockMovements,
   supplies,
-} from './../src/modules/stock/infrastructure/persistence/schema';
+} from './../src/modules/stock/inventory/infrastructure/persistence/schema';
 
 const TEST_PERFORMER = {
   id: '11111111-1111-1111-1111-111111111111',
