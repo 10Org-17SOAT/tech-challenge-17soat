@@ -1,10 +1,11 @@
 import { InvalidStockMovementError } from '../domain/errors/invalid-stock-movement.error';
-import { StockKeeperNotFoundError } from '../../stock-keepers/domain/errors/stock-keeper-not-found.error';
+import { UnknownStockKeeperError } from '../domain/errors/unknown-stock-keeper.error';
 import { SupplyNotFoundError } from '../domain/errors/supply-not-found.error';
 import { MovementType } from '../domain/stock-movement.entity';
-import { StockKeeper } from '../../stock-keepers/domain/stock-keeper.entity';
 import { Supply } from '../domain/supply.entity';
-import { InMemoryStockKeeperRepository } from '../../stock-keepers/__test__/in-memory-stock-keeper.repository';
+import { randomUUID } from 'node:crypto';
+import type { StockKeeperView } from '../../stock-keepers/public/stock-keeper-directory.query';
+import { InMemoryStockKeeperDirectoryQuery } from '../__test__/in-memory-stock-keeper-directory.query';
 import { InMemoryStockMovementRepository } from '../__test__/in-memory-stock-movement.repository';
 import { InMemorySupplyRepository } from '../__test__/in-memory-supply.repository';
 import { RegisterStockEntryUseCase } from './register-stock-entry.usecase';
@@ -12,7 +13,7 @@ import { RegisterStockEntryUseCase } from './register-stock-entry.usecase';
 describe('RegisterStockEntryUseCase', () => {
   let supplyRepository: InMemorySupplyRepository;
   let movementRepository: InMemoryStockMovementRepository;
-  let stockKeeperRepository: InMemoryStockKeeperRepository;
+  let stockKeeperDirectory: InMemoryStockKeeperDirectoryQuery;
   let useCase: RegisterStockEntryUseCase;
 
   const givenSupply = async (): Promise<Supply> => {
@@ -24,31 +25,28 @@ describe('RegisterStockEntryUseCase', () => {
     return supply;
   };
 
-  const givenStockKeeper = async (): Promise<StockKeeper> => {
-    const stockKeeper = StockKeeper.create({
-      userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  // Only what the ledger sees of a stock keeper: the published view, never
+  // the entity — cpf and phone stay inside the stock keepers module.
+  const givenStockKeeper = (): StockKeeperView =>
+    stockKeeperDirectory.add({
+      id: randomUUID(),
       name: 'Maria Estoquista',
-      cpf: '52998224725',
-      phone: '11987654321',
     });
-    await stockKeeperRepository.save(stockKeeper);
-    return stockKeeper;
-  };
 
   beforeEach(() => {
     supplyRepository = new InMemorySupplyRepository();
     movementRepository = new InMemoryStockMovementRepository();
-    stockKeeperRepository = new InMemoryStockKeeperRepository();
+    stockKeeperDirectory = new InMemoryStockKeeperDirectoryQuery();
     useCase = new RegisterStockEntryUseCase(
       supplyRepository,
       movementRepository,
-      stockKeeperRepository,
+      stockKeeperDirectory,
     );
   });
 
   it('registers an entry and raises the available balance by the given quantity', async () => {
     const supply = await givenSupply();
-    const stockKeeper = await givenStockKeeper();
+    const stockKeeper = givenStockKeeper();
 
     const result = await useCase.execute({
       supplyId: supply.id,
@@ -69,7 +67,7 @@ describe('RegisterStockEntryUseCase', () => {
 
   it('accumulates successive entries into the balance', async () => {
     const supply = await givenSupply();
-    const stockKeeper = await givenStockKeeper();
+    const stockKeeper = givenStockKeeper();
 
     await useCase.execute({
       supplyId: supply.id,
@@ -86,7 +84,7 @@ describe('RegisterStockEntryUseCase', () => {
   });
 
   it('rejects an entry for a supply that does not exist', async () => {
-    const stockKeeper = await givenStockKeeper();
+    const stockKeeper = givenStockKeeper();
 
     await expect(
       useCase.execute({
@@ -108,14 +106,14 @@ describe('RegisterStockEntryUseCase', () => {
         quantity: 3,
         stockKeeperId: crypto.randomUUID(),
       }),
-    ).rejects.toBeInstanceOf(StockKeeperNotFoundError);
+    ).rejects.toBeInstanceOf(UnknownStockKeeperError);
 
     expect(movementRepository.movements).toHaveLength(0);
   });
 
   it.each([0, -5, 2.5])('rejects the invalid quantity %p', async (quantity) => {
     const supply = await givenSupply();
-    const stockKeeper = await givenStockKeeper();
+    const stockKeeper = givenStockKeeper();
 
     await expect(
       useCase.execute({
@@ -130,7 +128,7 @@ describe('RegisterStockEntryUseCase', () => {
 
   it('applies concurrent entries for the same supply without a lost update', async () => {
     const supply = await givenSupply();
-    const stockKeeper = await givenStockKeeper();
+    const stockKeeper = givenStockKeeper();
 
     await Promise.all([
       useCase.execute({

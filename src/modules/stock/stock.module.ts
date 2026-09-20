@@ -21,6 +21,8 @@ import { DrizzleStockMovementRepository } from './inventory/infrastructure/persi
 import { DrizzleSupplyRepository } from './inventory/infrastructure/persistence/drizzle-supply.repository';
 import { StockKeepersController } from './stock-keepers/presentation/stock-keepers.controller';
 import { SuppliesController } from './inventory/presentation/supplies.controller';
+import { STOCK_KEEPER_DIRECTORY_QUERY } from './stock-keepers/public/stock-keeper-directory.query';
+import { StockKeeperDirectoryQueryImpl } from './stock-keepers/public/stock-keeper-directory.query.impl';
 import { SUPPLY_CATALOG_QUERY } from './inventory/public/supply-catalog.query';
 import { SupplyCatalogQueryImpl } from './inventory/public/supply-catalog.query.impl';
 
@@ -46,6 +48,10 @@ import { SupplyCatalogQueryImpl } from './inventory/public/supply-catalog.query.
     ReservePartUseCase,
     WriteOffReservedPartUseCase,
     { provide: SUPPLY_CATALOG_QUERY, useClass: SupplyCatalogQueryImpl },
+    {
+      provide: STOCK_KEEPER_DIRECTORY_QUERY,
+      useClass: StockKeeperDirectoryQueryImpl,
+    },
     CreateStockKeeperUseCase,
     GetStockKeeperUseCase,
     ListStockKeepersUseCase,

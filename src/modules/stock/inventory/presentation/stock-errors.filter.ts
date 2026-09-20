@@ -14,6 +14,7 @@ import { InvalidSupplyError } from '../domain/errors/invalid-supply.error';
 import { ReservationNotFoundError } from '../domain/errors/reservation-not-found.error';
 import { StockKeeperCpfAlreadyExistsError } from '../../stock-keepers/domain/errors/stock-keeper-cpf-already-exists.error';
 import { StockKeeperNotFoundError } from '../../stock-keepers/domain/errors/stock-keeper-not-found.error';
+import { UnknownStockKeeperError } from '../domain/errors/unknown-stock-keeper.error';
 import { InvalidStockKeeperError } from '../../stock-keepers/domain/errors/invalid-stock-keeper.error';
 import { SupplyNameAlreadyExistsError } from '../domain/errors/supply-name-already-exists.error';
 import { SupplyNotFoundError } from '../domain/errors/supply-not-found.error';
@@ -27,6 +28,7 @@ import { SupplyNotFoundError } from '../domain/errors/supply-not-found.error';
   ReservationNotFoundError,
   ExceedsReservedQuantityError,
   StockKeeperNotFoundError,
+  UnknownStockKeeperError,
   StockKeeperCpfAlreadyExistsError,
   InvalidStockKeeperError,
 )
@@ -41,7 +43,8 @@ export class StockErrorsFilter implements ExceptionFilter {
     if (
       error instanceof SupplyNotFoundError ||
       error instanceof ReservationNotFoundError ||
-      error instanceof StockKeeperNotFoundError
+      error instanceof StockKeeperNotFoundError ||
+      error instanceof UnknownStockKeeperError
     ) {
       return new NotFoundException(error.message);
     }

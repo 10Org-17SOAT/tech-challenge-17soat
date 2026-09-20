@@ -1,11 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { StockKeeperNotFoundError } from '../../stock-keepers/domain/errors/stock-keeper-not-found.error';
+import { UnknownStockKeeperError } from '../domain/errors/unknown-stock-keeper.error';
 import { SupplyNotFoundError } from '../domain/errors/supply-not-found.error';
 import { StockMovement } from '../domain/stock-movement.entity';
 import { STOCK_MOVEMENT_REPOSITORY } from '../domain/stock-movement.repository';
 import type { StockMovementRepository } from '../domain/stock-movement.repository';
-import { STOCK_KEEPER_REPOSITORY } from '../../stock-keepers/domain/stock-keeper.repository';
-import type { StockKeeperRepository } from '../../stock-keepers/domain/stock-keeper.repository';
+import { STOCK_KEEPER_DIRECTORY_QUERY } from '../../stock-keepers/public/stock-keeper-directory.query';
+import type { StockKeeperDirectoryQuery } from '../../stock-keepers/public/stock-keeper-directory.query';
 import { SUPPLY_REPOSITORY } from '../domain/supply.repository';
 import type { SupplyRepository } from '../domain/supply.repository';
 
@@ -27,8 +27,10 @@ export class RegisterStockEntryUseCase {
     private readonly supplyRepository: SupplyRepository,
     @Inject(STOCK_MOVEMENT_REPOSITORY)
     private readonly stockMovementRepository: StockMovementRepository,
-    @Inject(STOCK_KEEPER_REPOSITORY)
-    private readonly stockKeeperRepository: StockKeeperRepository,
+    // The published contract, not the repository: stock keepers keep their
+    // model private, and this only ever needs the name for the ledger snapshot.
+    @Inject(STOCK_KEEPER_DIRECTORY_QUERY)
+    private readonly stockKeeperDirectory: StockKeeperDirectoryQuery,
   ) {}
 
   async execute({
@@ -41,10 +43,9 @@ export class RegisterStockEntryUseCase {
       throw new SupplyNotFoundError(supplyId);
     }
 
-    const stockKeeper =
-      await this.stockKeeperRepository.findById(stockKeeperId);
+    const stockKeeper = await this.stockKeeperDirectory.findById(stockKeeperId);
     if (!stockKeeper) {
-      throw new StockKeeperNotFoundError(stockKeeperId);
+      throw new UnknownStockKeeperError(stockKeeperId);
     }
 
     const movement = StockMovement.in(supply.id, quantity, {
