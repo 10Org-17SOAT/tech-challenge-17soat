@@ -31,14 +31,14 @@ import {
   toStockKeeperResponse,
   UpdateStockKeeperDto,
 } from './dtos/stock-keeper.dtos';
-import { StockErrorsFilter } from '../../inventory/presentation/stock-errors.filter';
+import { StockKeeperErrorsFilter } from './stock-keeper-errors.filter';
 import { Roles, UserRole } from '../../../auth/public/roles';
 
 @ApiTags('stock-keepers')
 @ApiBearerAuth()
 @Roles(UserRole.ADMIN, UserRole.STOCK_KEEPER)
 @Controller('stock-keepers')
-@UseFilters(StockErrorsFilter)
+@UseFilters(StockKeeperErrorsFilter)
 export class StockKeepersController {
   constructor(
     private readonly createStockKeeper: CreateStockKeeperUseCase,

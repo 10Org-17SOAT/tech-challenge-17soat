@@ -47,14 +47,14 @@ import {
   toSupplyResponse,
   UpdateSupplyDto,
 } from './dtos/supply.dtos';
-import { StockErrorsFilter } from './stock-errors.filter';
+import { InventoryErrorsFilter } from './inventory-errors.filter';
 import { Roles, UserRole } from '../../../auth/public/roles';
 
 @ApiTags('supplies')
 @ApiBearerAuth()
 @Roles(UserRole.ADMIN, UserRole.STOCK_KEEPER)
 @Controller('supplies')
-@UseFilters(StockErrorsFilter)
+@UseFilters(InventoryErrorsFilter)
 export class SuppliesController {
   constructor(
     private readonly createSupply: CreateSupplyUseCase,
