@@ -2,7 +2,7 @@ import { StockMovement } from '../domain/stock-movement.entity';
 import { Supply } from '../domain/supply.entity';
 import { InMemoryStockMovementRepository } from '../__test__/in-memory-stock-movement.repository';
 import { InMemorySupplyRepository } from '../__test__/in-memory-supply.repository';
-import { RecordingDomainEventPublisher } from '../../__test__/recording-domain-event.publisher';
+import { RecordingDomainEventPublisher } from '../../../../shared/__test__/recording-domain-event.publisher';
 import { LookupStockUseCase } from './lookup-stock.usecase';
 import { ListSuppliesUseCase } from './list-supplies.usecase';
 

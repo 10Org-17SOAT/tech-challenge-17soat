@@ -3,7 +3,7 @@ import { StockMovement } from '../domain/stock-movement.entity';
 import { Supply } from '../domain/supply.entity';
 import { InMemoryStockMovementRepository } from '../__test__/in-memory-stock-movement.repository';
 import { InMemorySupplyRepository } from '../__test__/in-memory-supply.repository';
-import { RecordingDomainEventPublisher } from '../../__test__/recording-domain-event.publisher';
+import { RecordingDomainEventPublisher } from '../../../../shared/__test__/recording-domain-event.publisher';
 import { WriteOffReservedPartUseCase } from './write-off-reserved-part.usecase';
 
 const TEST_PERFORMER = {
