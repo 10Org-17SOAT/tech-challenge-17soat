@@ -7,9 +7,7 @@ import type {
 } from './stock-keeper-directory.query';
 
 @Injectable()
-export class StockKeeperDirectoryQueryImpl
-  implements StockKeeperDirectoryQuery
-{
+export class StockKeeperDirectoryQueryImpl implements StockKeeperDirectoryQuery {
   constructor(
     @Inject(STOCK_KEEPER_REPOSITORY)
     private readonly stockKeeperRepository: StockKeeperRepository,

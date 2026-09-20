@@ -3,9 +3,7 @@ import type {
   StockKeeperView,
 } from '../../stock-keepers/public/stock-keeper-directory.query';
 
-export class InMemoryStockKeeperDirectoryQuery
-  implements StockKeeperDirectoryQuery
-{
+export class InMemoryStockKeeperDirectoryQuery implements StockKeeperDirectoryQuery {
   private readonly stockKeepers = new Map<string, StockKeeperView>();
 
   add(stockKeeper: StockKeeperView): StockKeeperView {
