@@ -9,7 +9,7 @@ import type {
   PaginatedStockKeepers,
   StockKeeperRepository,
 } from '../../domain/stock-keeper.repository';
-import { stockKeepers } from '../../../inventory/infrastructure/persistence/schema';
+import { stockKeepers } from './schema';
 
 const PG_UNIQUE_VIOLATION = '23505';
 

@@ -4,6 +4,7 @@ export * from '../../../modules/onboarding/consultant/infrastructure/persistence
 export * from '../../../modules/auth/infrastructure/persistence/schema';
 export * from '../../../modules/service-management/services/infrastructure/persistence/schema';
 export * from '../../../modules/stock/inventory/infrastructure/persistence/schema';
+export * from '../../../modules/stock/stock-keepers/infrastructure/persistence/schema';
 export * from '../../../modules/mechanic/infrastructure/persistence/mechanic.schema';
 export { vehiclesTable } from '../../../modules/onboarding/vehicles/infrastructure/persistence/vehicle.schema';
 export * from '../../../modules/service-management/service-orders/infrastructure/persistence/schema';
