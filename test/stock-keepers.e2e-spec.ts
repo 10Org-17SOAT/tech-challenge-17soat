@@ -168,10 +168,11 @@ describe('Stock keepers (e2e)', () => {
   describe('GET /stock-keepers', () => {
     it('paginates stock keepers with defaults and metadata', async () => {
       for (let i = 1; i <= 25; i++) {
+        const user = await givenUser(app.getHttpServer(), adminToken);
         await http()
           .post('/stock-keepers')
           .send({
-            userId,
+            userId: user.id,
             name: `Estoquista ${i}`,
             cpf: validCpf(i),
             phone: '11987654321',
@@ -203,9 +204,10 @@ describe('Stock keepers (e2e)', () => {
           { name: 'Joana Silva', cpf: '96432101204' },
         ];
         for (const { name, cpf } of people) {
+          const user = await givenUser(app.getHttpServer(), adminToken);
           await http()
             .post('/stock-keepers')
-            .send({ userId, name, cpf, phone: '11987654321' })
+            .send({ userId: user.id, name, cpf, phone: '11987654321' })
             .expect(201);
         }
       };
