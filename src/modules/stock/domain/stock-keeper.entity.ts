@@ -1,6 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { Cpf } from '../../../shared/domain/value-objects/cpf.vo';
 import { requireUserId } from '../../../shared/domain/guards/require-user-id';
+import {
+  deleteProfile,
+  updateProfile,
+} from '../../../shared/domain/profile/profile-lifecycle';
 import { InvalidStockKeeperError } from './errors/invalid-stock-keeper.error';
 import { Phone } from './value-objects/phone.vo';
 
@@ -75,18 +79,11 @@ export class StockKeeper {
   }
 
   update(changes: { name?: string; phone?: string }): void {
-    if (changes.name !== undefined) {
-      this.props.name = changes.name;
-    }
-    if (changes.phone !== undefined) {
-      this.props.phone = Phone.create(changes.phone);
-    }
-    this.props.updatedAt = new Date();
+    updateProfile(this.props, changes, Phone.create);
   }
 
   delete(): void {
-    this.props.deletedAt = new Date();
-    this.props.updatedAt = this.props.deletedAt;
+    deleteProfile(this.props);
   }
 
   get id(): string {

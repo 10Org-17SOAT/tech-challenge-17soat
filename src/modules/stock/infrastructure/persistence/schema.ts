@@ -10,7 +10,7 @@ import {
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
-import { users } from '../../../auth/infrastructure/persistence/schema';
+import { profileColumns } from '../../../../shared/infrastructure/persistence/profile-columns';
 
 export const supplies = pgTable(
   'supplies',
@@ -35,18 +35,7 @@ export const supplies = pgTable(
 export const stockKeepers = pgTable(
   'stock_keepers',
   {
-    id: uuid('stock_keeper_id').primaryKey(),
-    userId: uuid('user_id')
-      .notNull()
-      .references(() => users.user_id, {
-        onDelete: 'cascade',
-      }),
-    name: varchar('name', { length: 255 }).notNull(),
-    cpf: varchar('cpf', { length: 11 }).notNull(),
-    phone: varchar('phone', { length: 11 }).notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
-    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    ...profileColumns('stock_keeper_id'),
   },
   (table) => [
     // CPF uniqueness applies only to active stock keepers (soft delete frees it)
