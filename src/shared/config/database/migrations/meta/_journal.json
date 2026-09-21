@@ -176,6 +176,13 @@
       "when": 1788295468750,
       "tag": "20260901204428_first_christian_walker",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1789746838708,
+      "tag": "20260918155358_gigantic_apocalypse",
+      "breakpoints": true
     }
   ]
 }

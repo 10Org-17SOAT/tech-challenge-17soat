@@ -6,18 +6,18 @@ import {
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
+import { users } from '../../../../auth/infrastructure/persistence/schema';
 
-// Consultants are the profile of the employees who work the counter in
-// Atendimento, mirroring how `customers` and the stock module's
-// `stock_keepers` are each a self-contained profile table: no cross-context
-// FK, including to the platform-wide `users` table — user_id is validated at
-// the domain layer instead, keeping this module's schema free of any import
-// from auth's infrastructure (modular monolith boundary).
+// A consultant is a profile specialization of an authenticated user.
 export const consultants = pgTable(
   'consultants',
   {
     id: uuid('consultant_id').primaryKey(),
-    userId: uuid('user_id'),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.user_id, {
+        onDelete: 'cascade',
+      }),
     name: varchar('name', { length: 255 }).notNull(),
     cpf: varchar('cpf', { length: 11 }).notNull(),
     phone: varchar('phone', { length: 11 }).notNull(),
@@ -29,6 +29,9 @@ export const consultants = pgTable(
     // CPF uniqueness applies only to active consultants (soft delete frees it)
     uniqueIndex('consultants_cpf_active_unique')
       .on(table.cpf)
+      .where(sql`${table.deletedAt} is null`),
+    uniqueIndex('consultants_user_active_unique')
+      .on(table.userId)
       .where(sql`${table.deletedAt} is null`),
   ],
 );

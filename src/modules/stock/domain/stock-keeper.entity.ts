@@ -9,7 +9,7 @@ const invalidCpf = (raw: string) =>
 
 export interface StockKeeperProps {
   id: string;
-  userId?: string | null;
+  userId: string;
   name: string;
   cpf: string;
   phone: string;
@@ -27,7 +27,7 @@ export interface CreateStockKeeperProps {
 
 interface InternalProps {
   id: string;
-  userId: string | null;
+  userId: string;
   name: string;
   cpf: Cpf;
   phone: Phone;
@@ -64,7 +64,7 @@ export class StockKeeper {
   static restore(props: StockKeeperProps): StockKeeper {
     return new StockKeeper({
       id: props.id,
-      userId: props.userId ?? null,
+      userId: props.userId,
       name: props.name,
       cpf: Cpf.create(props.cpf, invalidCpf),
       phone: Phone.create(props.phone),
@@ -93,7 +93,7 @@ export class StockKeeper {
     return this.props.id;
   }
 
-  get userId(): string | null {
+  get userId(): string {
     return this.props.userId;
   }
 
