@@ -38,7 +38,7 @@ describe('Mechanic persistence (e2e)', () => {
               .insert(users)
               .values({
                 user_id: mechanic.getUserId(),
-                userId: constraintTestUserId,
+                name: mechanic.getName(),
                 email: `${mechanic.getUserId()}@example.com`,
                 password_hash: 'test-password-hash',
                 role_id: 3,
