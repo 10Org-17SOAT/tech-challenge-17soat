@@ -160,6 +160,77 @@ export function describeStockMovementRepositoryContract(
     });
   });
 
+  describe('findOutstandingReservations', () => {
+    it('returns nothing for a service order with no movements', async () => {
+      await expect(
+        repository.findOutstandingReservations('OS-none'),
+      ).resolves.toEqual([]);
+    });
+
+    it('returns a row per supply still reserved for the order', async () => {
+      const otherSupplyId = await context.createSupply();
+      await repository.save(StockMovement.in(supplyId, 10, TEST_PERFORMER));
+      await repository.save(
+        StockMovement.in(otherSupplyId, 10, TEST_PERFORMER),
+      );
+      await repository.save(StockMovement.reserve(supplyId, 4, 'OS-1'));
+      await repository.save(StockMovement.reserve(otherSupplyId, 2, 'OS-1'));
+
+      const outstanding = await repository.findOutstandingReservations('OS-1');
+
+      expect(outstanding).toHaveLength(2);
+      expect(outstanding).toEqual(
+        expect.arrayContaining([
+          { supplyId, quantity: 4 },
+          { supplyId: otherSupplyId, quantity: 2 },
+        ]),
+      );
+    });
+
+    it('nets consumed units out of the outstanding quantity', async () => {
+      await repository.save(StockMovement.in(supplyId, 10, TEST_PERFORMER));
+      await repository.save(StockMovement.reserve(supplyId, 5, 'OS-1'));
+      await repository.save(StockMovement.consume(supplyId, 2, 'OS-1'));
+
+      await expect(
+        repository.findOutstandingReservations('OS-1'),
+      ).resolves.toEqual([{ supplyId, quantity: 3 }]);
+    });
+
+    // What makes the write-off handler safe to run twice: once everything is
+    // consumed the order has nothing outstanding, so a repeated
+    // ServiceOrderFinished writes nothing off a second time.
+    it('omits a supply whose reservation was fully consumed', async () => {
+      await repository.save(StockMovement.in(supplyId, 10, TEST_PERFORMER));
+      await repository.save(StockMovement.reserve(supplyId, 4, 'OS-1'));
+      await repository.save(StockMovement.consume(supplyId, 4, 'OS-1'));
+
+      await expect(
+        repository.findOutstandingReservations('OS-1'),
+      ).resolves.toEqual([]);
+    });
+
+    it('ignores reservations belonging to another service order', async () => {
+      await repository.save(StockMovement.in(supplyId, 10, TEST_PERFORMER));
+      await repository.save(StockMovement.reserve(supplyId, 4, 'OS-1'));
+      await repository.save(StockMovement.reserve(supplyId, 3, 'OS-2'));
+
+      await expect(
+        repository.findOutstandingReservations('OS-2'),
+      ).resolves.toEqual([{ supplyId, quantity: 3 }]);
+    });
+
+    // IN movements carry no reference at all, so they must never surface here
+    // even for a supply the order does reserve.
+    it('ignores IN movements when listing what an order still holds', async () => {
+      await repository.save(StockMovement.in(supplyId, 10, TEST_PERFORMER));
+
+      await expect(
+        repository.findOutstandingReservations('OS-1'),
+      ).resolves.toEqual([]);
+    });
+  });
+
   describe('reserveIfAvailable', () => {
     it('reserves a quantity within the available balance, lowering available and raising reserved', async () => {
       await repository.save(StockMovement.in(supplyId, 10, TEST_PERFORMER));
