@@ -101,6 +101,7 @@ describe('Mechanic persistence (e2e)', () => {
       codeOf(
         db.insert(mechanicsTable).values({
           id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
+          userId: constraintTestUserId,
           name: 'John Doe',
           cpf: '11144477735',
           email: 'john.doe@example.com',
