@@ -9,7 +9,10 @@ import {
   MovementType,
   StockMovement,
 } from '../../domain/stock-movement.entity';
-import type { StockMovementRepository } from '../../domain/stock-movement.repository';
+import type {
+  OutstandingReservation,
+  StockMovementRepository,
+} from '../../domain/stock-movement.repository';
 import { stockMovements, supplies } from './schema';
 
 type StockMovementRow = typeof stockMovements.$inferSelect;
@@ -197,6 +200,34 @@ export class DrizzleStockMovementRepository implements StockMovementRepository {
       MovementType.Consume,
       serviceOrderReference,
     );
+  }
+
+  // One GROUP BY over the order's own movements, with the same signed sum
+  // `getReservedQuantity` uses per supply. HAVING drops the supplies already
+  // written off, so an order whose parts were all consumed comes back empty
+  // instead of as a page of zeroes the caller would have to filter itself.
+  async findOutstandingReservations(
+    serviceOrderReference: string,
+  ): Promise<OutstandingReservation[]> {
+    const outstanding = sql<string>`coalesce(sum(
+      case
+        when ${stockMovements.type} = ${MovementType.Reserve} then ${stockMovements.quantity}
+        when ${stockMovements.type} = ${MovementType.Consume} then -${stockMovements.quantity}
+        else 0
+      end
+    ), 0)`;
+
+    const rows = await this.db
+      .select({ supplyId: stockMovements.supplyId, total: outstanding })
+      .from(stockMovements)
+      .where(eq(stockMovements.serviceOrderReference, serviceOrderReference))
+      .groupBy(stockMovements.supplyId)
+      .having(sql`${outstanding} > 0`);
+
+    return rows.map((row) => ({
+      supplyId: row.supplyId,
+      quantity: Number(row.total),
+    }));
   }
 
   // Single aggregate query: adds `credit` movements, subtracts `debit` ones and
