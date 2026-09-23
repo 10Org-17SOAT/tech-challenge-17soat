@@ -38,7 +38,7 @@ const makeMechanic = (overrides?: {
   specialties?: Specialty[];
   availability?: MechanicAvailability;
   availableSince?: Date;
-  userId?: string | null;
+  userId?: string;
 }): Mechanic => {
   const now = new Date();
   const availability =
@@ -47,7 +47,7 @@ const makeMechanic = (overrides?: {
 
   const mechanic = Mechanic.restore({
     id: overrides?.id ?? randomUUID(),
-    userId: overrides?.userId ?? null,
+    userId: overrides?.userId ?? randomUUID(),
     name: overrides?.name ?? 'John Doe',
     cpf: new Cpf(overrides?.cpf ?? validCpf('111444777')),
     email: new Email('john.doe@example.com'),
