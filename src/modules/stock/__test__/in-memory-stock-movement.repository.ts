@@ -2,7 +2,10 @@ import { ExceedsReservedQuantityError } from '../domain/errors/exceeds-reserved-
 import { InsufficientStockError } from '../domain/errors/insufficient-stock.error';
 import { ReservationNotFoundError } from '../domain/errors/reservation-not-found.error';
 import { MovementType, StockMovement } from '../domain/stock-movement.entity';
-import type { StockMovementRepository } from '../domain/stock-movement.repository';
+import type {
+  OutstandingReservation,
+  StockMovementRepository,
+} from '../domain/stock-movement.repository';
 
 export class InMemoryStockMovementRepository implements StockMovementRepository {
   readonly movements: StockMovement[] = [];
@@ -87,6 +90,33 @@ export class InMemoryStockMovementRepository implements StockMovementRepository 
       MovementType.Consume,
       serviceOrderReference,
     );
+  }
+
+  findOutstandingReservations(
+    serviceOrderReference: string,
+  ): Promise<OutstandingReservation[]> {
+    const supplyIds = new Set(
+      this.movements
+        .filter(
+          (movement) =>
+            movement.serviceOrderReference === serviceOrderReference,
+        )
+        .map((movement) => movement.supplyId),
+    );
+
+    const outstanding = [...supplyIds]
+      .map((supplyId) => ({
+        supplyId,
+        quantity: this.sumSignedSync(
+          supplyId,
+          MovementType.Reserve,
+          MovementType.Consume,
+          serviceOrderReference,
+        ),
+      }))
+      .filter((reservation) => reservation.quantity > 0);
+
+    return Promise.resolve(outstanding);
   }
 
   private sumSignedBy(

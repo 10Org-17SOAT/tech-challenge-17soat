@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { ServiceOrder } from '../../domain/service-order.entity';
 import { ExecutionCompleted } from '../../../../mechanic/domain/events/execution-completed.event';
+import { ServiceOrderFinished } from '../../domain/events/service-order-finished.event';
+import { RecordingDomainEventPublisher } from '../../../__test__/recording-domain-event.publisher';
 import { InMemoryServiceOrderRepository } from '../../__test__/in-memory-service-order.repository';
 import { ExecutionCompletedHandler } from './execution-completed.handler';
 
@@ -11,12 +13,28 @@ const OPENED_BY_NAME = 'Consultant Fixture';
 
 describe('ExecutionCompletedHandler', () => {
   let repository: InMemoryServiceOrderRepository;
+  let publisher: RecordingDomainEventPublisher;
   let handler: ExecutionCompletedHandler;
 
   beforeEach(() => {
     repository = new InMemoryServiceOrderRepository();
-    handler = new ExecutionCompletedHandler(repository);
+    publisher = new RecordingDomainEventPublisher();
+    handler = new ExecutionCompletedHandler(repository, publisher);
   });
+
+  const givenInExecution = async (): Promise<ServiceOrder> => {
+    const order = ServiceOrder.create({
+      vehicleId: VEHICLE_ID,
+      openedById: OPENED_BY_ID,
+      openedByName: OPENED_BY_NAME,
+    });
+    order.transitionTo('in_diagnosis');
+    order.transitionTo('awaiting_approval');
+    order.transitionTo('awaiting_execution');
+    order.transitionTo('in_execution');
+    await repository.save(order);
+    return order;
+  };
 
   it('advances an in_execution order to finished and stamps completedAt', async () => {
     const order = ServiceOrder.create({
@@ -57,5 +75,38 @@ describe('ExecutionCompletedHandler', () => {
 
     const unchanged = await repository.findById(order.id);
     expect(unchanged?.status).toBe('received');
+  });
+
+  describe('ServiceOrderFinished', () => {
+    it('publishes the event so stock writes the reservations off', async () => {
+      const order = await givenInExecution();
+
+      await handler.handle(new ExecutionCompleted(order.id));
+
+      const published = publisher.events.filter(
+        (event): event is ServiceOrderFinished =>
+          event instanceof ServiceOrderFinished,
+      );
+      expect(published).toHaveLength(1);
+      expect(published[0].serviceOrderId).toBe(order.id);
+    });
+
+    it('publishes nothing when the order does not exist', async () => {
+      await handler.handle(new ExecutionCompleted(randomUUID()));
+
+      expect(publisher.events).toHaveLength(0);
+    });
+
+    // A replayed event must not write the same parts off twice: the refused
+    // transition is what stops the second publish.
+    it('does not publish again for an order already finished', async () => {
+      const order = await givenInExecution();
+      await handler.handle(new ExecutionCompleted(order.id));
+      publisher.events.length = 0;
+
+      await handler.handle(new ExecutionCompleted(order.id));
+
+      expect(publisher.events).toHaveLength(0);
+    });
   });
 });

@@ -27,6 +27,16 @@ export const QUOTATION_ITEM_KINDS = ['labor', 'part'] as const;
 
 export type QuotationItemKind = (typeof QUOTATION_ITEM_KINDS)[number];
 
+/**
+ * A `part` line reduced to what the stock ledger needs to reserve it: which
+ * supply, and how many units. Prices and names stay behind in the quotation —
+ * the ledger never had an opinion about money.
+ */
+export interface QuotationPartLine {
+  readonly supplyId: string;
+  readonly quantity: number;
+}
+
 export interface QuotationItemProps {
   id: string;
   kind: QuotationItemKind;
@@ -263,6 +273,21 @@ export class Quotation {
 
   get items(): readonly QuotationItem[] {
     return this.props.items;
+  }
+
+  /**
+   * The part lines of this quotation, for whoever has to move stock. Same
+   * supply twice would mean the diagnosis listed two services sharing a part;
+   * `IssueQuotationUseCase` already collapses those into one line, so this is
+   * a straight projection and not another merge.
+   */
+  get partLines(): readonly QuotationPartLine[] {
+    return this.props.items
+      .filter((item) => item.kind === 'part')
+      .map((item) => ({
+        supplyId: item.referenceId,
+        quantity: item.quantity,
+      }));
   }
 
   get issuedAt(): Date {

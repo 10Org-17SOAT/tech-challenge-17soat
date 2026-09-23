@@ -1,8 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { DOMAIN_EVENT_PUBLISHER } from '../../../../shared/domain/events/domain-event-publisher';
+import type { DomainEventPublisher } from '../../../../shared/domain/events/domain-event-publisher';
 import { ServiceOrderNotFoundError } from '../../service-orders/domain/errors/service-order-not-found.error';
 import { SERVICE_ORDER_REPOSITORY } from '../../service-orders/domain/service-order.repository';
 import type { ServiceOrderRepository } from '../../service-orders/domain/service-order.repository';
 import { InvalidApprovalTokenError } from '../domain/errors/invalid-approval-token.error';
+import { QuotationApproved } from '../domain/events/quotation-approved.event';
 import { Quotation } from '../domain/quotation.entity';
 import { QUOTATION_REPOSITORY } from '../domain/quotation.repository';
 import type { QuotationRepository } from '../domain/quotation.repository';
@@ -12,7 +15,9 @@ import type { QuotationRepository } from '../domain/quotation.repository';
  *
  * Same two writes as ApproveQuotationUseCase and in the same order — the
  * quotation first, the order's status last — so a failure between them leaves
- * the order in a valid earlier state rather than a lying one.
+ * the order in a valid earlier state rather than a lying one. It publishes
+ * the same `QuotationApproved` too: stock must reserve the parts whether the
+ * customer clicked in the panel or in the email.
  */
 @Injectable()
 export class ApproveQuotationByTokenUseCase {
@@ -21,6 +26,8 @@ export class ApproveQuotationByTokenUseCase {
     private readonly quotationRepository: QuotationRepository,
     @Inject(SERVICE_ORDER_REPOSITORY)
     private readonly orderRepository: ServiceOrderRepository,
+    @Inject(DOMAIN_EVENT_PUBLISHER)
+    private readonly eventPublisher: DomainEventPublisher,
   ) {}
 
   async execute(rawToken: string): Promise<Quotation> {
@@ -46,6 +53,10 @@ export class ApproveQuotationByTokenUseCase {
 
     await this.quotationRepository.save(quotation);
     await this.orderRepository.save(order);
+
+    this.eventPublisher.publish(
+      new QuotationApproved(quotation.id, order.id, quotation.partLines),
+    );
 
     return quotation;
   }
