@@ -438,7 +438,7 @@ cd tech-challenge-17soat
 docker compose up -d --build
 ```
 
-Crie um `.env` na root do projeto. Na primeira subida a API
+Nenhum `.env` é necessário: o compose traz padrões para tudo. Na primeira subida a API
 espera o PostgreSQL ficar saudável, aplica as 25 migrações e roda o seed —
 acompanhe por `docker compose logs -f api`.
 
@@ -470,7 +470,9 @@ Para parar, `docker compose down`. Para recomeçar do zero (apagando o banco),
 > `NODE_ENV=production` do `Dockerfile` prevalece e nenhum dado de exemplo é
 > criado. O envio de e-mail vem como `MAIL_DRIVER=log`, que apenas escreve a
 > mensagem no log — nada é enviado de fato. Se existir um `.env` na raiz, o
-> Docker Compose usa os valores dele no lugar dos padrões acima.
+> Docker Compose usa os valores dele no lugar dos padrões (credenciais do
+> banco, `PORT`, `JWT_SECRET` e `JWT_EXPIRES_IN`) — o `JWT_SECRET` precisa ter
+> ao menos 32 caracteres.
 
 ### Desenvolvimento local
 
