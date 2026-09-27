@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  labels:
+    app: api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      containers:
+        - name: api
+          image: tech-challenge-api:local
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 3000
+          env:
+            - name: JWT_SECRET
+              value: demo-only-secret-with-at-least-32-characters
+            - name: DB_HOST
+              value: postgres
+            - name: NODE_ENV
+              value: development
+            - name: RUN_SEED
+              value: "true"
