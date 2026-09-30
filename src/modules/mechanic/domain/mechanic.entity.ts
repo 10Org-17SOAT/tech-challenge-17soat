@@ -28,7 +28,7 @@ export interface CreateMechanicProps {
 
 export interface MechanicProps {
   id: string;
-  userId: string | null;
+  userId: string;
   name: string;
   cpf: Cpf;
   email: Email;
@@ -70,7 +70,7 @@ export interface UpdateMechanicProfileProps {
  */
 export class Mechanic {
   private readonly id: string;
-  private userId: string | null;
+  private readonly userId: string;
   private readonly cpf: Cpf;
   private name: string;
   private email: Email;
@@ -203,8 +203,8 @@ export class Mechanic {
     return this.id;
   }
 
-  /** The auth account this mechanic acts as. Null only on legacy rows. */
-  getUserId(): string | null {
+  /** The auth account this mechanic acts as. */
+  getUserId(): string {
     return this.userId;
   }
 
@@ -262,7 +262,7 @@ export class Mechanic {
 
   toPrimitives(): {
     id: string;
-    userId: string | null;
+    userId: string;
     name: string;
     cpf: string;
     email: string;

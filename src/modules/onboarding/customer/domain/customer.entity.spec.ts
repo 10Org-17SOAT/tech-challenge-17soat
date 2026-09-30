@@ -169,6 +169,7 @@ describe('Customer entity', () => {
       const now = new Date();
       const customer = Customer.restore({
         id: '123e4567-e89b-12d3-a456-426614174000',
+        userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         personType: PersonType.CPF,
         document: new Document('52998224725'),
         name: 'João Silva',
@@ -275,6 +276,7 @@ describe('Customer entity', () => {
       const now = new Date();
       const customer = Customer.restore({
         id: '123e4567-e89b-12d3-a456-426614174000',
+        userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         personType: PersonType.CPF,
         document: new Document('52998224725'),
         name: 'João Silva',
@@ -290,7 +292,7 @@ describe('Customer entity', () => {
 
       expect(primitives).toEqual({
         id: '123e4567-e89b-12d3-a456-426614174000',
-        userId: null,
+        userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
         personType: PersonType.CPF,
         document: '52998224725',
         name: 'João Silva',

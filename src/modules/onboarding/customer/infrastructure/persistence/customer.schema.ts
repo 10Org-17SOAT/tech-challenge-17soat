@@ -10,15 +10,17 @@ import {
 } from 'drizzle-orm/pg-core';
 import type { AddressProps } from '../../domain/value-objects/address.value-object';
 import type { PhoneProps } from '../../domain/value-objects/phone.value-object';
+import { users } from '../../../../auth/infrastructure/persistence/schema';
 
-// No FK to auth's `users` table: user_id is validated at the domain layer
-// instead, keeping this module's schema free of any import from auth's
-// infrastructure (modular monolith boundary — no cross-context FK).
 export const customersTable = pgTable(
   'customers',
   {
     id: uuid('customer_id').primaryKey().defaultRandom(),
-    userId: uuid('user_id'),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.user_id, {
+        onDelete: 'cascade',
+      }),
     personType: varchar('person_type', { length: 10 }).notNull(),
     document: varchar('document', { length: 14 }).notNull(),
     name: varchar('name', { length: 255 }),
@@ -45,5 +47,8 @@ export const customersTable = pgTable(
     // Ownership checks resolve the customer behind the caller's account on
     // every request that proves possession.
     index('customers_user_id_idx').on(table.userId),
+    uniqueIndex('customers_user_active_unique')
+      .on(table.userId)
+      .where(sql`${table.deletedAt} IS NULL`),
   ],
 );

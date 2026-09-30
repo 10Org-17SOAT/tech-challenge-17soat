@@ -1,6 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { Cpf } from '../../../../shared/domain/value-objects/cpf.vo';
 import { requireUserId } from '../../../../shared/domain/guards/require-user-id';
+import {
+  deleteProfile,
+  updateProfile,
+} from '../../../../shared/domain/profile/profile-lifecycle';
 import { InvalidConsultantError } from './errors/invalid-consultant.error';
 import { Phone } from './value-objects/phone.vo';
 
@@ -9,7 +13,7 @@ const invalidCpf = (raw: string) =>
 
 export interface ConsultantProps {
   id: string;
-  userId?: string | null;
+  userId: string;
   name: string;
   cpf: string;
   phone: string;
@@ -27,7 +31,7 @@ export interface CreateConsultantProps {
 
 interface InternalProps {
   id: string;
-  userId: string | null;
+  userId: string;
   name: string;
   cpf: Cpf;
   phone: Phone;
@@ -64,7 +68,7 @@ export class Consultant {
   static restore(props: ConsultantProps): Consultant {
     return new Consultant({
       id: props.id,
-      userId: props.userId ?? null,
+      userId: props.userId,
       name: props.name,
       cpf: Cpf.create(props.cpf, invalidCpf),
       phone: Phone.create(props.phone),
@@ -75,25 +79,18 @@ export class Consultant {
   }
 
   update(changes: { name?: string; phone?: string }): void {
-    if (changes.name !== undefined) {
-      this.props.name = changes.name;
-    }
-    if (changes.phone !== undefined) {
-      this.props.phone = Phone.create(changes.phone);
-    }
-    this.props.updatedAt = new Date();
+    updateProfile(this.props, changes, Phone.create);
   }
 
   delete(): void {
-    this.props.deletedAt = new Date();
-    this.props.updatedAt = this.props.deletedAt;
+    deleteProfile(this.props);
   }
 
   get id(): string {
     return this.props.id;
   }
 
-  get userId(): string | null {
+  get userId(): string {
     return this.props.userId;
   }
 

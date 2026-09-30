@@ -7,6 +7,7 @@ import type { MechanicRepository } from './../src/modules/mechanic/domain/reposi
 import { DATABASE_CONNECTION } from './../src/shared/config/database/database.constants';
 import type { DrizzleDatabase } from './../src/shared/config/database/drizzle.provider';
 import { mechanicsTable } from './../src/modules/mechanic/infrastructure/persistence/mechanic.schema';
+import { users } from './../src/modules/auth/infrastructure/persistence/schema';
 
 // Exercises the Drizzle adapter against a real Postgres: the atomic claim
 // semantics (FOR UPDATE SKIP LOCKED + conditional updates) live in SQL, so the
@@ -15,6 +16,7 @@ describe('Mechanic persistence (e2e)', () => {
   let app: INestApplication;
   let repository: MechanicRepository;
   let db: DrizzleDatabase;
+  const constraintTestUserId = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01';
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -24,12 +26,46 @@ describe('Mechanic persistence (e2e)', () => {
     app = moduleFixture.createNestApplication();
     await app.init();
 
-    repository = app.get<MechanicRepository>(MECHANIC_REPOSITORY);
     db = app.get<DrizzleDatabase>(DATABASE_CONNECTION);
+    const drizzleRepository = app.get<MechanicRepository>(MECHANIC_REPOSITORY);
+    repository = new Proxy(drizzleRepository, {
+      get(target, property, receiver) {
+        if (property === 'save') {
+          return async (
+            mechanic: Parameters<MechanicRepository['save']>[0],
+          ) => {
+            await db
+              .insert(users)
+              .values({
+                user_id: mechanic.getUserId(),
+                name: mechanic.getName(),
+                email: `${mechanic.getUserId()}@example.com`,
+                password_hash: 'test-password-hash',
+                role_id: 3,
+              })
+              .onConflictDoNothing();
+
+            return target.save(mechanic);
+          };
+        }
+
+        return Reflect.get(target, property, receiver);
+      },
+    });
   });
 
   beforeEach(async () => {
     await db.delete(mechanicsTable);
+    await db
+      .insert(users)
+      .values({
+        user_id: constraintTestUserId,
+        name: 'Constraint Test User',
+        email: 'constraint-test@example.com',
+        password_hash: 'test-password-hash',
+        role_id: 3,
+      })
+      .onConflictDoNothing();
   });
 
   afterAll(() => app.close());
@@ -65,6 +101,7 @@ describe('Mechanic persistence (e2e)', () => {
       codeOf(
         db.insert(mechanicsTable).values({
           id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
+          userId: constraintTestUserId,
           name: 'John Doe',
           cpf: '11144477735',
           email: 'john.doe@example.com',
