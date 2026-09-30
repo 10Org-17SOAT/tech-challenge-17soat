@@ -20,12 +20,16 @@ spec:
           imagePullPolicy: Never
           ports:
             - containerPort: 3000
+          # Everything non-sensitive comes from here, so changing how the API is
+          # configured is a one-file edit. The Secret is merged as well when it
+          # lands; entries under `env` below win over `envFrom`, so keep this
+          # Deployment free of values that another object also defines.
+          envFrom:
+            - configMapRef:
+                name: app-config
           env:
+            # Only a secret is left inline, and only until `secret.yaml` exists:
+            # a credential in a manifest is a published credential. It belongs
+            # in the Secret, from where both the API and Postgres read it.
             - name: JWT_SECRET
               value: demo-only-secret-with-at-least-32-characters
-            - name: DB_HOST
-              value: postgres
-            - name: NODE_ENV
-              value: development
-            - name: RUN_SEED
-              value: "true"
