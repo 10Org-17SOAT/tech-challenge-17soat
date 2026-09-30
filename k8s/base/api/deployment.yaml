@@ -33,3 +33,7 @@ spec:
             # in the Secret, from where both the API and Postgres read it.
             - name: JWT_SECRET
               value: demo-only-secret-with-at-least-32-characters
+              
+          envFrom:
+            - secretRef:
+                name: app-secrets
