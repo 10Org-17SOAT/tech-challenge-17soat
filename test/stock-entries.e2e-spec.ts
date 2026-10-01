@@ -39,7 +39,9 @@ describe('Stock entries (e2e)', () => {
   beforeEach(async () => {
     await pool.query('DELETE FROM stock_movements');
     await pool.query('DELETE FROM supplies');
-    await pool.query('DELETE FROM stock_keepers');
+    await pool.query('DELETE FROM users WHERE role_id = $1', [
+      UserRole.STOCK_KEEPER,
+    ]);
   });
 
   afterAll(async () => {
@@ -71,9 +73,16 @@ describe('Stock entries (e2e)', () => {
     return (res.body as { id: string }).id;
   };
 
-  // beforeEach clears stock_keepers, so a fixed CPF never collides across tests.
+  // beforeEach clears stock-keeper users, so a fixed CPF never collides.
   const createStockKeeper = async (): Promise<string> => {
-    const userId = (await givenUser(app.getHttpServer(), adminToken)).id;
+    const userId = (
+      await givenUser(
+        app.getHttpServer(),
+        adminToken,
+        undefined,
+        UserRole.STOCK_KEEPER,
+      )
+    ).id;
     const res = await http()
       .post('/stock-keepers')
       .send({

@@ -7,7 +7,7 @@ import {
   varchar,
   index,
 } from 'drizzle-orm/pg-core';
-import { customersTable } from '../../../customer/infrastructure/persistence/customer.schema';
+import { users } from '../../../../auth/infrastructure/persistence/schema';
 
 export const vehiclesTable = pgTable(
   'vehicles',
@@ -17,7 +17,7 @@ export const vehiclesTable = pgTable(
     // customer through this column — see VehicleCatalogQuery.
     customerId: uuid('customer_id')
       .notNull()
-      .references(() => customersTable.id),
+      .references(() => users.user_id),
     licensePlate: varchar('license_plate', { length: 20 }).unique().notNull(),
     model: varchar('model', { length: 100 }).notNull(),
     year: integer('year').notNull(),

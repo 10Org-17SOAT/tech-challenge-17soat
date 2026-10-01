@@ -33,13 +33,21 @@ describe('Stock keepers (e2e)', () => {
       password: process.env.DB_PASSWORD ?? 'postgres',
       database: process.env.DB_NAME ?? 'tech_challenge',
     });
-
-    userId = (await givenUser(app.getHttpServer(), adminToken)).id;
   });
 
   beforeEach(async () => {
     await pool.query('DELETE FROM stock_movements');
-    await pool.query('DELETE FROM stock_keepers');
+    await pool.query('DELETE FROM users WHERE role_id = $1', [
+      UserRole.STOCK_KEEPER,
+    ]);
+    userId = (
+      await givenUser(
+        app.getHttpServer(),
+        adminToken,
+        undefined,
+        UserRole.STOCK_KEEPER,
+      )
+    ).id;
   });
 
   afterAll(async () => {
@@ -168,7 +176,12 @@ describe('Stock keepers (e2e)', () => {
   describe('GET /stock-keepers', () => {
     it('paginates stock keepers with defaults and metadata', async () => {
       for (let i = 1; i <= 25; i++) {
-        const user = await givenUser(app.getHttpServer(), adminToken);
+        const user = await givenUser(
+          app.getHttpServer(),
+          adminToken,
+          undefined,
+          UserRole.STOCK_KEEPER,
+        );
         await http()
           .post('/stock-keepers')
           .send({
@@ -204,7 +217,12 @@ describe('Stock keepers (e2e)', () => {
           { name: 'Joana Silva', cpf: '96432101204' },
         ];
         for (const { name, cpf } of people) {
-          const user = await givenUser(app.getHttpServer(), adminToken);
+          const user = await givenUser(
+            app.getHttpServer(),
+            adminToken,
+            undefined,
+            UserRole.STOCK_KEEPER,
+          );
           await http()
             .post('/stock-keepers')
             .send({ userId: user.id, name, cpf, phone: '11987654321' })
@@ -362,7 +380,7 @@ describe('Stock keepers (e2e)', () => {
       expect(list.total).toBe(0);
 
       const { rows } = await pool.query<{ deleted_at: Date | null }>(
-        'SELECT deleted_at FROM stock_keepers WHERE stock_keeper_id = $1',
+        'SELECT deleted_at FROM users WHERE user_id = $1',
         [id],
       );
       expect(rows[0].deleted_at).not.toBeNull();

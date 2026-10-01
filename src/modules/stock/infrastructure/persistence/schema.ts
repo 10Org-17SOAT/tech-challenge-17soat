@@ -10,7 +10,6 @@ import {
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
-import { profileColumns } from '../../../../shared/infrastructure/persistence/profile-columns';
 
 export const supplies = pgTable(
   'supplies',
@@ -27,23 +26,6 @@ export const supplies = pgTable(
     // Name uniqueness applies only to active supplies (soft delete frees the name)
     uniqueIndex('supplies_name_active_unique')
       .on(table.name)
-      .where(sql`${table.deletedAt} is null`),
-  ],
-);
-
-// A stock keeper is a profile specialization of an authenticated user.
-export const stockKeepers = pgTable(
-  'stock_keepers',
-  {
-    ...profileColumns('stock_keeper_id'),
-  },
-  (table) => [
-    // CPF uniqueness applies only to active stock keepers (soft delete frees it)
-    uniqueIndex('stock_keepers_cpf_active_unique')
-      .on(table.cpf)
-      .where(sql`${table.deletedAt} is null`),
-    uniqueIndex('stock_keepers_user_active_unique')
-      .on(table.userId)
       .where(sql`${table.deletedAt} is null`),
   ],
 );

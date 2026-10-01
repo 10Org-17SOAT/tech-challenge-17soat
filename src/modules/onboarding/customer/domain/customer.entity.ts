@@ -1,9 +1,9 @@
-import { randomUUID } from 'crypto';
 import { PersonType } from './value-objects/person-type.enum';
 import { Document } from './value-objects/document.value-object';
 import { Email } from './value-objects/email.value-object';
 import { Phone } from './value-objects/phone.value-object';
 import { Address } from './value-objects/address.value-object';
+import { CustomerAttributesSchema } from './customer-attributes.schema';
 import { requireUserId } from '../../../../shared/domain/guards/require-user-id';
 import { InvalidCustomerException } from './exceptions/customer.exceptions';
 
@@ -40,8 +40,13 @@ export class Customer {
 
   private constructor(props: CustomerProps) {
     this.validate(props);
+    if (props.id !== undefined && props.id !== props.userId) {
+      throw new InvalidCustomerException(
+        'A customer profile id must match its user id.',
+      );
+    }
 
-    this.id = props.id ?? randomUUID();
+    this.id = props.userId;
     this.userId = props.userId;
     this.personType = props.personType;
     this.document = props.document;
@@ -130,6 +135,7 @@ export class Customer {
 
   softDelete(): void {
     this.deletedAt = new Date();
+    this.updatedAt = this.deletedAt;
   }
 
   equals(other: Customer): boolean {
@@ -181,6 +187,13 @@ export class Customer {
   }
 
   private validate(props: CustomerProps): void {
+    CustomerAttributesSchema.parse({
+      personType: props.personType,
+      corporateName: props.corporateName ?? null,
+      tradeName: props.tradeName ?? null,
+      address: props.address.toPrimitives(),
+    });
+
     if (props.personType === PersonType.CPF) {
       if (!props.name) {
         throw new InvalidCustomerException('PF customer requires a name.');

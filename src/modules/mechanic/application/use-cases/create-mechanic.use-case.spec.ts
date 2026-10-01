@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { CreateMechanicUseCase } from './create-mechanic.use-case';
 import { InMemoryMechanicRepository } from '../../__test__/in-memory-mechanic.repository';
 import { DuplicateCpfException } from '../../domain/exceptions/mechanic.exceptions';
@@ -50,6 +51,7 @@ describe('CreateMechanicUseCase', () => {
     await expect(
       useCase.execute({
         ...validInput,
+        userId: randomUUID(),
         name: 'Jane Doe',
         email: 'jane.doe@example.com',
       }),
