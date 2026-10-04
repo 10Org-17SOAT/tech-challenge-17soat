@@ -47,7 +47,7 @@ Hoje a oficina trabalha com controles manuais e planilhas, o que gera perda de h
 - **Alocação de mecânicos em FIFO**: o mecânico disponível há mais tempo assume a próxima ordem
 - **Controle de estoque por livro-razão**: entrada, reserva e baixa de insumos — a quantidade nunca é uma coluna, é sempre derivada dos movimentos
 - **Pagamento**: registra o pagamento da ordem e, por evento de domínio, marca o veículo como entregue
-- **Autenticação JWT com papéis**: `ADMIN`, `STOCK_KEEPER`, `MECHANIC` e `CUSTOMER`
+- **Autenticação JWT com papéis**: `ADMIN`, `STOCK_KEEPER`, `MECHANIC`, `CUSTOMER` e `CONSULTANT`
 - **Relatório de tempo médio de execução** das ordens concluídas
 
 <h2 id="arquitetura">🏗️ Arquitetura</h2>
@@ -101,7 +101,7 @@ graph TD
 
 Regras de fronteira que valem para todos os módulos:
 
-- **Sem FK entre contextos**: uma referência a linha de outro módulo (`service_order_reference`, `supply_id` em `service_supplies`, `user_id` nos perfis) é validada no domínio, não pelo banco
+- **Fronteiras entre contextos**: referências históricas como `service_order_reference` são snapshots; identidades de perfil usam a FK comum para `users`
 - **Snapshots em vez de FK** quando o histórico precisa continuar verdadeiro: `opened_by_name` na ordem, `performed_by_name` no livro-razão, `name_snapshot`/`unit_price_in_cents` nos itens do orçamento
 - Cada módulo tem **um único `ExceptionFilter`** traduzindo erros de domínio para HTTP
 
@@ -348,6 +348,7 @@ classDiagram
         STOCK_KEEPER
         MECHANIC
         CUSTOMER
+        CONSULTANT
     }
 
     class ServiceOrderStatus {
@@ -408,7 +409,7 @@ classDiagram
     Mechanic -- MechanicAvailability
 ```
 
-> As associações que cruzam contextos (`User → Customer/Mechanic/Consultant/StockKeeper`, `Mechanic → ServiceOrder`, `Payment → ServiceOrder`, `ServiceSupply → Supply`) existem no modelo conceitual, mas **não** viram foreign key no banco — são validadas no domínio.
+> Customer, Mechanic, Consultant e StockKeeper são especializações de domínio persistidas na mesma linha de `users`, discriminadas por `role_id`; `MechanicAvailability` guarda separadamente o estado de alocação FIFO.
 
 ### Event Storming
 
@@ -452,7 +453,7 @@ Quando aparecer `Nest application successfully started`, a aplicação está em:
 | Conta | Papel |
 | --- | --- |
 | `admin@oficina.dev` | ADMIN |
-| `consultor@oficina.dev` | ADMIN |
+| `consultor@oficina.dev` | CONSULTANT |
 | `bruno@oficina.dev` | MECHANIC |
 | `diego@oficina.dev` | MECHANIC |
 | `estoquista@oficina.dev` | STOCK_KEEPER |
@@ -582,7 +583,7 @@ recomeçar do zero, veja [Recomeçar o banco](#resolucao-de-problemas).
 | E-mail | Papel | Usada para |
 |--------|-------|------------|
 | `admin@oficina.dev` | `ADMIN` | quase tudo neste roteiro |
-| `consultor@oficina.dev` | `ADMIN` | recepção (o perfil é que a marca como consultora) |
+| `consultor@oficina.dev` | `CONSULTANT` | recepção |
 | `bruno@oficina.dev` | `MECHANIC` | diagnóstico e execução |
 | `diego@oficina.dev` | `MECHANIC` | segundo da fila FIFO |
 | `estoquista@oficina.dev` | `STOCK_KEEPER` | entradas de estoque |
@@ -593,7 +594,7 @@ recomeçar do zero, veja [Recomeçar o banco](#resolucao-de-problemas).
 | O quê | Id |
 |-------|-----|
 | Veículo — Fiat Uno `ABC-1234` (da Ana) | `33333333-3333-4333-8333-000000000001` |
-| Consultora Carla Menezes | `44444444-4444-4444-8444-000000000001` |
+| Consultora Carla Menezes | `11111111-1111-4111-8111-000000000002` |
 | Serviço — Troca de pastilhas (R$ 150,00) | `88888888-8888-4888-8888-000000000002` |
 | Insumo — Pastilha de freio (R$ 120,00, 20 em estoque) | `77777777-7777-4777-8777-000000000001` |
 
@@ -628,7 +629,7 @@ OS=$(curl -s -X POST $API/service-order/anamnesis \
   -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
   -d '{
     "vehicleId": "33333333-3333-4333-8333-000000000001",
-    "consultantId": "44444444-4444-4444-8444-000000000001",
+    "consultantId": "11111111-1111-4111-8111-000000000002",
     "mainComplaint": "Barulho ao frear",
     "problemDescription": "Chiado agudo nas rodas dianteiras",
     "severity": "moderate",
@@ -1010,7 +1011,9 @@ Documentação completa e interativa em <http://localhost:3000/docs> (Swagger) o
 
 ```mermaid
 erDiagram
-    CUSTOMERS ||--o{ VEHICLES : owns
+    ROLES ||--o{ USERS : assigns
+    USERS ||--o{ VEHICLES : owns
+    USERS ||--o| MECHANIC_AVAILABILITY : allocates
     VEHICLES  ||--o{ SERVICE_ORDERS : "is serviced in"
     SERVICE_ORDERS ||--o{ SERVICE_ITEMS : contains
     SERVICES ||--o{ SERVICE_ITEMS : "is scoped by"
@@ -1026,28 +1029,23 @@ erDiagram
         varchar name "Nome do usuário"
         varchar email "E-mail de login"
         varchar password_hash "Hash bcrypt da senha"
-        integer role_id "1=ADMIN 2=STOCK_KEEPER 3=MECHANIC 4=CUSTOMER"
-    }
-
-    CUSTOMERS {
-        uuid customer_id PK "ID único do cliente"
-        uuid user_id "Conta de acesso do cliente (sem FK, validado no domínio)"
-        varchar person_type "NATURAL ou LEGAL"
-        varchar document "CPF ou CNPJ, único entre os ativos"
-        varchar name "Nome (PF)"
-        varchar corporate_name "Razão social (PJ)"
-        varchar trade_name "Nome fantasia (PJ)"
-        varchar email "E-mail de contato"
-        jsonb phone "Telefone (value object)"
-        jsonb address "Endereço (value object)"
+        varchar document "CPF ou CNPJ, único entre usuários ativos"
+        jsonb phone "Telefone"
+        integer role_id FK "Papel do usuário"
+        jsonb attributes "Endereço/nome empresarial, especialidades, hire_date etc."
         timestamp created_at "Auditoria"
         timestamp updated_at "Auditoria"
         timestamp deleted_at "Soft delete"
     }
 
+    ROLES {
+        integer role_id PK "ID do papel"
+        varchar name UK "admin, stock_keeper, mechanic, customer ou consultant"
+    }
+
     VEHICLES {
         uuid vehicle_id PK "ID único do veículo"
-        uuid customer_id FK "Dono do veículo"
+        uuid customer_id FK "users.user_id do cliente proprietário"
         varchar license_plate "Placa, única"
         varchar manufacturer "Fabricante"
         varchar model "Modelo"
@@ -1061,43 +1059,11 @@ erDiagram
         timestamp deleted_at "Soft delete"
     }
 
-    CONSULTANTS {
-        uuid consultant_id PK "ID único do consultor"
-        uuid user_id "Conta de acesso (sem FK)"
-        varchar name "Nome"
-        varchar cpf "CPF, único entre os ativos"
-        varchar phone "Telefone"
-        timestamp created_at "Auditoria"
-        timestamp updated_at "Auditoria"
-        timestamp deleted_at "Soft delete"
-    }
-
-    MECHANICS {
-        uuid mechanic_id PK "ID único do mecânico"
-        uuid user_id "Conta de acesso (sem FK)"
-        varchar name "Nome"
-        varchar cpf "CPF, único entre os ativos"
-        varchar email "E-mail"
-        jsonb phone "Telefone (value object)"
-        jsonb specialties "Lista de especialidades"
-        timestamp hire_date "Data de contratação"
+    MECHANIC_AVAILABILITY {
+        uuid user_id PK, FK "Identidade do mecânico"
         varchar availability "AVAILABLE, ALLOCATED, OFF_DUTY, INACTIVE"
         timestamp available_since "Base da fila FIFO de alocação"
         varchar current_service_order_id "Ordem que o mecânico está executando"
-        timestamp created_at "Auditoria"
-        timestamp updated_at "Auditoria"
-        timestamp deleted_at "Soft delete"
-    }
-
-    STOCK_KEEPERS {
-        uuid stock_keeper_id PK "ID único do estoquista"
-        uuid user_id "Conta de acesso (sem FK)"
-        varchar name "Nome"
-        varchar cpf "CPF, único entre os ativos"
-        varchar phone "Telefone"
-        timestamp created_at "Auditoria"
-        timestamp updated_at "Auditoria"
-        timestamp deleted_at "Soft delete"
     }
 
     SERVICE_ORDERS {
@@ -1224,16 +1190,17 @@ erDiagram
     }
 ```
 
-> As tabelas `USERS`, `CONSULTANTS`, `MECHANICS`, `STOCK_KEEPERS`, `PAYMENTS` e as colunas `service_supplies.supply_id` / `quotation_items.reference_id` aparecem sem relacionamento desenhado de propósito: **não existe foreign key entre contextos** neste banco. Essas referências são validadas na camada de domínio — a fronteira do monolito modular vale também para o schema.
+> `roles`, veículos e `mechanic_availability` possuem FKs explícitas para `users`. A validação de role continua na aplicação, pois a FK de `vehicles.customer_id` garante a identidade, não o papel do usuário.
 
 ### Invariantes garantidas pelo banco
 
 - `stock_movements.quantity > 0`, `type ∈ {IN, RESERVE, CONSUME}` e todo movimento `IN` exige um estoquista
 - `payments.service_order_reference` é único: uma ordem nunca é cobrada duas vezes
 - `quotations.service_order_id` é único: um orçamento por ordem
-- Unicidade "entre os ativos" (índices parciais com `deleted_at IS NULL`) para nome de insumo/serviço, CPF de mecânico/consultor/estoquista e documento do cliente — o soft delete libera o valor
+- Unicidade global de documento entre usuários ativos (índice parcial em `users`); `users.attributes` tem índice GIN
+- Unicidade de nome de insumo/serviço — o soft delete libera o valor
 - `service_items.quantity > 0`, `service_supplies.quantity > 0`, `quotation_items.unit_price_in_cents >= 0`
-- `mechanics.availability` restrito aos quatro estados válidos
+- `mechanic_availability.availability` restrito aos quatro estados válidos, com índice B-tree em `(availability, available_since)` para a fila FIFO
 
 ### Migrações
 

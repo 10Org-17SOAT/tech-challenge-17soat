@@ -1,5 +1,5 @@
-import { randomUUID } from 'crypto';
 import { Cpf } from './value-objects/cpf.value-object';
+import { MechanicAttributesSchema } from './mechanic-attributes.schema';
 import { Email } from './value-objects/email.value-object';
 import { Phone, type PhoneProps } from './value-objects/phone.value-object';
 import { requireUserId } from '../../../shared/domain/guards/require-user-id';
@@ -28,7 +28,7 @@ export interface CreateMechanicProps {
 
 export interface MechanicProps {
   id: string;
-  userId: string | null;
+  userId: string;
   name: string;
   cpf: Cpf;
   email: Email;
@@ -70,7 +70,7 @@ export interface UpdateMechanicProfileProps {
  */
 export class Mechanic {
   private readonly id: string;
-  private userId: string | null;
+  private readonly userId: string;
   private readonly cpf: Cpf;
   private name: string;
   private email: Email;
@@ -116,7 +116,7 @@ export class Mechanic {
     const now = new Date();
 
     return new Mechanic({
-      id: randomUUID(),
+      id: userId,
       userId,
       name,
       cpf: new Cpf(props.cpf),
@@ -134,6 +134,10 @@ export class Mechanic {
   }
 
   static restore(props: MechanicProps): Mechanic {
+    MechanicAttributesSchema.parse({
+      specialties: props.specialties,
+      hireDate: props.hireDate,
+    });
     return new Mechanic({ ...props, specialties: [...props.specialties] });
   }
 
@@ -203,8 +207,8 @@ export class Mechanic {
     return this.id;
   }
 
-  /** The auth account this mechanic acts as. Null only on legacy rows. */
-  getUserId(): string | null {
+  /** The auth account this mechanic acts as. */
+  getUserId(): string {
     return this.userId;
   }
 
@@ -262,7 +266,7 @@ export class Mechanic {
 
   toPrimitives(): {
     id: string;
-    userId: string | null;
+    userId: string;
     name: string;
     cpf: string;
     email: string;

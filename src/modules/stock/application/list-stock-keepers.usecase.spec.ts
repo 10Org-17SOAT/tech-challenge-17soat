@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { StockKeeper } from '../domain/stock-keeper.entity';
 import { InMemoryStockKeeperRepository } from '../__test__/in-memory-stock-keeper.repository';
 import { ListStockKeepersUseCase } from './list-stock-keepers.usecase';
@@ -36,7 +37,7 @@ describe('ListStockKeepersUseCase', () => {
     for (let i = 1; i <= 25; i++) {
       await repository.save(
         StockKeeper.create({
-          userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+          userId: randomUUID(),
           name: `Estoquista ${i}`,
           cpf: validCpf(i),
           phone: '11987654321',
@@ -62,7 +63,7 @@ describe('ListStockKeepersUseCase', () => {
       for (const { name, cpf } of people) {
         await repository.save(
           StockKeeper.create({
-            userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+            userId: randomUUID(),
             name,
             cpf,
             phone: '11987654321',
