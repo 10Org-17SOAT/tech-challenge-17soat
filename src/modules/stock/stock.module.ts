@@ -3,6 +3,8 @@ import { CreateStockKeeperUseCase } from './application/create-stock-keeper.usec
 import { CreateSupplyUseCase } from './application/create-supply.usecase';
 import { DeleteStockKeeperUseCase } from './application/delete-stock-keeper.usecase';
 import { DeleteSupplyUseCase } from './application/delete-supply.usecase';
+import { QuotationApprovedHandler } from './application/event-handlers/quotation-approved.handler';
+import { ServiceOrderFinishedHandler } from './application/event-handlers/service-order-finished.handler';
 import { GetStockKeeperUseCase } from './application/get-stock-keeper.usecase';
 import { GetSupplyUseCase } from './application/get-supply.usecase';
 import { ListStockKeepersUseCase } from './application/list-stock-keepers.usecase';
@@ -45,6 +47,12 @@ import { SupplyCatalogQueryImpl } from './public/supply-catalog.query.impl';
     LookupStockUseCase,
     ReservePartUseCase,
     WriteOffReservedPartUseCase,
+    // The automation: reservation and write-off follow the order's own status
+    // instead of waiting for someone to call the endpoints. Both listen to
+    // service-management events without importing that module — the event
+    // classes are `type`-only imports, so nothing crosses at runtime.
+    QuotationApprovedHandler,
+    ServiceOrderFinishedHandler,
     { provide: SUPPLY_CATALOG_QUERY, useClass: SupplyCatalogQueryImpl },
     CreateStockKeeperUseCase,
     GetStockKeeperUseCase,

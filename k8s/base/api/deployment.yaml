@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  labels:
+    app: api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      containers:
+        - name: api
+          image: tech-challenge-api:local
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 3000
+          # Everything non-sensitive comes from here, so changing how the API is
+          # configured is a one-file edit. The Secret is merged as well when it
+          # lands; entries under `env` below win over `envFrom`, so keep this
+          # Deployment free of values that another object also defines.
+          envFrom:
+            - configMapRef:
+                name: app-config
+
+          envFrom:
+            - secretRef:
+                name: app-secrets

@@ -1,0 +1,54 @@
+# Non-sensitive configuration for the API. The counterpart of `secret.yaml`:
+# everything here is safe to read, everything sensitive lives in the Secret.
+#
+# Every key below is part of the Zod schema in
+# `src/shared/config/env/env.schema.ts`, so the values are validated on boot and
+# consumed without a single change in the application code. A key that the
+# schema does not know is simply ignored, which makes this file the one place
+# to change how the API is configured.
+#
+# Override it per environment instead of editing this file, e.g.:
+#   kubectl create configmap app-config --from-env-file=.env.production \
+#     --dry-run=client -o yaml | kubectl apply -f -
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  labels:
+    app: tech-challenge
+data:
+  # The seed refuses to run under `production`, and the manifest ships demo
+  # data, so this environment is the development one. A real deploy drops
+  # RUN_SEED below and lets the image keep its own NODE_ENV=production.
+  NODE_ENV: development
+  RUN_SEED: "true"
+
+  # `PORT` is what the API binds to and the Service targets, so the two have to
+  # agree. It matches the Zod default and the container port in the Deployment.
+  PORT: "3000"
+
+  # Connection to the StatefulSet in `postgres/`. The credentials are not here:
+  # `DB_USER` and `DB_PASSWORD` come from the Secret, exactly like Postgres
+  # reads its own POSTGRES_USER/POSTGRES_PASSWORD from it.
+  DB_HOST: postgres
+  DB_PORT: "5432"
+  DB_NAME: tech_challenge
+
+  # Token lifetime. Kept at the Zod default so nothing changes for anyone
+  # already running these manifests; docker-compose raises it to 8h for the
+  # demo.
+  JWT_EXPIRES_IN: 1h
+
+  # Public base of the API, used to build the quotation approval link in the
+  # e-mail. It cannot be derived from the incoming request, so it has to be
+  # configured — and the api Service is a NodePort, so the reachable address is
+  # localhost:30080, not the in-cluster port.
+  APP_BASE_URL: http://localhost:30080
+
+  # `log` writes the message to the application log and sends nothing, the same
+  # choice docker-compose makes, so a fresh cluster never reaches a provider.
+  # Point it at `brevo` and supply BREVO_API_KEY through the Secret to deliver
+  # for real.
+  MAIL_DRIVER: log
+  MAIL_FROM: oficina@example.com
+  MAIL_FROM_NAME: Oficina

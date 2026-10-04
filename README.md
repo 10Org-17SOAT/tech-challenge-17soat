@@ -95,7 +95,7 @@ graph TD
         STOCK -->|SupplyCatalogQuery| SM
         MECH -.eventos.-> SM
         PAY -.evento PaymentReceived.-> SM
-        SM -.reserva/baixa.-> STOCK
+        SM -.eventos QuotationApproved / ServiceOrderFinished.-> STOCK
     end
 ```
 
@@ -116,6 +116,8 @@ Publicados via `@nestjs/event-emitter` sobre a porta `DomainEventPublisher`:
 | `execution.started` | mechanic | ordem vai para `in_execution` |
 | `execution.completed` | mechanic | ordem vai para `finished` |
 | `payment.received` | payment | ordem vai para `delivered` e carimba `delivered_at` |
+| `quotation.approved` | service-management | estoque reserva as peças do orçamento aprovado |
+| `service-order.finished` | service-management | estoque dá baixa no que está reservado para a ordem |
 | `part.reserved.for-service-order` | stock | reserva de insumo para a ordem |
 | `part.written-off-from-stock` | stock | baixa definitiva do insumo |
 | `purchase.request.needed` | stock | sinaliza necessidade de reposição |
@@ -437,8 +439,8 @@ cd tech-challenge-17soat
 docker compose up -d --build
 ```
 
-Crie um `.env` na root do projeto. Na primeira subida a API
-espera o PostgreSQL ficar saudável, aplica as 27 migrações e roda o seed —
+Nenhum `.env` é necessário: o compose traz padrões para tudo. Na primeira subida a API
+espera o PostgreSQL ficar saudável, aplica as 25 migrações e roda o seed —
 acompanhe por `docker compose logs -f api`.
 
 Quando aparecer `Nest application successfully started`, a aplicação está em:
@@ -469,7 +471,9 @@ Para parar, `docker compose down`. Para recomeçar do zero (apagando o banco),
 > `NODE_ENV=production` do `Dockerfile` prevalece e nenhum dado de exemplo é
 > criado. O envio de e-mail vem como `MAIL_DRIVER=log`, que apenas escreve a
 > mensagem no log — nada é enviado de fato. Se existir um `.env` na raiz, o
-> Docker Compose usa os valores dele no lugar dos padrões acima.
+> Docker Compose usa os valores dele no lugar dos padrões (credenciais do
+> banco, `PORT`, `JWT_SECRET` e `JWT_EXPIRES_IN`) — o `JWT_SECRET` precisa ter
+> ao menos 32 caracteres.
 
 ### Desenvolvimento local
 
@@ -674,16 +678,23 @@ curl -s -X POST $API/quotations/$QUOTE/approve -H "Authorization: Bearer $ADMIN"
 # status: awaiting_execution
 ```
 
-### 6. Estoque — reserva a peça
+### 6. Estoque — a peça já está reservada
 
-A reserva é um passo explícito, não uma consequência automática da aprovação:
+Não há nada a chamar: a aprovação publica `quotation.approved` e o módulo de
+estoque reserva, contra a OS, cada linha `part` do orçamento aprovado. Basta
+conferir o saldo:
 
 ```bash
-curl -s -X POST $API/supplies/77777777-7777-4777-8777-000000000001/reservations \
-  -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
-  -d "{\"quantity\":1,\"serviceOrderReference\":\"$OS\"}"
-# availableBalance cai de 20 para 19; reservedQuantity: 1
+curl -s $API/supplies/77777777-7777-4777-8777-000000000001/stock \
+  -H "Authorization: Bearer $ADMIN"
+# availableBalance caiu de 20 para 19 — 1 unidade reservada para $OS
 ```
+
+> Se faltar peça, a aprovação **não** é barrada: a OS segue para
+> `awaiting_execution`, a linha fica sem reserva e o estoque publica
+> `stock.purchase-request-needed`. Os endpoints manuais
+> (`POST /supplies/{id}/reservations` e `/write-offs`) continuam disponíveis
+> para ajustes — não use-os neste roteiro, ou a peça fica reservada em dobro.
 
 ### 7. Execução — `in_execution`
 
@@ -703,14 +714,14 @@ echo $MECANICO   # quem a fila entregou
 > ele voltou para o fim da fila ao ser liberado, sai o Diego. Por isso o id vem
 > da resposta (`$MECANICO`) em vez de ser fixo — é ele que o passo 9 exige.
 
-### 8. Estoque — dá baixa na peça
+### 8. Estoque — a baixa vem com a conclusão
 
-```bash
-curl -s -X POST $API/supplies/77777777-7777-4777-8777-000000000001/write-offs \
-  -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
-  -d "{\"quantity\":1,\"serviceOrderReference\":\"$OS\"}"
-# reservedQuantity volta a 0; o saldo disponível segue 19
-```
+Também automática, mas só no próximo passo: quando a OS chega a `finished`, o
+estoque recebe `service-order.finished`, lê no livro-razão o que ainda está
+reservado para aquela OS e dá baixa em tudo. O que dá baixa é o que foi de fato
+reservado, não o orçamento — uma linha que ficou sem reserva por falta de peça
+não gera baixa. O saldo disponível segue 19: a baixa consome a reserva, não
+devolve nada à prateleira.
 
 ### 9. Conclusão — `finished`
 
@@ -970,8 +981,8 @@ GET    /supplies/{id}/stock                          # Quantidade disponível (d
 PATCH  /supplies/{id}                                # Atualizar insumo
 DELETE /supplies/{id}                                # Remover insumo (soft delete)
 POST   /supplies/{id}/stock-entries                  # Registrar entrada (IN)
-POST   /supplies/{id}/reservations                   # Reservar para uma ordem (RESERVE)
-POST   /supplies/{id}/write-offs                     # Dar baixa (CONSUME)
+POST   /supplies/{id}/reservations                   # Reserva manual (ajuste; a aprovação já reserva)
+POST   /supplies/{id}/write-offs                     # Baixa manual (ajuste; `finished` já dá baixa)
 
 GET    /stock-keepers                                # Listar estoquistas
 POST   /stock-keepers                                # Cadastrar estoquista
