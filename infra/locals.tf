@@ -6,7 +6,7 @@ locals {
   name_prefix = var.project_name
 
   # Tags aplicadas pelo `default_tags` do provider, logo valem para TODO
-  # recurso criado em 3.2 e 3.3 sem que ninguém precise repeti-las.
+  # recurso criado em qualquer camada sem que ninguém precise repeti-las.
   #
   # A tag `Name` NÃO está aqui de propósito: `default_tags` não interpola, e o
   # nome de um recurso depende do tipo dele (`${local.name_prefix}-vpc`,

@@ -29,11 +29,11 @@ output "k8s_namespace" {
 }
 
 output "vpc_cidr" {
-  description = "CIDR da VPC reservado para task futura. Declarado aqui para que não precise de um default próprio."
+  description = "CIDR da VPC reservado para a camada de rede. Declarado aqui para que não precise de um default próprio."
   value       = var.vpc_cidr
 }
 
 output "public_subnet_cidr" {
-  description = "CIDR da subnet pública reservado para task futura."
+  description = "CIDR da subnet pública reservado para a camada de rede, onde fica a VM de execução."
   value       = var.public_subnet_cidr
 }

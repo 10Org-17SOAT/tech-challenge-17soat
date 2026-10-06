@@ -1,6 +1,6 @@
 # ---------------------------------------------------------------------------
 # Variáveis de entrada compartilhadas
-# Regra: cada nova variável pertence à task que a usa, não a este arquivo.
+# Regra: cada nova variável pertence à camada que a usa, não a este arquivo.
 # ---------------------------------------------------------------------------
 #
 # REGRAS GERAIS
@@ -11,7 +11,7 @@
 #    Terraform guarda valores em PLAINTEXT mesmo quando o output é sensível.
 #    Segredo pertence a k8s Secret.
 # 3. `null` significa "não informado ainda": o provider usa o padrão dele ou a
-#    task dona decide. Nunca use `null` para burlar uma validação.
+#    camada dona decide. Nunca use `null` para burlar uma validação.
 # 4. Todo `validation` cita a regra e a consequence em português.
 # 5. Nenhum literal de região, CIDR, nome ou tag fora deste arquivo.
 
