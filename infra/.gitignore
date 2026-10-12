@@ -1,0 +1,47 @@
+# ---------------------------------------------------------------------------
+# Terraform — higiene de artefatos locais.
+#
+# Este arquivo existe para que a fundação de infra jamais vaza estado, plugin
+# ou valor real para o Git. O estado do Terraform guarda segredos em
+# PLAINTEXT mesmo quando um output é marcado como `sensitive`, portanto ele
+# nunca é versionado.
+#
+# O que NÃO entra aqui, e por quê:
+#   - *.tf              → é a infraestrutura, versionada de propósito
+#   - .terraform.lock.hcl → trava as versões resolvidas dos providers
+#   - terraform.tfvars.example → contrato de valores, seguro e versionado
+# ---------------------------------------------------------------------------
+
+# Diretório de plugins e módulos baixados por `terraform init`.
+.terraform/
+.terraform.tfstate.lock.info
+
+# Estado local. `.backup` e cópias são igualmente perigosos.
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Logs de crash do provider (credenciais podem aparecer no stack trace).
+crash.log
+crash.*.log
+
+# Valores reais da conta: podem conter identificadores de conta e região.
+*.auto.tfvars
+terraform.tfvars
+*.auto.tfvars.json
+terraform.tfvars.json
+
+# Overrides locais quebram o estado justamente porque não são versionados.
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Configuração de CLI/credencial local e backend preparado à mão.
+.terraformrc
+terraform.rc
+backend.hcl
+
+# Planos salvos podem conter valores de output em texto legível.
+*.tfplan
+*.tfplan.*

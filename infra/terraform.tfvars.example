@@ -1,0 +1,46 @@
+# ---------------------------------------------------------------------------
+# Valores compartilhados de exemplo — NÃO contém segredos.
+# Copie para terraform.tfvars (ignorado pelo Git) e ajuste para sua conta.
+# Regra: nunca versionar terraform.tfvars; este .example é seguro e é versionado.
+# ---------------------------------------------------------------------------
+#
+# Uso:
+#   cp terraform.tfvars.example terraform.tfvars
+#   $EDITOR terraform.tfvars
+
+
+# --- Integração AWS -------------------------------------------------------
+
+aws_region = "us-east-1"
+
+# Guard de conta. DESCUBRA o seu com `aws sts get-caller-identity` e preencha:
+#   allowed_account_ids = ["000000000000"]
+allowed_account_ids = []
+
+# --- Identidade e ambiente -----------------------------------------------
+
+project_name = "tech-challenge-soat"
+environment  = "production"
+
+# --- Kubernetes  ---------------------------------------------------------
+
+k8s_namespace = "tech-challenge-soat"
+
+# --- Rede  ---------------------------------------------------------------
+
+vpc_cidr          = "10.0.0.0/16"
+public_subnet_cidr = "10.0.1.0/24"
+
+# availability_zone = "sa-east-1a"
+
+# --- Cálculo -------------------------------------------------------------
+
+instance_type  = "t4g.medium"
+root_volume_size = 20
+ami_owner      = "099720109477"
+ami_name_filter = "ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-arm64-server-*"
+
+# --- Operação -------------------------------------------------------------
+
+# k3s_version = "v1.31.5+k3s1"
+# domain       = "api.exemplo.com.br"
