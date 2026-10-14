@@ -1,0 +1,13 @@
+# What every environment runs: the API and its non-sensitive configuration.
+# The database and the Secret are not here on purpose — each overlay brings its
+# own, because they are exactly what changes between environments (in-cluster
+# Postgres with demo credentials locally, a managed database elsewhere).
+#
+# Never apply this directory on its own; apply an overlay, e.g.:
+#   kubectl apply -k k8s/overlays/local
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - configmap.yaml
+  - api/deployment.yaml
+  - api/service.yaml

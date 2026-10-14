@@ -1,5 +1,6 @@
-# Non-sensitive configuration for the API. The counterpart of `secret.yaml`:
-# everything here is safe to read, everything sensitive lives in the Secret.
+# Non-sensitive configuration for the API. The counterpart of the Secret that
+# each overlay brings: everything here is safe to read, everything sensitive
+# lives in the Secret.
 #
 # Every key below is part of the Zod schema in
 # `src/shared/config/env/env.schema.ts`, so the values are validated on boot and
@@ -27,9 +28,9 @@ data:
   # agree. It matches the Zod default and the container port in the Deployment.
   PORT: "3000"
 
-  # Connection to the StatefulSet in `postgres/`. The credentials are not here:
-  # `DB_USER` and `DB_PASSWORD` come from the Secret, exactly like Postgres
-  # reads its own POSTGRES_USER/POSTGRES_PASSWORD from it.
+  # Connection to the StatefulSet in `overlays/local/postgres/`. The credentials
+  # are not here: `DB_USER` and `DB_PASSWORD` come from the Secret, exactly like
+  # Postgres reads its own POSTGRES_USER/POSTGRES_PASSWORD from it.
   DB_HOST: postgres
   DB_PORT: "5432"
   DB_NAME: tech_challenge
