@@ -20,14 +20,14 @@ spec:
           imagePullPolicy: Never
           ports:
             - containerPort: 3000
-          # Everything non-sensitive comes from here, so changing how the API is
-          # configured is a one-file edit. The Secret is merged as well when it
-          # lands; entries under `env` below win over `envFrom`, so keep this
-          # Deployment free of values that another object also defines.
+          # Everything non-sensitive comes from the ConfigMap and everything
+          # sensitive from the Secret, so changing how the API is configured is
+          # a one-file edit. Both live in this single list: a second `envFrom`
+          # key would silently replace the first one. Entries under `env` win
+          # over `envFrom`, so keep this Deployment free of values that another
+          # object also defines.
           envFrom:
             - configMapRef:
                 name: app-config
-
-          envFrom:
             - secretRef:
                 name: app-secrets
