@@ -13,5 +13,15 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 6.0"
     }
+    # Database layer (database.tf): RDS master password and final snapshot suffix.
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.7"
+    }
+    # Database layer (database.tf): non-secret db.env for the k8s/overlays/aws overlay.
+    local = {
+      source  = "hashicorp/local"
+      version = "~> 2.5"
+    }
   }
 }
