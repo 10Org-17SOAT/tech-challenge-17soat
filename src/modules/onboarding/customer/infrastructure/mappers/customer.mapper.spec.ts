@@ -34,61 +34,63 @@ describe('CustomerMapper', () => {
 
     const row = CustomerMapper.toPersistence(customer);
 
-    expect(row.id).toBe(customer.getId());
-    expect(row.personType).toBe(PersonType.CPF);
+    expect(row.user_id).toBe(customer.getUserId());
     expect(row.document).toBe('11144477735');
     expect(row.name).toBe('John Doe');
-    expect(row.corporateName).toBeNull();
-    expect(row.tradeName).toBeNull();
     expect(row.email).toBe('john.doe@example.com');
     expect(row.phone).toEqual({
       countryCode: '55',
       areaCode: '11',
       number: '912345678',
     });
-    expect(row.address).toEqual(
-      expect.objectContaining({
+    expect(row.attributes).toEqual({
+      personType: PersonType.CPF,
+      corporateName: null,
+      tradeName: null,
+      address: expect.objectContaining({
         street: 'Avenida Paulista',
         number: '1000',
         city: 'Sao Paulo',
         state: 'SP',
         zipCode: '01310100',
       }),
-    );
-    expect(row.createdAt).toBeInstanceOf(Date);
-    expect(row.updatedAt).toBeInstanceOf(Date);
-    expect(row.deletedAt).toBeNull();
+    });
+    expect(row.updated_at).toBeInstanceOf(Date);
+    expect(row.deleted_at).toBeNull();
   });
 
   it('restores a PJ entity from a persistence row', () => {
     const now = new Date();
     const row: CustomerRow = {
-      id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-      userId: null,
-      personType: PersonType.CNPJ,
-      document: '11444777000161',
-      name: null,
-      corporateName: 'Acme LTDA',
-      tradeName: 'Acme',
+      user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+      name: 'Acme LTDA',
       email: 'contato@acme.com.br',
+      password_hash: 'hash',
+      role_id: 4,
+      document: '11444777000161',
       phone: { countryCode: '55', areaCode: '11', number: '33334444' },
-      address: {
-        street: 'Rua da Consolacao',
-        number: '200',
-        complement: null,
-        neighborhood: 'Centro',
-        city: 'Sao Paulo',
-        state: 'SP',
-        zipCode: '01302000',
+      attributes: {
+        personType: 'CNPJ',
+        corporateName: 'Acme LTDA',
+        tradeName: 'Acme',
+        address: {
+          street: 'Rua da Consolacao',
+          number: '200',
+          complement: null,
+          neighborhood: 'Centro',
+          city: 'Sao Paulo',
+          state: 'SP',
+          zipCode: '01302000',
+        },
       },
-      createdAt: now,
-      updatedAt: now,
-      deletedAt: null,
+      created_at: now,
+      updated_at: now,
+      deleted_at: null,
     };
 
     const customer = CustomerMapper.toDomain(row);
 
-    expect(customer.getId()).toBe(row.id);
+    expect(customer.getId()).toBe(row.user_id);
     expect(customer.getPersonType()).toBe(PersonType.CNPJ);
     expect(customer.getDocument().getValue()).toBe('11444777000161');
     expect(customer.getDocument().getType()).toBe(PersonType.CNPJ);
@@ -103,10 +105,22 @@ describe('CustomerMapper', () => {
 
   it('round-trips entity -> row -> entity preserving identity and data', () => {
     const original = makePfCustomer();
+    const persistence = CustomerMapper.toPersistence(original);
+    const primitives = original.toPrimitives();
 
-    const restored = CustomerMapper.toDomain(
-      CustomerMapper.toPersistence(original),
-    );
+    const restored = CustomerMapper.toDomain({
+      user_id: original.getUserId(),
+      name: primitives.name ?? '',
+      email: primitives.email,
+      password_hash: 'hash',
+      role_id: 4,
+      document: primitives.document,
+      phone: primitives.phone,
+      attributes: persistence.attributes,
+      created_at: primitives.createdAt,
+      updated_at: persistence.updated_at,
+      deleted_at: persistence.deleted_at,
+    });
 
     expect(restored.equals(original)).toBe(true);
     expect(restored.toPrimitives()).toEqual(original.toPrimitives());
@@ -118,9 +132,22 @@ describe('CustomerMapper', () => {
 
     const row = CustomerMapper.toPersistence(customer);
 
-    expect(row.deletedAt).toBeInstanceOf(Date);
+    expect(row.deleted_at).toBeInstanceOf(Date);
 
-    const restored = CustomerMapper.toDomain(row);
+    const primitives = customer.toPrimitives();
+    const restored = CustomerMapper.toDomain({
+      user_id: customer.getUserId(),
+      name: primitives.name ?? '',
+      email: primitives.email,
+      password_hash: 'hash',
+      role_id: 4,
+      document: primitives.document,
+      phone: primitives.phone,
+      attributes: row.attributes,
+      created_at: primitives.createdAt,
+      updated_at: row.updated_at,
+      deleted_at: row.deleted_at,
+    });
 
     expect(restored.getDeletedAt()).not.toBeNull();
   });

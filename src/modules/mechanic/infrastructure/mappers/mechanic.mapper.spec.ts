@@ -16,38 +16,38 @@ describe('MechanicMapper', () => {
     });
 
   describe('toPersistence', () => {
-    it('maps every field from the entity primitives', () => {
+    it('maps profile data and allocation state separately', () => {
       const mechanic = makeMechanic();
 
-      const row = MechanicMapper.toPersistence(mechanic);
+      const { profile, availability } = MechanicMapper.toPersistence(mechanic);
 
-      expect(row.id).toBe(mechanic.getId());
-      expect(row.name).toBe('John Doe');
-      expect(row.cpf).toBe('11144477735');
-      expect(row.email).toBe('john.doe@example.com');
-      expect(row.phone).toEqual({
+      expect(profile.user_id).toBe(mechanic.getUserId());
+      expect(profile.name).toBe('John Doe');
+      expect(profile.document).toBe('11144477735');
+      expect(profile.email).toBe('john.doe@example.com');
+      expect(profile.phone).toEqual({
         countryCode: '55',
         areaCode: '11',
         number: '912345678',
       });
-      expect(row.specialties).toEqual(['mechanical', 'electrical']);
-      expect(row.hireDate).toEqual(new Date('2024-01-15T00:00:00.000Z'));
-      expect(row.availability).toBe(MECHANIC_AVAILABILITY.Available);
-      expect(row.availableSince).toBeInstanceOf(Date);
-      expect(row.currentServiceOrderId).toBeNull();
-      expect(row.createdAt).toBeInstanceOf(Date);
-      expect(row.updatedAt).toBeInstanceOf(Date);
-      expect(row.deletedAt).toBeNull();
+      expect(profile.attributes).toEqual({
+        specialties: ['mechanical', 'electrical'],
+        hireDate: '2024-01-15T00:00:00.000Z',
+      });
+      expect(availability.userId).toBe(mechanic.getUserId());
+      expect(availability.availability).toBe(MECHANIC_AVAILABILITY.Available);
+      expect(availability.availableSince).toBeInstanceOf(Date);
+      expect(availability.currentServiceOrderId).toBeNull();
     });
 
     it('maps an allocated mechanic with its service order', () => {
       const mechanic = makeMechanic();
       mechanic.claim('OS-1');
 
-      const row = MechanicMapper.toPersistence(mechanic);
+      const { availability } = MechanicMapper.toPersistence(mechanic);
 
-      expect(row.availability).toBe(MECHANIC_AVAILABILITY.Allocated);
-      expect(row.currentServiceOrderId).toBe('OS-1');
+      expect(availability.availability).toBe(MECHANIC_AVAILABILITY.Allocated);
+      expect(availability.currentServiceOrderId).toBe('OS-1');
     });
   });
 
@@ -55,10 +55,22 @@ describe('MechanicMapper', () => {
     it('rebuilds a mechanic with value objects (round-trip)', () => {
       const mechanic = makeMechanic();
       mechanic.claim('OS-1');
+      const { profile, availability } = MechanicMapper.toPersistence(mechanic);
 
-      const restored = MechanicMapper.toDomain(
-        MechanicMapper.toPersistence(mechanic),
-      );
+      const restored = MechanicMapper.toDomain({
+        userId: mechanic.getUserId(),
+        name: mechanic.getName(),
+        email: mechanic.getEmail().getValue(),
+        document: mechanic.getCpf().getValue(),
+        phone: profile.phone,
+        attributes: profile.attributes ?? {},
+        createdAt: mechanic.getCreatedAt(),
+        updatedAt: mechanic.getUpdatedAt(),
+        deletedAt: mechanic.getDeletedAt(),
+        availability: availability.availability,
+        availableSince: availability.availableSince,
+        currentServiceOrderId: availability.currentServiceOrderId ?? null,
+      });
 
       expect(restored.getId()).toBe(mechanic.getId());
       expect(restored.getName()).toBe(mechanic.getName());
@@ -85,26 +97,90 @@ describe('MechanicMapper', () => {
 
     it('fails fast on a corrupted cpf', () => {
       const mechanic = makeMechanic();
-      const row = MechanicMapper.toPersistence(mechanic);
-      row.cpf = 'not-a-cpf';
+      const persistence = MechanicMapper.toPersistence(mechanic);
 
-      expect(() => MechanicMapper.toDomain(row)).toThrow(InvalidCpfException);
+      expect(() =>
+        MechanicMapper.toDomain({
+          userId: mechanic.getUserId(),
+          name: mechanic.getName(),
+          email: mechanic.getEmail().getValue(),
+          document: 'not-a-cpf',
+          phone: persistence.profile.phone,
+          attributes: persistence.profile.attributes ?? {},
+          createdAt: mechanic.getCreatedAt(),
+          updatedAt: mechanic.getUpdatedAt(),
+          deletedAt: null,
+          availability: persistence.availability.availability,
+          availableSince: persistence.availability.availableSince,
+          currentServiceOrderId: null,
+        }),
+      ).toThrow(InvalidCpfException);
     });
 
     it('fails fast on a corrupted email', () => {
       const mechanic = makeMechanic();
-      const row = MechanicMapper.toPersistence(mechanic);
-      row.email = 'not-an-email';
+      const persistence = MechanicMapper.toPersistence(mechanic);
 
-      expect(() => MechanicMapper.toDomain(row)).toThrow();
+      expect(() =>
+        MechanicMapper.toDomain({
+          userId: mechanic.getUserId(),
+          name: mechanic.getName(),
+          email: 'not-an-email',
+          document: mechanic.getCpf().getValue(),
+          phone: persistence.profile.phone,
+          attributes: persistence.profile.attributes ?? {},
+          createdAt: mechanic.getCreatedAt(),
+          updatedAt: mechanic.getUpdatedAt(),
+          deletedAt: null,
+          availability: persistence.availability.availability,
+          availableSince: persistence.availability.availableSince,
+          currentServiceOrderId: null,
+        }),
+      ).toThrow();
     });
 
     it('fails fast on a corrupted phone', () => {
       const mechanic = makeMechanic();
-      const row = MechanicMapper.toPersistence(mechanic);
-      row.phone = { countryCode: '', areaCode: '', number: '' };
+      const persistence = MechanicMapper.toPersistence(mechanic);
 
-      expect(() => MechanicMapper.toDomain(row)).toThrow();
+      expect(() =>
+        MechanicMapper.toDomain({
+          userId: mechanic.getUserId(),
+          name: mechanic.getName(),
+          email: mechanic.getEmail().getValue(),
+          document: mechanic.getCpf().getValue(),
+          phone: { countryCode: '', areaCode: '', number: '' },
+          attributes: persistence.profile.attributes ?? {},
+          createdAt: mechanic.getCreatedAt(),
+          updatedAt: mechanic.getUpdatedAt(),
+          deletedAt: null,
+          availability: persistence.availability.availability,
+          availableSince: persistence.availability.availableSince,
+          currentServiceOrderId: null,
+        }),
+      ).toThrow();
+    });
+
+    it('fails fast on invalid mechanic attributes', () => {
+      const mechanic = makeMechanic();
+      const persistence = MechanicMapper.toPersistence(mechanic);
+
+      expect(() =>
+        MechanicMapper.toDomain({
+          userId: mechanic.getUserId(),
+          name: mechanic.getName(),
+          email: mechanic.getEmail().getValue(),
+          document: mechanic.getCpf().getValue(),
+          phone: persistence.profile.phone,
+          attributes: { specialties: ['unknown'], hireDate: 'bad-date' },
+          createdAt: mechanic.getCreatedAt(),
+          updatedAt: mechanic.getUpdatedAt(),
+          deletedAt: null,
+          availability: persistence.availability.availability,
+          availableSince: persistence.availability.availableSince,
+          currentServiceOrderId: null,
+        }),
+      ).toThrow();
     });
   });
 });

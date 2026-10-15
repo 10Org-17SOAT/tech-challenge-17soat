@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { count, eq } from 'drizzle-orm';
+import { and, count, eq, isNull } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../../../../shared/config/database/database.constants';
 import type { DrizzleDatabase } from '../../../../shared/config/database/drizzle.provider';
 import { UserEmailAlreadyExistsError } from '../../domain/errors/user-errors';
@@ -25,7 +25,7 @@ export class DrizzleUserRepository implements UserRepository {
     const rows = await this.db
       .select()
       .from(users)
-      .where(eq(users.user_id, id))
+      .where(and(eq(users.user_id, id), isNull(users.deleted_at)))
       .limit(1);
 
     return rows[0] ? toEntity(rows[0]) : null;
@@ -35,21 +35,33 @@ export class DrizzleUserRepository implements UserRepository {
     const rows = await this.db
       .select()
       .from(users)
-      .where(eq(users.email, email.toLowerCase()))
+      .where(
+        and(eq(users.email, email.toLowerCase()), isNull(users.deleted_at)),
+      )
       .limit(1);
 
     return rows[0] ? toEntity(rows[0]) : null;
   }
 
-  async findMany({ page, limit }: { page: number; limit: number }): Promise<PaginatedUsers> {
+  async findMany({
+    page,
+    limit,
+  }: {
+    page: number;
+    limit: number;
+  }): Promise<PaginatedUsers> {
     const [rows, [{ total }]] = await Promise.all([
       this.db
         .select()
         .from(users)
+        .where(isNull(users.deleted_at))
         .orderBy(users.user_id)
         .limit(limit)
         .offset((page - 1) * limit),
-      this.db.select({ total: count() }).from(users),
+      this.db
+        .select({ total: count() })
+        .from(users)
+        .where(isNull(users.deleted_at)),
     ]);
 
     return { items: rows.map(toEntity), total };
@@ -57,21 +69,24 @@ export class DrizzleUserRepository implements UserRepository {
 
   async save(user: User): Promise<void> {
     try {
-      await this.db.insert(users).values({
-        user_id: user.user_id,
-        name: user.name,
-        email: user.email,
-        password_hash: user.password_hash,
-        role_id: user.role_id,
-      }).onConflictDoUpdate({
-        target: users.user_id,
-        set: {
+      await this.db
+        .insert(users)
+        .values({
+          user_id: user.user_id,
           name: user.name,
           email: user.email,
           password_hash: user.password_hash,
           role_id: user.role_id,
-        },
-      });
+        })
+        .onConflictDoUpdate({
+          target: users.user_id,
+          set: {
+            name: user.name,
+            email: user.email,
+            password_hash: user.password_hash,
+            role_id: user.role_id,
+          },
+        });
     } catch (error) {
       if (isUniqueViolation(error)) {
         throw new UserEmailAlreadyExistsError(user.email, { cause: error });
@@ -81,7 +96,11 @@ export class DrizzleUserRepository implements UserRepository {
   }
 
   async delete(id: string): Promise<void> {
-    await this.db.delete(users).where(eq(users.user_id, id));
+    const now = new Date();
+    await this.db
+      .update(users)
+      .set({ deleted_at: now, updated_at: now })
+      .where(and(eq(users.user_id, id), isNull(users.deleted_at)));
   }
 }
 

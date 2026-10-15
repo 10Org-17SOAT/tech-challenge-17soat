@@ -1,12 +1,14 @@
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { eq } from 'drizzle-orm';
 import { AppModule } from './../src/app.module';
 import { describeMechanicRepositoryContract } from './../src/modules/mechanic/__test__/mechanic-repository.contract';
 import { MECHANIC_REPOSITORY } from './../src/modules/mechanic/domain/repository/mechanic.repository';
 import type { MechanicRepository } from './../src/modules/mechanic/domain/repository/mechanic.repository';
 import { DATABASE_CONNECTION } from './../src/shared/config/database/database.constants';
 import type { DrizzleDatabase } from './../src/shared/config/database/drizzle.provider';
-import { mechanicsTable } from './../src/modules/mechanic/infrastructure/persistence/mechanic.schema';
+import { mechanicAvailability } from './../src/modules/mechanic/infrastructure/persistence/mechanic.schema';
+import { users } from './../src/modules/auth/infrastructure/persistence/schema';
 
 // Exercises the Drizzle adapter against a real Postgres: the atomic claim
 // semantics (FOR UPDATE SKIP LOCKED + conditional updates) live in SQL, so the
@@ -15,6 +17,7 @@ describe('Mechanic persistence (e2e)', () => {
   let app: INestApplication;
   let repository: MechanicRepository;
   let db: DrizzleDatabase;
+  const constraintTestUserId = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01';
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -24,12 +27,49 @@ describe('Mechanic persistence (e2e)', () => {
     app = moduleFixture.createNestApplication();
     await app.init();
 
-    repository = app.get<MechanicRepository>(MECHANIC_REPOSITORY);
     db = app.get<DrizzleDatabase>(DATABASE_CONNECTION);
+    const drizzleRepository = app.get<MechanicRepository>(MECHANIC_REPOSITORY);
+    repository = new Proxy(drizzleRepository, {
+      get(target, property, receiver) {
+        if (property === 'save') {
+          return async (
+            mechanic: Parameters<MechanicRepository['save']>[0],
+          ) => {
+            await db
+              .insert(users)
+              .values({
+                user_id: mechanic.getUserId(),
+                name: mechanic.getName(),
+                email: `${mechanic.getUserId()}@example.com`,
+                password_hash: 'test-password-hash',
+                role_id: 3,
+                attributes: {},
+              })
+              .onConflictDoNothing();
+
+            return target.save(mechanic);
+          };
+        }
+
+        return Reflect.get(target, property, receiver);
+      },
+    });
   });
 
   beforeEach(async () => {
-    await db.delete(mechanicsTable);
+    await db.delete(mechanicAvailability);
+    await db.delete(users).where(eq(users.role_id, 3));
+    await db
+      .insert(users)
+      .values({
+        user_id: constraintTestUserId,
+        name: 'Constraint Test User',
+        email: 'constraint-test@example.com',
+        password_hash: 'test-password-hash',
+        role_id: 3,
+        attributes: {},
+      })
+      .onConflictDoNothing();
   });
 
   afterAll(() => app.close());
@@ -63,22 +103,34 @@ describe('Mechanic persistence (e2e)', () => {
   it('rejects an invalid availability at the database level', async () => {
     await expect(
       codeOf(
-        db.insert(mechanicsTable).values({
-          id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
-          name: 'John Doe',
-          cpf: '11144477735',
-          email: 'john.doe@example.com',
-          phone: { countryCode: '55', areaCode: '11', number: '912345678' },
-          specialties: ['mechanical'],
-          hireDate: new Date('2024-01-15T00:00:00.000Z'),
+        db.insert(mechanicAvailability).values({
+          userId: constraintTestUserId,
           availability: 'ON_VACATION',
           availableSince: new Date('2024-01-15T00:00:00.000Z'),
           currentServiceOrderId: null,
-          createdAt: new Date('2024-01-15T00:00:00.000Z'),
-          updatedAt: new Date('2024-01-15T00:00:00.000Z'),
-          deletedAt: null,
         }),
       ),
     ).resolves.toBe(CHECK_VIOLATION);
+  });
+
+  it('enforces active document uniqueness across roles', async () => {
+    const duplicateDocument = '11144477735';
+    await db
+      .update(users)
+      .set({ document: duplicateDocument })
+      .where(eq(users.user_id, constraintTestUserId));
+
+    await expect(
+      codeOf(
+        db.insert(users).values({
+          user_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a02',
+          name: 'Customer with duplicate document',
+          email: 'duplicate-customer@example.com',
+          password_hash: 'test-password-hash',
+          role_id: 4,
+          document: duplicateDocument,
+        }),
+      ),
+    ).resolves.toBe('23505');
   });
 });
