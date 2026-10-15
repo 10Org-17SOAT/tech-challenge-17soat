@@ -191,7 +191,7 @@ terraform init -migrate-state -backend-config=backend.hcl
 |---|---|---|
 | Next.js | **NestJS** (`src/main.ts`, `nest-cli.json`) | Nenhum — Terraform é agnóstico. O provisionamento da aplicação segue o NestJS. |
 | API em porta `6443` | `k8s/base/api/service.yaml` é **NodePort 30080** | Ver C-01 na seção 9. |
-| Banco gerenciado (RDS) | `k8s/base/postgres/statefulset.yaml`, `postgres:16-alpine` | D-02: banco in-cluster. Nenhum `aws_db_*`. |
+| Banco gerenciado (RDS) | `k8s/overlays/local/postgres/statefulset.yaml`, `postgres:16-alpine` | D-02: banco in-cluster. Nenhum `aws_db_*`. |
 | `APP_BASE_URL` derivado do host | `k8s/base/configmap.yaml` fixa `http://localhost:30080` | Reescrito via k8s ConfigMap. |
 | `MONGO_URI` | **Inexistente.** `docs/adr/0004` escolheu PostgreSQL + Drizzle | Nenhuma variável `mongo_*`. |
 | Build x86_64 | `ami_name_filter` padrão é ARM64 (`gp3`) | D-10: build precisa ser ARM64 para não emular. Ver C-05. |
@@ -202,9 +202,9 @@ Valores reais confirmados no repositório:
 | Dado | Valor | Origem |
 |---|---|---|
 | Nome do banco | `tech_challenge` | `docker-compose.yml`, `k8s/base/configmap.yaml` |
-| Usuário do banco | `postgres` | `docker-compose.yml`, `k8s/base/postgres/statefulset.yaml` |
-| Nome do Secret | `app-secrets` | `k8s/base/secret.yaml` |
-| Imagem do banco | `postgres:16-alpine` | `k8s/base/postgres/statefulset.yaml` |
+| Usuário do banco | `postgres` | `docker-compose.yml`, `k8s/overlays/local/postgres/statefulset.yaml` |
+| Nome do Secret | `app-secrets` | `k8s/overlays/local/secret.yaml` |
+| Imagem do banco | `postgres:16-alpine` | `k8s/overlays/local/postgres/statefulset.yaml` |
 | Porta da API | `30080` (NodePort) | `k8s/base/api/service.yaml` |
 | Migrations no boot | `docker-entrypoint.sh` | exige que o banco esteja pronto |
 

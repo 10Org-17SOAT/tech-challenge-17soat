@@ -1,0 +1,11 @@
+# Local cluster: the base plus an in-cluster Postgres and the demo Secret, the
+# same zero-setup environment docker-compose gives.
+#
+#   kubectl apply -k k8s/overlays/local
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+  - secret.yaml
+  - postgres/service.yaml
+  - postgres/statefulset.yaml
