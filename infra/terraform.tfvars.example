@@ -40,6 +40,12 @@ root_volume_size = 20
 ami_owner      = "099720109477"
 ami_name_filter = "ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-arm64-server-*"
 
+# --- Acesso à VM ---------------------------------------------------------
+
+# Conteúdo da SUA chave pública (não a privada). Sem ela não dá para copiar o
+# kubeconfig. Gere com `ssh-keygen -t ed25519` se ainda não tiver.
+#   ssh_public_key = "ssh-ed25519 AAAA... voce@maquina"
+
 # --- Operação -------------------------------------------------------------
 
 # k3s_version = "v1.31.5+k3s1"
