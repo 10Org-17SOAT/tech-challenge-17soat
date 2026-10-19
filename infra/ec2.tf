@@ -69,6 +69,14 @@ resource "aws_instance" "k3s" {
   # pronta, o download falha e o cluster nunca sobe.
   depends_on = [aws_route_table_association.public]
 
+  # O data source sempre pega a AMI mais recente: sem isto, qualquer apply após
+  # a Canonical publicar uma imagem nova recriaria a VM (cluster vazio,
+  # certificados novos, kubeconfig inválido). Para atualizar a imagem de
+  # propósito: terraform apply -replace=aws_instance.k3s
+  lifecycle {
+    ignore_changes = [ami]
+  }
+
   tags = {
     Name = "${local.name_prefix}-k3s"
   }
