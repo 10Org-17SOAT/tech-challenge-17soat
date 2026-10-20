@@ -53,3 +53,9 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # chaos-engineering reports
 chaos-reports/
+
+# Kubeconfig copiado da VM (output kubeconfig_command do infra/): credencial de
+# admin do cluster. Sem barra no início para valer em qualquer diretório, já que
+# o comando grava no diretório atual.
+kubeconfig
+kubeconfig.tmp

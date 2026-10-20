@@ -46,5 +46,5 @@ backend.hcl
 *.tfplan
 *.tfplan.*
 
-# Kubeconfig copiado da VM (output kubeconfig_command): credencial de admin do cluster.
-kubeconfig
+# Kubeconfig copiado da VM: ignorado no .gitignore da raiz, que vale para o
+# repositório inteiro.

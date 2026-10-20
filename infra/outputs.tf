@@ -56,6 +56,6 @@ output "ssh_command" {
 }
 
 output "kubeconfig_command" {
-  description = "Copia o kubeconfig do K3s para ./kubeconfig trocando o endereço interno pelo IP público. Rodar alguns minutos após o apply (o K3s instala no primeiro boot)."
-  value       = "ssh ubuntu@${aws_eip.k3s.public_ip} sudo cat /etc/rancher/k3s/k3s.yaml | sed 's/127.0.0.1/${aws_eip.k3s.public_ip}/' > kubeconfig"
+  description = "Copia o kubeconfig do K3s para ./kubeconfig trocando o endereço interno pelo IP público. Rodar alguns minutos após o apply (o K3s instala no primeiro boot). O sed roda na VM, sem pipe, e grava num temporário: se o K3s ainda não estiver pronto o comando falha e um ./kubeconfig existente não é sobrescrito."
+  value       = "ssh ubuntu@${aws_eip.k3s.public_ip} \"sudo sed 's/127.0.0.1/${aws_eip.k3s.public_ip}/' /etc/rancher/k3s/k3s.yaml\" > kubeconfig.tmp && mv kubeconfig.tmp kubeconfig"
 }
