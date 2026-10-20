@@ -142,7 +142,7 @@ variable "public_subnet_cidr" {
 
 variable "availability_zone" {
   type        = string
-  description = "Availability Zone da subnet pública e da instância. null deixa o provider escolher, o que é aceitável para uma AZ por região mas reduz a previsibilidade do custo e da resiliência."
+  description = "Availability Zone da subnet pública e da instância. null escolhe a primeira AZ (em ordem alfabética) que oferece instance_type. Uma AZ informada que não ofereça o tipo falha no plan."
   default     = null
 
   validation {
