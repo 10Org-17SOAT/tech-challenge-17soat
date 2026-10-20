@@ -51,7 +51,7 @@ output "api_url" {
 }
 
 output "ssh_command" {
-  description = "Comando para entrar na VM. Exige que ssh_public_key tenha sido informada."
+  description = "Comando para entrar na VM com a chave privada correspondente a ssh_public_key."
   value       = "ssh ubuntu@${aws_eip.k3s.public_ip}"
 }
 

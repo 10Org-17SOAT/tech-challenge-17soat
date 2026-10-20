@@ -42,8 +42,9 @@ ami_name_filter = "ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-arm64-server-*"
 
 # --- Acesso à VM ---------------------------------------------------------
 
-# Conteúdo da SUA chave pública (não a privada). Sem ela não dá para copiar o
-# kubeconfig. Gere com `ssh-keygen -t ed25519` se ainda não tiver.
+# OBRIGATÓRIO. Conteúdo da SUA chave pública (não a privada): é a única forma
+# de entrar na VM e copiar o kubeconfig. Trocar depois recria a VM. Gere com
+# `ssh-keygen -t ed25519` se ainda não tiver.
 #   ssh_public_key = "ssh-ed25519 AAAA... voce@maquina"
 
 # --- Operação -------------------------------------------------------------

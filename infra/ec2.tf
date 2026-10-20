@@ -11,18 +11,15 @@ data "aws_ami" "ubuntu" {
 
 variable "ssh_public_key" {
   type        = string
-  description = "Conteúdo da chave pública SSH (ex.: o arquivo ~/.ssh/id_ed25519.pub) autorizada a entrar na VM como `ubuntu`. É por SSH que se copia o kubeconfig. null cria a VM sem chave: o cluster sobe, mas ninguém consegue entrar nela."
-  default     = null
+  description = "Conteúdo da chave pública SSH (ex.: o arquivo ~/.ssh/id_ed25519.pub) autorizada a entrar na VM como `ubuntu`. É por SSH que se copia o kubeconfig. Obrigatória: a VM não tem outra forma de acesso, e trocar a chave depois recria a instância."
 
   validation {
-    condition     = var.ssh_public_key == null || can(regex("^(ssh-(ed25519|rsa)|ecdsa-sha2-nistp[0-9]+) ", var.ssh_public_key))
-    error_message = "ssh_public_key deve ser null ou o conteúdo de uma chave pública OpenSSH, ex.: \"ssh-ed25519 AAAA... voce@maquina\"."
+    condition     = can(regex("^(ssh-(ed25519|rsa)|ecdsa-sha2-nistp[0-9]+) ", var.ssh_public_key))
+    error_message = "ssh_public_key deve ser o conteúdo de uma chave pública OpenSSH, ex.: \"ssh-ed25519 AAAA... voce@maquina\"."
   }
 }
 
 resource "aws_key_pair" "admin" {
-  count = var.ssh_public_key == null ? 0 : 1
-
   key_name   = "${local.name_prefix}-admin"
   public_key = var.ssh_public_key
 }
@@ -59,7 +56,7 @@ resource "aws_eip_association" "k3s" {
 resource "aws_instance" "k3s" {
   ami           = data.aws_ami.ubuntu.id
   instance_type = var.instance_type
-  key_name      = var.ssh_public_key == null ? null : aws_key_pair.admin[0].key_name
+  key_name      = aws_key_pair.admin.key_name
 
   primary_network_interface {
     network_interface_id = aws_network_interface.k3s.id
