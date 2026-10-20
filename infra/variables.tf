@@ -151,6 +151,13 @@ variable "availability_zone" {
   }
 }
 
+# Qualquer endereço IPv4. Constante e não variável: é o destino da rota para a
+# internet, a saída livre da VM e a origem das portas abertas por decisão (ver
+# cabeçalho de security.tf). Fica aqui por causa da regra 5.
+locals {
+  anywhere_cidr = "0.0.0.0/0"
+}
+
 # --- Cálculo ------------------------------------
 
 variable "instance_type" {

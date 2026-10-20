@@ -34,7 +34,7 @@ resource "aws_vpc_security_group_ingress_rule" "k3s" {
 
   security_group_id = aws_security_group.k3s.id
   description       = each.key
-  cidr_ipv4         = "0.0.0.0/0"
+  cidr_ipv4         = local.anywhere_cidr
   from_port         = each.value
   to_port           = each.value
   ip_protocol       = "tcp"
@@ -47,7 +47,7 @@ resource "aws_vpc_security_group_ingress_rule" "k3s" {
 # A VM precisa de saída livre para baixar o K3s e as imagens de container.
 resource "aws_vpc_security_group_egress_rule" "all" {
   security_group_id = aws_security_group.k3s.id
-  cidr_ipv4         = "0.0.0.0/0"
+  cidr_ipv4         = local.anywhere_cidr
   ip_protocol       = "-1"
 
   tags = {
