@@ -142,13 +142,20 @@ variable "public_subnet_cidr" {
 
 variable "availability_zone" {
   type        = string
-  description = "Availability Zone da subnet pública e da instância. null deixa o provider escolher, o que é aceitável para uma AZ por região mas reduz a previsibilidade do custo e da resiliência."
+  description = "Availability Zone da subnet pública e da instância. null escolhe a primeira AZ (em ordem alfabética) que oferece instance_type. Uma AZ informada que não ofereça o tipo falha no plan."
   default     = null
 
   validation {
     condition     = var.availability_zone == null || can(regex("^[a-z]{2}-[a-z]+-[1-9][a-z]$", var.availability_zone))
     error_message = "availability_zone deve ser null ou uma AZ válida, ex.: sa-east-1a."
   }
+}
+
+# Qualquer endereço IPv4. Constante e não variável: é o destino da rota para a
+# internet, a saída livre da VM e a origem das portas abertas por decisão (ver
+# cabeçalho de security.tf). Fica aqui por causa da regra 5.
+locals {
+  anywhere_cidr = "0.0.0.0/0"
 }
 
 # --- Cálculo ------------------------------------

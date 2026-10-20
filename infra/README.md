@@ -19,7 +19,7 @@ configuração e a política de segredos que o resto da infraestrutura reutiliza
 | D-07 | Estrutura plana, um root module, um `versions.tf` | Um único lugar para os limites de versão. Ver seções 3 e 4. |
 | D-08 | Credencial pela cadeia padrão do provider AWS | Nenhuma credencial em código, em `.tf` ou em `.tfvars`. |
 | D-09 | `public_subnet_cidr` deve estar contido em `vpc_cidr`, validado | Com os defaults, o único valor aceito é `10.0.1.0/24`. Mudar um exige mudar o outro. |
-| D-10 | AMI Ubuntu 24.04 LTS ARM64, owner fixo `099720109477` | Imagem de sistema, reconstruível, e sem risco de o filtro resolver para AMI de terceiro. |
+| D-10 | AMI Ubuntu 24.04 LTS ARM64, owner fixo `099720109477` | Imagem de sistema, reconstruível, e sem risco de o filtro resolver para AMI de terceiro. A instância ignora mudanças de `ami` (`lifecycle.ignore_changes`): AMI nova não recria a VM sozinha. Para atualizar a imagem de propósito: `terraform apply -replace=aws_instance.k3s`. |
 | D-11 | Terraform é executado por container Docker | Nenhuma instalação no host. Ver seção 12. |
 | D-12 | `allowed_account_ids` usa ternário com `null` | Preserva o guard com lista preenchida e funciona com o default vazio. |
 

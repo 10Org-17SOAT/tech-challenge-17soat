@@ -37,3 +37,25 @@ output "public_subnet_cidr" {
   description = "CIDR da subnet pública reservado para a camada de rede, onde fica a VM de execução."
   value       = var.public_subnet_cidr
 }
+
+# --- Cluster K3s -------------------------------------------------------------
+
+output "k3s_public_ip" {
+  description = "IP fixo (EIP) da VM do K3s."
+  value       = aws_eip.k3s.public_ip
+}
+
+output "api_url" {
+  description = "URL pública da aplicação, servida pelo NodePort de local.ingress_ports.app_api (security.tf). Responde só depois que os manifests de k8s/base forem aplicados."
+  value       = "http://${aws_eip.k3s.public_ip}:${local.ingress_ports.app_api}"
+}
+
+output "ssh_command" {
+  description = "Comando para entrar na VM com a chave privada correspondente a ssh_public_key."
+  value       = "ssh ubuntu@${aws_eip.k3s.public_ip}"
+}
+
+output "kubeconfig_command" {
+  description = "Copia o kubeconfig do K3s para ./kubeconfig trocando o endereço interno pelo IP público. Rodar alguns minutos após o apply (o K3s instala no primeiro boot). O sed roda na VM, sem pipe, e grava num temporário: se o K3s ainda não estiver pronto o comando falha e um ./kubeconfig existente não é sobrescrito."
+  value       = "ssh ubuntu@${aws_eip.k3s.public_ip} \"sudo sed 's/127.0.0.1/${aws_eip.k3s.public_ip}/' /etc/rancher/k3s/k3s.yaml\" > kubeconfig.tmp && mv kubeconfig.tmp kubeconfig"
+}

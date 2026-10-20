@@ -1,0 +1,99 @@
+# AMI Ubuntu 24.04 LTS ARM64 mais recente da Canonical (decisão D-10).
+data "aws_ami" "ubuntu" {
+  most_recent = true
+  owners      = [var.ami_owner]
+
+  filter {
+    name   = "name"
+    values = [var.ami_name_filter]
+  }
+}
+
+variable "ssh_public_key" {
+  type        = string
+  description = "Conteúdo da chave pública SSH (ex.: o arquivo ~/.ssh/id_ed25519.pub) autorizada a entrar na VM como `ubuntu`. É por SSH que se copia o kubeconfig. Obrigatória: a VM não tem outra forma de acesso, e trocar a chave depois recria a instância."
+
+  validation {
+    condition     = can(regex("^(ssh-(ed25519|rsa)|ecdsa-sha2-nistp[0-9]+) ", var.ssh_public_key))
+    error_message = "ssh_public_key deve ser o conteúdo de uma chave pública OpenSSH, ex.: \"ssh-ed25519 AAAA... voce@maquina\"."
+  }
+}
+
+resource "aws_key_pair" "admin" {
+  key_name   = "${local.name_prefix}-admin"
+  public_key = var.ssh_public_key
+}
+
+# IP fixo da VM. Criado ANTES da instância para que o IP já seja conhecido no
+# user-data (vai no certificado do K3s via --tls-san) e para que o kubeconfig
+# continue válido se a VM for parada e ligada de novo. Custo igual ao do IP
+# público automático enquanto estiver associado.
+resource "aws_eip" "k3s" {
+  domain = "vpc"
+
+  tags = {
+    Name = "${local.name_prefix}-k3s-eip"
+  }
+}
+
+# Interface de rede criada fora da instância para receber o EIP antes do boot.
+# Se o EIP fosse associado à instância já ligada, a troca de IP derrubaria o
+# download do K3s no meio do user-data, que não roda de novo.
+resource "aws_network_interface" "k3s" {
+  subnet_id       = aws_subnet.public.id
+  security_groups = [aws_security_group.k3s.id]
+
+  tags = {
+    Name = "${local.name_prefix}-k3s-eni"
+  }
+}
+
+resource "aws_eip_association" "k3s" {
+  network_interface_id = aws_network_interface.k3s.id
+  allocation_id        = aws_eip.k3s.id
+}
+
+resource "aws_instance" "k3s" {
+  ami           = data.aws_ami.ubuntu.id
+  instance_type = var.instance_type
+  key_name      = aws_key_pair.admin.key_name
+
+  primary_network_interface {
+    network_interface_id = aws_network_interface.k3s.id
+  }
+
+  user_data = templatefile("${path.module}/user-data.sh", {
+    k3s_version = var.k3s_version == null ? "" : var.k3s_version
+    public_ip   = aws_eip.k3s.public_ip
+  })
+  # Mudar o script só tem efeito num boot novo: recria a VM em vez de deixar
+  # o user-data alterado sem nunca rodar.
+  user_data_replace_on_change = true
+
+  root_block_device {
+    volume_size = var.root_volume_size
+    volume_type = "gp3"
+    encrypted   = true
+  }
+
+  # IMDSv2 obrigatório: bloqueia o roubo de credencial via SSRF no IMDSv1.
+  metadata_options {
+    http_tokens = "required"
+  }
+
+  # O user-data baixa o K3s no primeiro boot; sem a rota para a internet
+  # pronta e o EIP já na interface, o download falha e o cluster nunca sobe.
+  depends_on = [aws_route_table_association.public, aws_eip_association.k3s]
+
+  # O data source sempre pega a AMI mais recente: sem isto, qualquer apply após
+  # a Canonical publicar uma imagem nova recriaria a VM (cluster vazio,
+  # certificados novos, kubeconfig inválido). Para atualizar a imagem de
+  # propósito: terraform apply -replace=aws_instance.k3s
+  lifecycle {
+    ignore_changes = [ami]
+  }
+
+  tags = {
+    Name = "${local.name_prefix}-k3s"
+  }
+}

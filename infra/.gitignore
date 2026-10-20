@@ -45,3 +45,6 @@ backend.hcl
 # Planos salvos podem conter valores de output em texto legível.
 *.tfplan
 *.tfplan.*
+
+# Kubeconfig copiado da VM: ignorado no .gitignore da raiz, que vale para o
+# repositório inteiro.
