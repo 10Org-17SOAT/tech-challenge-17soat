@@ -46,8 +46,8 @@ output "k3s_public_ip" {
 }
 
 output "api_url" {
-  description = "URL pública da aplicação, servida pelo NodePort 30080. Responde só depois que os manifests de k8s/base forem aplicados."
-  value       = "http://${aws_eip.k3s.public_ip}:30080"
+  description = "URL pública da aplicação, servida pelo NodePort de local.ingress_ports.app_api (security.tf). Responde só depois que os manifests de k8s/base forem aplicados."
+  value       = "http://${aws_eip.k3s.public_ip}:${local.ingress_ports.app_api}"
 }
 
 output "ssh_command" {
