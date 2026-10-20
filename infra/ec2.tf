@@ -39,12 +39,31 @@ resource "aws_eip" "k3s" {
   }
 }
 
+# Interface de rede criada fora da instância para receber o EIP antes do boot.
+# Se o EIP fosse associado à instância já ligada, a troca de IP derrubaria o
+# download do K3s no meio do user-data, que não roda de novo.
+resource "aws_network_interface" "k3s" {
+  subnet_id       = aws_subnet.public.id
+  security_groups = [aws_security_group.k3s.id]
+
+  tags = {
+    Name = "${local.name_prefix}-k3s-eni"
+  }
+}
+
+resource "aws_eip_association" "k3s" {
+  network_interface_id = aws_network_interface.k3s.id
+  allocation_id        = aws_eip.k3s.id
+}
+
 resource "aws_instance" "k3s" {
-  ami                    = data.aws_ami.ubuntu.id
-  instance_type          = var.instance_type
-  subnet_id              = aws_subnet.public.id
-  vpc_security_group_ids = [aws_security_group.k3s.id]
-  key_name               = var.ssh_public_key == null ? null : aws_key_pair.admin[0].key_name
+  ami           = data.aws_ami.ubuntu.id
+  instance_type = var.instance_type
+  key_name      = var.ssh_public_key == null ? null : aws_key_pair.admin[0].key_name
+
+  primary_network_interface {
+    network_interface_id = aws_network_interface.k3s.id
+  }
 
   user_data = templatefile("${path.module}/user-data.sh", {
     k3s_version = var.k3s_version == null ? "" : var.k3s_version
@@ -66,8 +85,8 @@ resource "aws_instance" "k3s" {
   }
 
   # O user-data baixa o K3s no primeiro boot; sem a rota para a internet
-  # pronta, o download falha e o cluster nunca sobe.
-  depends_on = [aws_route_table_association.public]
+  # pronta e o EIP já na interface, o download falha e o cluster nunca sobe.
+  depends_on = [aws_route_table_association.public, aws_eip_association.k3s]
 
   # O data source sempre pega a AMI mais recente: sem isto, qualquer apply após
   # a Canonical publicar uma imagem nova recriaria a VM (cluster vazio,
@@ -80,9 +99,4 @@ resource "aws_instance" "k3s" {
   tags = {
     Name = "${local.name_prefix}-k3s"
   }
-}
-
-resource "aws_eip_association" "k3s" {
-  instance_id   = aws_instance.k3s.id
-  allocation_id = aws_eip.k3s.id
 }
