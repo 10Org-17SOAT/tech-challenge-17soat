@@ -3,6 +3,7 @@ import * as bcrypt from 'bcryptjs';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
+import { dbSslSchema } from '../src/shared/config/database/db-ssl';
 import * as schema from '../src/shared/config/database/schema';
 import type { Specialty } from '../src/modules/mechanic/domain/value-objects/specialty.enum';
 
@@ -82,6 +83,7 @@ async function seed(): Promise<void> {
     user: process.env.DB_USER ?? 'postgres',
     password: process.env.DB_PASSWORD ?? 'postgres',
     database: process.env.DB_NAME ?? 'tech_challenge',
+    ssl: dbSslSchema.parse(process.env.DB_SSL),
   });
   const db = drizzle(pool, { schema });
 

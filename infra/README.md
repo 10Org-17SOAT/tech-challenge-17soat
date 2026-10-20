@@ -11,8 +11,8 @@ configuração e a política de segredos que o resto da infraestrutura reutiliza
 | ID | Decisão | Consequência prática |
 |---|---|---|
 | D-01 | AWS como provedor de nuvem | Uma dependência de AWS em toda a stack. Não há caminho para outro provedor sem reescrever a fundação. |
-| D-02 | Banco de dados in-cluster (StatefulSet do Postgres) | Não há `aws_db_instance`, `aws_db_subnet_group` nem leitura de porta 5432 pela internet. Menos superfície, menos custo, menor disponibilidade. |
-| D-03 | Segredos em k8s Secret | Nenhuma variável `sensitive` no Terraform e nenhum segredo em arquivo versionado. O estado do Terraform guarda valores em **plaintext** mesmo quando o output é sensível. |
+| D-02 | Banco de dados no **RDS**, fora do cluster (revisado na #120; antes: StatefulSet in-cluster) | `database.tf` só usa o provider `aws` e não depende de alcançar a API do K3s (C-01). O banco sobrevive à recriação da VM e tem backup automático (C-08). Privado, sem rota para a internet, porta 5432 aberta só para o nó K3s. O StatefulSet continua no overlay **local**. |
+| D-03 | Segredos em k8s Secret | Nenhuma variável `sensitive` no Terraform e nenhum segredo em arquivo versionado. O estado do Terraform guarda valores em **plaintext** mesmo quando o output é sensível. **Exceção (#120):** segredo *gerado* pelo Terraform (`random_password` da senha do RDS) é permitido, exposto só como output `sensitive`, e exige o backend S3 cifrado (seção 7) antes do primeiro `apply`. |
 | D-04 | `environment` é apenas tag; `project_name` é o prefixo de nome | Ambientes diferentes são stacks diferentes. Stack = prefixo próprio, não ambiente no nome do recurso. |
 | D-05 | Sem Secret Manager, sem Parameter Store | Segredo nasce e morre com o cluster (decisão D-03). |
 | D-06 | Backend S3 apenas documentado, não configurado | `terraform init` usa backend local implícito. Ver seção 7. |
@@ -56,7 +56,7 @@ configuração e a política de segredos que o resto da infraestrutura reutiliza
 |---|---|
 | Cluster K3s | `kubernetes.tf` |
 | Segredos da aplicação | `secrets.tf` |
-| Volume persistente do banco | `storage.tf` |
+| Banco de dados (RDS, subnets privadas, SG, parameter group) | `database.tf` |
 
 As camadas são aplicadas em ordem: **fundação → rede e computação → cluster e
 dados**. Ver a pendência **C-02** na seção 9 para o porquê de não ser um passo
@@ -72,7 +72,7 @@ outro propósito:
 ```
 versions.tf   providers.tf   locals.tf    variables.tf   outputs.tf
 network.tf    security.tf    iam.tf       ecr.tf         ec2.tf
-user-data.sh  kubernetes.tf  secrets.tf   storage.tf     .gitignore
+user-data.sh  kubernetes.tf  secrets.tf   database.tf    .gitignore
 README.md     .terraform.lock.hcl
 terraform.tfvars
 ```
@@ -89,6 +89,8 @@ um provider que a fundação não usa, ela **acrescenta uma linha** ao bloco
 |---|---|---|
 | Rede e computação | `hashicorp/helm` | Instalar/consultar charts, se o caminho escolhido não for o script de instalação |
 | Rede e computação | `hashicorp/time` | Se algum recurso exigir espera explícita entre operações |
+| Banco de dados | `hashicorp/random` | **Em uso** (#120): senha mestre do RDS e sufixo estável do snapshot final. |
+| Banco de dados | `hashicorp/local` | **Em uso** (#120): grava `k8s/overlays/aws/db.env` (sem segredo). |
 | Cluster e dados | `hashicorp/kubernetes` | **Condicionada à leitura de C-03**: só entra se os objetos do cluster forem gerenciados por Terraform. Se a opção escolhida for `kubectl`, o provider não é necessário. |
 
 Regras da exceção:
@@ -104,7 +106,7 @@ Regras da exceção:
 ## 5. O que não deve ser repetido
 
 Esta seção existe para impedir duplicação. Se um destes itens aparecer em
-`network.tf`, `ec2.tf`, `kubernetes.tf`, `secrets.tf` ou `storage.tf`, é um erro.
+`network.tf`, `ec2.tf`, `kubernetes.tf`, `secrets.tf` ou `database.tf`, é um erro.
 
 | Não repetir | Por quê |
 |---|---|
@@ -113,7 +115,7 @@ Esta seção existe para impedir duplicação. Se um destes itens aparecer em
 | `${var.project_name}-` em nome de recurso | Usar `${local.name_prefix}-<papel>` |
 | Tags `Project`, `Environment`, `ManagedBy` | Vêm de `default_tags` automaticamente |
 | Literal de região | Usar `var.aws_region` |
-| Literal de CIDR | Usar `var.vpc_cidr` / `var.public_subnet_cidr` |
+| Literal de CIDR | Usar `var.vpc_cidr` / `var.public_subnet_cidr` / `var.private_subnet_cidrs` |
 | Literal de namespace | Usar `var.k8s_namespace` |
 | `terraform_remote_state` | Root module único; todas as camadas compartilham o mesmo estado |
 | Módulo Terraform | Decisão D-07; não há reutilização a extrair |
@@ -138,9 +140,15 @@ Regras de contenção já validadas por `variables.tf`:
 - `public_subnet_cidr` precisa estar contido em `vpc_cidr`;
 - com os defaults, o único par aceito é `10.0.0.0/16` + `10.0.1.0/24`.
 
-Subnets privadas, NAT gateway e Elastic IP, se existirem, são responsabilidade da
-camada de rede e **não** têm variável aqui — a fundação não as declara para não
-congelar uma decisão que ainda não foi tomada.
+NAT gateway e Elastic IP, se existirem, são responsabilidade da camada de rede e
+**não** têm variável aqui — a fundação não as declara para não congelar uma
+decisão que ainda não foi tomada.
+
+As **subnets privadas do banco** são da camada de banco (`database.tf`, #120):
+duas, uma por AZ (exigência do subnet group do RDS), com tabela de rotas própria
+sem saída para a internet e CIDRs em `var.private_subnet_cidrs`, validados contra
+`vpc_cidr` e `public_subnet_cidr`. A camada de banco depende da de rede por
+exatamente dois nomes: `aws_vpc.main` e `aws_security_group.k3s`.
 
 ---
 
@@ -191,7 +199,7 @@ terraform init -migrate-state -backend-config=backend.hcl
 |---|---|---|
 | Next.js | **NestJS** (`src/main.ts`, `nest-cli.json`) | Nenhum — Terraform é agnóstico. O provisionamento da aplicação segue o NestJS. |
 | API em porta `6443` | `k8s/base/api/service.yaml` é **NodePort 30080** | Ver C-01 na seção 9. |
-| Banco gerenciado (RDS) | `k8s/overlays/local/postgres/statefulset.yaml`, `postgres:16-alpine` | D-02: banco in-cluster. Nenhum `aws_db_*`. |
+| Banco gerenciado (RDS) | AWS: RDS em `database.tf`; local: `k8s/overlays/local/postgres/statefulset.yaml` | D-02 revisado: RDS na AWS, StatefulSet só no overlay local. |
 | `APP_BASE_URL` derivado do host | `k8s/base/configmap.yaml` fixa `http://localhost:30080` | Reescrito via k8s ConfigMap. |
 | `MONGO_URI` | **Inexistente.** `docs/adr/0004` escolheu PostgreSQL + Drizzle | Nenhuma variável `mongo_*`. |
 | Build x86_64 | `ami_name_filter` padrão é ARM64 (`gp3`) | D-10: build precisa ser ARM64 para não emular. Ver C-05. |
@@ -231,7 +239,7 @@ do primeiro `apply` que provisione recursos.
 | **C-04** | `aws_region` e `allowed_account_ids` não foram definidos. | Vão para a conta real com os defaults. | Definir antes do primeiro apply. A fundação funciona sem eles: o guard fica desativado. |
 | **C-05** | A AMI é ARM64, mas não há definição de build da imagem ARM. | Emulação por `qemu`, ou `exec format error`. | Definir antes de provisionar a VM. |
 | **C-07** | Sem `domain` (D-03 não traz ACME aqui), a API fica em `IP:porta`. | Sem TLS nem hostname estável. | `domain = null` é o default; a estratégia de exposição é decisão da camada de cluster. |
-| **C-08** | Backup do Postgres in-cluster não está definido. O volume é único e local. | Perda de dados em recriação da VM. | Definir junto com a camada de cluster. |
+| ~~**C-08**~~ | ~~Backup do Postgres in-cluster não está definido.~~ | **Resolvido (#120):** o banco é RDS, fora da VM, com 7 dias de backup automático (`db_backup_retention_days`) e snapshot final no destroy. | — |
 | **C-09** | Versão do K3s não fixada (`k3s_version = null`). | Implantação não reprodutível. | Fixar antes do primeiro apply. |
 | **C-10** | `MAIL_FROM` (`oficina@example.com`) é placeholder no ConfigMap e no compose. | E-mail real sairia de endereço inexistente. | Ajustar via Secret/ConfigMap. |
 
@@ -352,3 +360,51 @@ Todas retornaram exit ≠ 0 com a mensagem esperada:
 | `public_subnet_cidr=192.168.5.0/24` | `public_subnet_cidr` deve estar contido em `vpc_cidr` |
 | `environment=producao` | `environment` deve ser development, staging ou production |
 | `allowed_account_ids=["123"]` | cada entrada deve ter exatamente 12 dígitos |
+
+---
+
+## 13. Banco de dados (RDS)
+
+Provisionado por `database.tf` (#120). Pré-requisitos do primeiro `apply`: a
+camada de rede (#119) aplicada e o **backend S3 cifrado** ativo — a senha mestre
+é gerada pelo Terraform e fica no estado (exceção em D-03).
+
+### Subir o ambiente AWS
+
+```bash
+# 1. Provisionar. Grava k8s/overlays/aws/db.env (DB_HOST, DB_PORT, DB_NAME).
+terraform -chdir=infra apply
+
+# 2. CA da AWS: o RDS só aceita TLS e a CA dele não está no trust store do Node.
+curl -fsSLo global-bundle.pem \
+  https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
+kubectl create configmap rds-ca --from-file=global-bundle.pem
+
+# 3. Secret com as credenciais reais. Nunca em arquivo versionado.
+kubectl create secret generic app-secrets \
+  --from-literal=DB_USER="$(terraform -chdir=infra output -raw db_username)" \
+  --from-literal=DB_PASSWORD="$(terraform -chdir=infra output -raw db_password)" \
+  --from-literal=JWT_SECRET="$(openssl rand -base64 48)" \
+  --from-literal=BOOTSTRAP_ADMIN_EMAIL='<email do admin>' \
+  --from-literal=BOOTSTRAP_ADMIN_PASSWORD='<senha do admin, 12+ caracteres>'
+
+# 4. Aplicação.
+kubectl apply -k k8s/overlays/aws
+```
+
+O overlay `aws` liga `DB_SSL=true`, monta a CA em `NODE_EXTRA_CA_CERTS`, usa
+`NODE_ENV=production` e **não** roda o seed: os usuários do seed têm senha
+versionada no repositório. O primeiro admin vem de `BOOTSTRAP_ADMIN_*`.
+
+### Destruir
+
+`db_deletion_protection` é `true` por padrão. Para um `terraform destroy`:
+defina `db_deletion_protection = false` no `terraform.tfvars`, rode `apply` e só
+então `destroy`. Um snapshot final (`<prefixo>-db-final-<sufixo>`) é mantido.
+
+### Pendências fora da camada de banco
+
+| Item | Hoje | Dono |
+|---|---|---|
+| `APP_BASE_URL` | O base fixa `http://localhost:30080` | Camada de cluster (#119): depende do IP/domínio da EC2 |
+| Imagem da API | `tech-challenge-api:local` com `imagePullPolicy: Never` | Camada de cluster (#119): ECR |
