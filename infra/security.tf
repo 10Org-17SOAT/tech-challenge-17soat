@@ -21,7 +21,7 @@ locals {
 
 resource "aws_security_group" "k3s" {
   name        = "${local.name_prefix}-k3s-sg"
-  description = "Entrada da VM do K3s: SSH, API do Kubernetes e NodePort da aplicação"
+  description = "K3s VM ingress: SSH, Kubernetes API and application NodePort"
   vpc_id      = aws_vpc.main.id
 
   tags = {
