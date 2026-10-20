@@ -3,7 +3,7 @@
 #
 # Depends on the network layer (#119) through exactly two names:
 #   aws_vpc.main                 → where the private subnets are created
-#   aws_security_group.k3s_node  → the only source allowed on the DB port
+#   aws_security_group.k3s       → the only source allowed on the DB port
 #
 # The database has no route to the internet, is not public and only accepts
 # TLS connections (rds.force_ssl). The application reaches it with
@@ -132,10 +132,7 @@ variable "db_apply_immediately" {
 
 # --- Database network -----------------------------------------------------------
 
-data "aws_availability_zones" "available" {
-  state = "available"
-}
-
+# data.aws_availability_zones.available comes from network.tf.
 resource "aws_subnet" "db" {
   count = length(var.private_subnet_cidrs)
 
@@ -190,7 +187,7 @@ resource "aws_security_group" "db" {
 
 resource "aws_vpc_security_group_ingress_rule" "db_from_k3s_node" {
   security_group_id            = aws_security_group.db.id
-  referenced_security_group_id = aws_security_group.k3s_node.id
+  referenced_security_group_id = aws_security_group.k3s.id
   ip_protocol                  = "tcp"
   from_port                    = 5432
   to_port                      = 5432

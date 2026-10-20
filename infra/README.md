@@ -148,7 +148,7 @@ As **subnets privadas do banco** são da camada de banco (`database.tf`, #120):
 duas, uma por AZ (exigência do subnet group do RDS), com tabela de rotas própria
 sem saída para a internet e CIDRs em `var.private_subnet_cidrs`, validados contra
 `vpc_cidr` e `public_subnet_cidr`. A camada de banco depende da de rede por
-exatamente dois nomes: `aws_vpc.main` e `aws_security_group.k3s_node`.
+exatamente dois nomes: `aws_vpc.main` e `aws_security_group.k3s`.
 
 ---
 
