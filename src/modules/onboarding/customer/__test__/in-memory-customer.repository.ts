@@ -63,8 +63,13 @@ export class InMemoryCustomerRepository implements CustomerRepository {
           return false;
         }
         if (filters.name) {
-          const name = customer.getName()?.toLowerCase();
-          if (!name || !name.includes(filters.name.toLowerCase())) {
+          const name = (
+            customer.getName() ??
+            customer.getTradeName() ??
+            customer.getCorporateName() ??
+            ''
+          ).toLowerCase();
+          if (!name.includes(filters.name.toLowerCase())) {
             return false;
           }
         }

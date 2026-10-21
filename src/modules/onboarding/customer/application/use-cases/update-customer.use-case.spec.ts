@@ -42,6 +42,7 @@ describe('UpdateCustomerUseCase', () => {
   it('updates customer fields and saves', async () => {
     const customer = Customer.restore({
       id: '123e4567-e89b-12d3-a456-426614174000',
+      userId: '123e4567-e89b-12d3-a456-426614174000',
       personType: PersonType.CPF,
       document: new Document('52998224725'),
       name: 'João Silva',
@@ -54,7 +55,7 @@ describe('UpdateCustomerUseCase', () => {
     });
 
     repository.findById.mockResolvedValue(customer);
-    repository.save.mockImplementation((c: Customer) => c);
+    repository.save.mockImplementation((c: Customer) => Promise.resolve(c));
 
     const updateDTO: UpdateCustomerInput = {
       email: 'novo@example.com',

@@ -103,6 +103,7 @@ export async function givenUser(
   app: App,
   token: string,
   email = `usuario-${unique()}@example.com`,
+  role: UserRole = UserRole.ADMIN,
 ): Promise<{ id: string; email: string }> {
   const res = await request(app)
     .post('/user')
@@ -111,7 +112,7 @@ export async function givenUser(
       name: 'Usuario de Teste',
       email,
       password_hash: 'a-fake-hash-with-min-length',
-      role_id: 1,
+      role_id: role,
     })
     .expect(201);
   return { id: (res.body as { user_id: string }).user_id, email };
@@ -122,7 +123,7 @@ export async function givenCustomer(
   token: string,
   email = `cliente-${unique()}@example.com`,
 ): Promise<{ id: string; email: string; userId: string }> {
-  const user = await givenUser(app, token);
+  const user = await givenUser(app, token, undefined, UserRole.CUSTOMER);
   const res = await request(app)
     .post('/customers')
     .set('Authorization', bearer(token))
@@ -200,7 +201,7 @@ export async function givenConsultant(
   app: App,
   token: string,
 ): Promise<string> {
-  const user = await givenUser(app, token);
+  const user = await givenUser(app, token, undefined, UserRole.CONSULTANT);
   const res = await request(app)
     .post('/consultants')
     .set('Authorization', bearer(token))
@@ -215,8 +216,7 @@ export async function givenConsultant(
 }
 
 /**
- * Truncation order matters: children before parents, and vehicles before the
- * customers they belong to.
+ * Truncation order matters: children before parents, and vehicles before users.
  */
 export const CLEANUP_TABLES = [
   'payments',
@@ -231,16 +231,11 @@ export const CLEANUP_TABLES = [
   'stock_movements',
   'supplies',
   'vehicles',
-  'customers',
-  'consultants',
-  'stock_keepers',
-  'mechanics',
+  'mechanic_availability',
+  'users',
 ] as const;
 
 /**
- * `CLEANUP_TABLES` plus `users` itself, for suites that own the `users`
- * table (auth/users e2e specs) and need every FK-referencing row gone
- * first — otherwise a leftover customer/consultant/stock-keeper/mechanic
- * row created by another suite (via `givenUser`) blocks the delete.
+ * Alias retained for user-specific suites; profiles now live in `users`.
  */
-export const CLEANUP_TABLES_WITH_USERS = [...CLEANUP_TABLES, 'users'] as const;
+export const CLEANUP_TABLES_WITH_USERS = CLEANUP_TABLES;
