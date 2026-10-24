@@ -3,7 +3,7 @@ import {
   escapeHtml,
   formatBRL,
   formatDateBR,
-} from '../../notifications/presentation/html';
+} from '../../../../shared/formatting/html';
 
 /**
  * The page the customer lands on after clicking the link in the email.

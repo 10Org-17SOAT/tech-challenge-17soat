@@ -2,7 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { Logger } from '@nestjs/common';
 import type { EmailMessage, EmailSender } from '../domain/email-sender.port';
-import { escapeHtml, formatDateBR } from '../presentation/html';
+import { escapeHtml, formatDateBR } from '../../../../shared/formatting/html';
 
 export interface FileEmailSenderOptions {
   directory: string;

@@ -4,7 +4,7 @@ import {
   escapeHtml,
   formatBRL,
   formatDateBR,
-} from '../../notifications/presentation/html';
+} from '../../../../shared/formatting/html';
 import { STATUS_COPY } from '../../notifications/presentation/status-change-email.template';
 
 /**
