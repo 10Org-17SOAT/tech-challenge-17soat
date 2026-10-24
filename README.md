@@ -931,6 +931,8 @@ PATCH  /service-orders/{id}                          # Atualizar / avançar a or
 DELETE /service-orders/{id}                          # Remover ordem (soft delete)
 ```
 
+A listagem (`GET /service-orders`) devolve a fila de trabalho da oficina, ordenada por prioridade de status — `in_execution` > `awaiting_execution` > `awaiting_approval` > `in_diagnosis` > `received` — e, dentro do mesmo status, das mais antigas para as mais novas. `awaiting_execution` (orçamento aprovado, aguardando um mecânico) fica logo abaixo de `in_execution` por ser a próxima a entrar na bancada. OSs `finished` e `delivered` ficam fora da listagem padrão (exclusão lógica): continuam acessíveis por `GET /service-orders/{id}` e pelo filtro explícito `?status=finished` ou `?status=delivered`.
+
 #### Anamnese — `ADMIN`
 
 ```
