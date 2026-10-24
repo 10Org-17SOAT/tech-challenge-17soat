@@ -40,10 +40,10 @@ Hoje a oficina trabalha com controles manuais e planilhas, o que gera perda de h
 ### Principais recursos
 
 - **Cadastro de clientes e veículos**: pessoa física ou jurídica, com placa, modelo, quilometragem e histórico
-- **Ordem de serviço com ciclo de vida explícito**: `received → in_diagnosis → awaiting_approval → awaiting_execution → in_execution → finished → delivered`
+- **Ordem de serviço com ciclo de vida explícito**: `received → in_diagnosis → awaiting_approval → awaiting_execution → in_execution → finished → delivered` (um orçamento recusado devolve a ordem de `awaiting_approval` para `in_diagnosis`)
 - **Anamnese**: registro estruturado do relato do cliente no momento da recepção
 - **Diagnóstico**: laudo do mecânico que dá origem ao orçamento
-- **Orçamento com aprovação do cliente**: enviado por e-mail com link de aprovação de uso único e prazo de expiração
+- **Orçamento com aprovação ou recusa do cliente**: enviado por e-mail com link de prazo limitado; o cliente aprova ou recusa (com motivo) numa página que só registra a resposta por POST, e a mesma decisão pode chegar por um endpoint JSON autenticado pelo token do link
 - **Alocação de mecânicos em FIFO**: o mecânico disponível há mais tempo assume a próxima ordem
 - **Controle de estoque por livro-razão**: entrada, reserva e baixa de insumos — a quantidade nunca é uma coluna, é sempre derivada dos movimentos
 - **Pagamento**: registra o pagamento da ordem e, por evento de domínio, marca o veículo como entregue
@@ -117,6 +117,7 @@ Publicados via `@nestjs/event-emitter` sobre a porta `DomainEventPublisher`:
 | `execution.completed` | mechanic | ordem vai para `finished` |
 | `payment.received` | payment | ordem vai para `delivered` e carimba `delivered_at` |
 | `quotation.approved` | service-management | estoque reserva as peças do orçamento aprovado |
+| `quotation.rejected` | service-management | registra a recusa do cliente; ainda sem consumidor (a volta da ordem para `in_diagnosis` é chamada direta, e nada foi reservado) |
 | `service-order.finished` | service-management | estoque dá baixa no que está reservado para a ordem |
 | `part.reserved.for-service-order` | stock | reserva de insumo para a ordem |
 | `part.written-off-from-stock` | stock | baixa definitiva do insumo |
@@ -243,11 +244,15 @@ classDiagram
         -QuotationStatus status
         -DateTime issuedAt
         -DateTime approvedAt
+        -DateTime rejectedAt
+        -String rejectionReason
         -String approvalTokenHash
         -DateTime approvalTokenExpiresAt
         -List~QuotationItem~ items
         +issue()
         +approve()
+        +reject()
+        +verifyApprovalToken()
         +totalInCents()
     }
 
@@ -365,6 +370,7 @@ classDiagram
         <<enumeration>>
         issued
         approved
+        rejected
     }
 
     class MovementType {
@@ -529,7 +535,7 @@ npm run start:dev
 
 ### Autenticando
 
-Todas as rotas exigem JWT, exceto `POST /auth/login` e o link público de aprovação de orçamento.
+Todas as rotas exigem JWT, exceto `POST /auth/login` e as rotas de decisão do orçamento pelo cliente (`/quotations/decision`, `/quotations/decision/confirm` e o antigo `/quotations/approve`), autenticadas pelo token do link do e-mail.
 
 ```bash
 # 1. Faça login com o admin do seed (ou com o criado no bootstrap)
@@ -550,7 +556,7 @@ curl http://localhost:3000/service-orders \
 | `JWT_SECRET` | Segredo de assinatura do JWT (mín. 32 caracteres) | — (obrigatório) |
 | `JWT_EXPIRES_IN` | Validade do token | `1h` |
 | `BOOTSTRAP_ADMIN_EMAIL` / `BOOTSTRAP_ADMIN_PASSWORD` | Cria o primeiro administrador no boot (obrigatórios em conjunto) | vazio |
-| `APP_BASE_URL` | Base pública usada no link de aprovação do orçamento | `http://localhost:3000` |
+| `APP_BASE_URL` | Base pública usada nos links de aprovação/recusa do orçamento | `http://localhost:3000` |
 | `MAIL_DRIVER` | `log` (apenas registra no logger) ou `brevo` | `log` |
 | `MAIL_FROM` / `MAIL_FROM_NAME` | Remetente dos e-mails | — |
 | `BREVO_API_KEY` | Chave da Brevo, obrigatória quando `MAIL_DRIVER=brevo` | — |
@@ -666,16 +672,45 @@ pedido:
 A peça entrou pela ficha técnica do serviço — não existe linha de peça avulsa. O
 total é R$ 270,00.
 
-### 5. Aprovação do cliente — `awaiting_execution`
+### 5. Resposta do cliente — `awaiting_execution`
 
-Com `MAIL_DRIVER=log` (o padrão), o e-mail não sai: a mensagem com o link de
-aprovação é escrita no log da aplicação. Você pode abrir aquele link ou aprovar
-direto:
+Com `MAIL_DRIVER=log` (o padrão), o e-mail não sai: a mensagem é escrita no log
+da aplicação, com os botões **Aprovar orçamento** e **Recusar**. Os dois abrem
+`/quotations/decision?token=...`, uma página que mostra o orçamento e **não
+altera nada** — scanners de e-mail seguem links, mas não enviam formulários. A
+resposta só é registrada quando o cliente confirma o formulário da página.
+
+A mesma decisão pode chegar de fora da oficina em JSON, sem login: o token do
+link é a credencial. Copie o token do log e aprove:
 
 ```bash
-curl -s -X POST $API/quotations/$QUOTE/approve -H "Authorization: Bearer $ADMIN" > /dev/null
+TOKEN=<token do link no log>
+curl -s -X POST $API/quotations/decision -H 'Content-Type: application/json' \
+  -d "{\"token\":\"$TOKEN\",\"decision\":\"approved\"}" > /dev/null
 # status: awaiting_execution
 ```
+
+Repetir a mesma decisão responde `200` com o estado atual; a decisão contrária
+responde `409`. A oficina também pode aprovar manualmente, com JWT:
+`POST $API/quotations/$QUOTE/approve`.
+
+<details>
+<summary>Desvio: e se o cliente recusar?</summary>
+
+```bash
+curl -s -X POST $API/quotations/decision -H 'Content-Type: application/json' \
+  -d "{\"token\":\"$TOKEN\",\"decision\":\"rejected\",\"reason\":\"Muito caro\"}"
+# status: rejected, rejectedAt e rejectionReason preenchidos
+# a OS volta para in_diagnosis
+```
+
+O orçamento recusado fica guardado como registro, e nenhuma peça é reservada:
+só a aprovação publica `quotation.approved`. Registrar o laudo de novo
+(passo 4) emite e envia um orçamento novo, e é ele que
+`GET /service-orders/$OS/quotation` passa a devolver. O link antigo continua
+recusado.
+
+</details>
 
 ### 6. Estoque — a peça já está reservada
 
@@ -784,6 +819,8 @@ ids existem e deixaria mapear as ordens da oficina por tentativa.
   existe coluna de quantidade para conferir
 - **Fora de ordem dá 409**: tente pagar uma OS que não está em `finished`, ou
   iniciar o diagnóstico de uma que já saiu de `received`
+- **Abrir o link não decide nada**: `GET /quotations/decision` só mostra o
+  orçamento; recarregue à vontade e a OS segue em `awaiting_approval`
 
 </details>
 
@@ -809,7 +846,7 @@ tech-challenge-17soat/
 │   │   │   ├── service-orders/                # Ordem de serviço (agregado central)
 │   │   │   ├── anamnesis/                     # Anamnese
 │   │   │   ├── diagnostics/                   # Diagnóstico
-│   │   │   ├── quotations/                    # Orçamento e aprovação
+│   │   │   ├── quotations/                    # Orçamento, aprovação e recusa
 │   │   │   └── services/                      # Catálogo de serviços
 │   │   ├── mechanic/                          # Mecânicos e alocação FIFO
 │   │   ├── stock/                             # Insumos, livro-razão e estoquistas
@@ -954,7 +991,10 @@ GET    /service-orders/{serviceOrderId}/quotation    # ADMIN — orçamento da o
 GET    /quotations/{id}                              # ADMIN — obter orçamento
 POST   /quotations/{id}/send-approval-email          # ADMIN — (re)enviar e-mail de aprovação
 POST   /quotations/{id}/approve                      # ADMIN — aprovar manualmente
-GET    /quotations/approve?token=...                 # Público — aprovação pelo link do e-mail
+POST   /quotations/decision                          # Público (token) — aprovação ou recusa em JSON
+GET    /quotations/decision?token=...                # Público (token) — página do link do e-mail, só leitura
+POST   /quotations/decision/confirm                  # Público (token) — formulário da página (HTML)
+GET    /quotations/approve?token=...                 # Público — links antigos; redireciona para a página
 ```
 
 #### Mecânicos — `ADMIN`, `MECHANIC`
