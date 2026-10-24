@@ -8,6 +8,7 @@ import {
   CLEANUP_TABLES,
   givenConsultant,
   givenOwnedVehicle,
+  givenServiceOrder,
   givenUser,
   httpAs,
   tokenFor,
@@ -183,16 +184,12 @@ describe('Stock automation (e2e)', () => {
   async function givenQuotedOrder(
     serviceId: string,
   ): Promise<{ orderId: string; quotationId: string }> {
-    const orderId = await http()
-      .post('/service-order/anamnesis')
-      .send({
-        vehicleId,
-        consultantId: openedById,
-        mainComplaint: 'Barulho na suspensão',
-        problemDescription: 'Estalo ao passar em lombadas',
-      })
-      .expect(201)
-      .then((res) => (res.body as { serviceOrderId: string }).serviceOrderId);
+    const orderId = await givenServiceOrder(
+      app.getHttpServer(),
+      token,
+      vehicleId,
+      openedById,
+    );
 
     await http().post(`/service-orders/${orderId}/diagnosis/start`).expect(200);
 
