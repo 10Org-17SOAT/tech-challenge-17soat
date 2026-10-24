@@ -1,6 +1,11 @@
 import type { ServiceOrderStatus } from '../../service-orders/domain/service-order.entity';
 import type { OrderRecipient } from '../domain/order-recipient.port';
-import { escapeHtml, formatDateBR } from './html';
+import type {
+  ComposedEmail,
+  StatusChangeEmailComposer,
+  StatusChangeEmailInput,
+} from '../domain/status-change-email.port';
+import { escapeHtml, formatDateBR } from '../../../../shared/formatting/html';
 
 /**
  * How each status reads to the customer: the name, and one sentence on what
@@ -57,12 +62,7 @@ export function statusChangeSubject(
 
 /** Same footing as the quotation email: a plain string and a table layout,
  *  because email clients are not browsers. */
-export function renderStatusChangeEmail(input: {
-  serviceOrderId: string;
-  status: ServiceOrderStatus;
-  occurredAt: Date;
-  recipient: OrderRecipient;
-}): string {
+export function renderStatusChangeEmail(input: StatusChangeEmailInput): string {
   const { serviceOrderId, status, occurredAt, recipient } = input;
   const { label, nextStep } = STATUS_COPY[status];
   const vehicle = recipient.vehicle;
@@ -96,4 +96,14 @@ export function renderStatusChangeEmail(input: {
     </table>
   </body>
 </html>`;
+}
+
+/** The HTML implementation of the domain's composer port. */
+export class HtmlStatusChangeEmailComposer implements StatusChangeEmailComposer {
+  compose(input: StatusChangeEmailInput): ComposedEmail {
+    return {
+      subject: statusChangeSubject(input.status, input.recipient),
+      html: renderStatusChangeEmail(input),
+    };
+  }
 }

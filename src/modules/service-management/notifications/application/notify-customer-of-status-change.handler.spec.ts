@@ -6,6 +6,7 @@ import {
   InMemoryOrderRecipientQuery,
 } from '../__test__/in-memory-order-recipient.query';
 import { RecordingEmailSender } from '../__test__/recording-email.sender';
+import { HtmlStatusChangeEmailComposer } from '../presentation/status-change-email.template';
 import { NotifyCustomerOfStatusChangeHandler } from './notify-customer-of-status-change.handler';
 
 const ORDER_ID = '0d9b6c1e-2f3a-4b5c-8d7e-9f0a1b2c3d4e';
@@ -32,7 +33,11 @@ describe('NotifyCustomerOfStatusChangeHandler', () => {
     recipients = new InMemoryOrderRecipientQuery();
     recipients.set(ORDER_ID, aRecipient());
     emails = new RecordingEmailSender();
-    handler = new NotifyCustomerOfStatusChangeHandler(recipients, emails);
+    handler = new NotifyCustomerOfStatusChangeHandler(
+      recipients,
+      emails,
+      new HtmlStatusChangeEmailComposer(),
+    );
     warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation();
     error = jest.spyOn(Logger.prototype, 'error').mockImplementation();
   });
@@ -96,7 +101,11 @@ describe('NotifyCustomerOfStatusChangeHandler', () => {
 
   it('skips with a warning when the order has no reachable customer', async () => {
     recipients = new InMemoryOrderRecipientQuery();
-    handler = new NotifyCustomerOfStatusChangeHandler(recipients, emails);
+    handler = new NotifyCustomerOfStatusChangeHandler(
+      recipients,
+      emails,
+      new HtmlStatusChangeEmailComposer(),
+    );
 
     await expect(
       handler.handle(changedTo('received')),

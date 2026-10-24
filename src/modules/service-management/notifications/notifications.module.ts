@@ -7,8 +7,10 @@ import { NotifyCustomerOfStatusChangeHandler } from './application/notify-custom
 import { EMAIL_SENDER } from './domain/email-sender.port';
 import type { EmailSender } from './domain/email-sender.port';
 import { ORDER_RECIPIENT_QUERY } from './domain/order-recipient.port';
+import { STATUS_CHANGE_EMAIL_COMPOSER } from './domain/status-change-email.port';
 import { createEmailSender } from './infrastructure/email-sender.factory';
 import { OnboardingOrderRecipientQuery } from './infrastructure/onboarding-order-recipient.query';
+import { HtmlStatusChangeEmailComposer } from './presentation/status-change-email.template';
 
 /**
  * Everything that talks to the customer outside the HTTP API: the email
@@ -34,6 +36,10 @@ import { OnboardingOrderRecipientQuery } from './infrastructure/onboarding-order
       inject: [ConfigService],
       useFactory: (config: ConfigService): EmailSender =>
         createEmailSender(config),
+    },
+    {
+      provide: STATUS_CHANGE_EMAIL_COMPOSER,
+      useClass: HtmlStatusChangeEmailComposer,
     },
     NotifyCustomerOfStatusChangeHandler,
   ],

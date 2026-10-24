@@ -5,10 +5,8 @@ import { EMAIL_SENDER } from '../domain/email-sender.port';
 import type { EmailSender } from '../domain/email-sender.port';
 import { ORDER_RECIPIENT_QUERY } from '../domain/order-recipient.port';
 import type { OrderRecipientQuery } from '../domain/order-recipient.port';
-import {
-  renderStatusChangeEmail,
-  statusChangeSubject,
-} from '../presentation/status-change-email.template';
+import { STATUS_CHANGE_EMAIL_COMPOSER } from '../domain/status-change-email.port';
+import type { StatusChangeEmailComposer } from '../domain/status-change-email.port';
 
 /**
  * Emails the customer every time their order changes status.
@@ -29,6 +27,8 @@ export class NotifyCustomerOfStatusChangeHandler {
     private readonly recipients: OrderRecipientQuery,
     @Inject(EMAIL_SENDER)
     private readonly emailSender: EmailSender,
+    @Inject(STATUS_CHANGE_EMAIL_COMPOSER)
+    private readonly composer: StatusChangeEmailComposer,
   ) {}
 
   @OnEvent('service-order.status-changed')
@@ -52,16 +52,18 @@ export class NotifyCustomerOfStatusChangeHandler {
         return;
       }
 
+      const { subject, html } = this.composer.compose({
+        serviceOrderId: orderId,
+        status,
+        occurredAt: event.occurredAt,
+        recipient,
+      });
+
       await this.emailSender.send({
         to: recipient.email,
         toName: recipient.name,
-        subject: statusChangeSubject(status, recipient),
-        html: renderStatusChangeEmail({
-          serviceOrderId: orderId,
-          status,
-          occurredAt: event.occurredAt,
-          recipient,
-        }),
+        subject,
+        html,
         tag: `${orderId}--${status}`,
       });
     } catch (error) {
