@@ -22,6 +22,7 @@ API de gestão de ordens de serviço para uma oficina mecânica de veículos, de
   <a href="#tecnologias">Tecnologias</a> •
   <a href="#diagramas">Diagramas</a> •
   <a href="#instalacao-e-uso">Instalação e Uso</a> • <br/>
+  <a href="#notificacoes">Notificações por e-mail</a> •
   <a href="#fluxo-de-teste">Testando o ciclo de vida da OS</a> •
   <a href="#estrutura-do-projeto">Estrutura do Projeto</a> •
   <a href="#apis">APIs</a> •
@@ -44,6 +45,7 @@ Hoje a oficina trabalha com controles manuais e planilhas, o que gera perda de h
 - **Anamnese**: registro estruturado do relato do cliente no momento da recepção
 - **Diagnóstico**: laudo do mecânico que dá origem ao orçamento
 - **Orçamento com aprovação do cliente**: enviado por e-mail com link de aprovação de uso único e prazo de expiração
+- **Notificação por e-mail a cada mudança de status**: o cliente recebe um e-mail em cada um dos sete estados da OS
 - **Alocação de mecânicos em FIFO**: o mecânico disponível há mais tempo assume a próxima ordem
 - **Controle de estoque por livro-razão**: entrada, reserva e baixa de insumos — a quantidade nunca é uma coluna, é sempre derivada dos movimentos
 - **Pagamento**: registra o pagamento da ordem e, por evento de domínio, marca o veículo como entregue
@@ -81,7 +83,7 @@ graph TD
     subgraph "Monolito Modular"
         AUTH["auth<br/>usuários, JWT, roles"]
         ONB["onboarding<br/>customers · vehicles · consultants"]
-        SM["service-management<br/>service-orders · anamnesis<br/>diagnostics · quotations · services"]
+        SM["service-management<br/>service-orders · anamnesis<br/>diagnostics · quotations · services<br/>notifications"]
         MECH["mechanic<br/>mecânicos e alocação"]
         STOCK["stock<br/>supplies · movimentos · stock keepers"]
         PAY["payment<br/>pagamentos"]
@@ -118,6 +120,7 @@ Publicados via `@nestjs/event-emitter` sobre a porta `DomainEventPublisher`:
 | `payment.received` | payment | ordem vai para `delivered` e carimba `delivered_at` |
 | `quotation.approved` | service-management | estoque reserva as peças do orçamento aprovado |
 | `service-order.finished` | service-management | estoque dá baixa no que está reservado para a ordem |
+| `service-order.status-changed` | service-management | o cliente recebe um e-mail com o novo status |
 | `part.reserved.for-service-order` | stock | reserva de insumo para a ordem |
 | `part.written-off-from-stock` | stock | baixa definitiva do insumo |
 | `purchase.request.needed` | stock | sinaliza necessidade de reposição |
@@ -153,7 +156,7 @@ Publicados via `@nestjs/event-emitter` sobre a porta `DomainEventPublisher`:
 
 ### Integração
 
-- **Brevo**: envio dos e-mails de aprovação de orçamento (driver `log` em desenvolvimento)
+- **Brevo**: envio dos e-mails de orçamento e de mudança de status (drivers `log` e `file` em desenvolvimento — ver [Notificações por e-mail](#notificacoes))
 
 </details>
 
@@ -551,9 +554,71 @@ curl http://localhost:3000/service-orders \
 | `JWT_EXPIRES_IN` | Validade do token | `1h` |
 | `BOOTSTRAP_ADMIN_EMAIL` / `BOOTSTRAP_ADMIN_PASSWORD` | Cria o primeiro administrador no boot (obrigatórios em conjunto) | vazio |
 | `APP_BASE_URL` | Base pública usada no link de aprovação do orçamento | `http://localhost:3000` |
-| `MAIL_DRIVER` | `log` (apenas registra no logger) ou `brevo` | `log` |
-| `MAIL_FROM` / `MAIL_FROM_NAME` | Remetente dos e-mails | — |
+| `MAIL_DRIVER` | `log` (apenas registra no logger), `file` (grava em disco) ou `brevo` | `log` |
+| `MAIL_DIRECTORY` | Pasta onde o driver `file` grava os e-mails | `var/mail` |
+| `MAIL_FROM` / `MAIL_FROM_NAME` | Remetente dos e-mails | `oficina@example.com` / `Oficina` |
 | `BREVO_API_KEY` | Chave da Brevo, obrigatória quando `MAIL_DRIVER=brevo` | — |
+
+</details>
+
+<h2 id="notificacoes">📧 Notificações por e-mail</h2>
+
+<details>
+<summary>Expandir para mais detalhes</summary>
+
+Toda vez que uma OS muda de status, o cliente dono do veículo recebe um e-mail
+com o veículo, o número da OS, o novo status em português e uma frase sobre o
+próximo passo. São sete e-mails do balcão à entrega:
+
+| Status | E-mail |
+|--------|--------|
+| `received` | **Recebida** |
+| `in_diagnosis` | **Em diagnóstico** |
+| `awaiting_approval` | o próprio **e-mail do orçamento**, com o link de aprovação |
+| `awaiting_execution` | **Aguardando execução** |
+| `in_execution` | **Em execução** |
+| `finished` | **Finalizada** |
+| `delivered` | **Entregue** |
+
+Em `awaiting_approval` não sai um segundo e-mail: o do orçamento já diz que a
+OS está esperando o cliente e traz o botão para aprovar.
+
+**Como funciona.** A entidade `ServiceOrder` registra um
+`ServiceOrderStatusChanged` na abertura e em cada `transitionTo()`, e o
+repositório publica esses eventos logo depois de gravar a ordem. Nenhum dos
+caminhos que mudam o status (anamnese, diagnóstico, aprovação, execução,
+pagamento) precisa lembrar de publicar. O módulo `notifications` escuta o
+evento e envia o e-mail.
+
+**Falha no envio não desfaz nada.** O status já está gravado quando o e-mail
+sai. Se o provedor recusar, a requisição responde normalmente e o erro vai para
+o log com `orderId`, `status` e o motivo. Um cliente sem e-mail cadastrado é
+pulado com um `warn`.
+
+**Drivers** — escolhidos por `MAIL_DRIVER` no boot. Um valor desconhecido
+impede a aplicação de subir:
+
+| Driver | O que faz | Quando usar |
+|--------|-----------|-------------|
+| `log` (padrão) | escreve destinatário, assunto e HTML no log; nada é enviado | testes, CI, cluster |
+| `file` | grava cada e-mail em `MAIL_DIRECTORY` como `.html` e loga o caminho | demo e ajuste de templates, sem conta na Brevo |
+| `brevo` | envia de verdade pela API da Brevo (exige `BREVO_API_KEY` e remetente verificado) | mostrar a caixa de entrada real |
+
+Com `file`, cada arquivo se chama `<data-hora>--<orderId>--<status>.html` e abre
+direto no navegador, com De / Para / Assunto / Data acima do corpo. A pasta
+`var/mail/` está no `.gitignore`.
+
+```bash
+MAIL_DRIVER=file npm run start:dev
+# ... percorra o roteiro abaixo ...
+ls var/mail
+# 2026-10-24T13-05-12-345Z--<OS>--received.html
+# 2026-10-24T13-05-40-118Z--<OS>--in_diagnosis.html
+# ...
+open var/mail/*--received.html   # macOS; no Linux, xdg-open
+```
+
+No k8s o driver fica `log`: o disco do pod é efêmero e ninguém o abriria.
 
 </details>
 
@@ -618,6 +683,11 @@ BRUNO=$(login bruno@oficina.dev)
 Prefere clicar? O mesmo roteiro funciona pelo <http://localhost:3000/docs>:
 autentique com o token do `POST /auth/login` no botão **Authorize**.
 
+Quer ver o e-mail chegando a cada passo? Suba a API com `MAIL_DRIVER=file` e
+acompanhe a pasta `var/mail/`: cada passo abaixo marcado com 📧 grava um arquivo
+novo para a Ana (`ana@example.com`). Detalhes em
+[Notificações por e-mail](#notificacoes).
+
 ### 3. Recepção — abre a OS em `received`
 
 A anamnese é o ponto de entrada: registrar o relato do cliente é o que abre a
@@ -639,6 +709,8 @@ curl -s $API/service-orders/$OS/status -H "Authorization: Bearer $ADMIN"
 # {"status":"received"}
 ```
 
+📧 **Recebida**
+
 ### 4. Diagnóstico — `in_diagnosis` e depois `awaiting_approval`
 
 ```bash
@@ -653,6 +725,9 @@ QUOTE=$(curl -s -X POST $API/service-orders/$OS/diagnosis \
     "serviceItems": [{ "serviceId": "88888888-8888-4888-8888-000000000002", "quantity": 1 }]
   }' | field quotation.id)
 ```
+
+📧 **Em diagnóstico** no `start`; depois, o e-mail do orçamento vale como o de
+**Aguardando aprovação**.
 
 Registrar o laudo emite o orçamento e dispara o e-mail de aprovação na mesma
 tacada. O orçamento sai com **duas linhas**, embora só um serviço tenha sido
@@ -669,13 +744,16 @@ total é R$ 270,00.
 ### 5. Aprovação do cliente — `awaiting_execution`
 
 Com `MAIL_DRIVER=log` (o padrão), o e-mail não sai: a mensagem com o link de
-aprovação é escrita no log da aplicação. Você pode abrir aquele link ou aprovar
-direto:
+aprovação é escrita no log da aplicação. Com `MAIL_DRIVER=file`, o botão
+**Aprovar orçamento** do arquivo em `var/mail/` funciona. Você pode abrir aquele
+link ou aprovar direto:
 
 ```bash
 curl -s -X POST $API/quotations/$QUOTE/approve -H "Authorization: Bearer $ADMIN" > /dev/null
 # status: awaiting_execution
 ```
+
+📧 **Aguardando execução**
 
 ### 6. Estoque — a peça já está reservada
 
@@ -708,6 +786,8 @@ echo $MECANICO   # quem a fila entregou
 # status: in_execution
 ```
 
+📧 **Em execução**
+
 > A alocação é FIFO: quem está disponível há mais tempo assume, **não**
 > necessariamente quem chamou. Na primeira rodada sai o Bruno; na segunda, como
 > ele voltou para o fim da fila ao ser liberado, sai o Diego. Por isso o id vem
@@ -730,6 +810,8 @@ curl -s -X POST $API/mechanics/$MECANICO/complete-execution \
   -d "{\"serviceOrderId\":\"$OS\"}" > /dev/null
 # status: finished — e o mecânico volta para a fila como AVAILABLE
 ```
+
+📧 **Finalizada**
 
 Este é o momento de olhar o relatório: ele conta apenas as ordens **em
 `finished`**, então uma OS já paga não entra na média.
@@ -759,6 +841,8 @@ O pagamento é mockado — não há gateway, ele nasce confirmado — e publica
 curl -s $API/service-orders/$OS -H "Authorization: Bearer $ADMIN"
 # status: delivered, deliveredAt preenchido, openedByName: "Carla Menezes"
 ```
+
+📧 **Entregue**
 
 ### 11. A visão do cliente
 
@@ -810,6 +894,7 @@ tech-challenge-17soat/
 │   │   │   ├── anamnesis/                     # Anamnese
 │   │   │   ├── diagnostics/                   # Diagnóstico
 │   │   │   ├── quotations/                    # Orçamento e aprovação
+│   │   │   ├── notifications/                 # E-mails ao cliente (drivers log/file/brevo)
 │   │   │   └── services/                      # Catálogo de serviços
 │   │   ├── mechanic/                          # Mecânicos e alocação FIFO
 │   │   ├── stock/                             # Insumos, livro-razão e estoquistas
