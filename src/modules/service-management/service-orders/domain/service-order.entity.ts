@@ -1,4 +1,6 @@
 import { randomUUID } from 'node:crypto';
+import type { DomainEvent } from '../../../../shared/domain/events/domain-event';
+import { ServiceOrderStatusChanged } from './events/service-order-status-changed.event';
 import { InvalidServiceOrderError } from './errors/invalid-service-order.error';
 import { InvalidServiceOrderTransitionError } from './errors/invalid-service-order-transition.error';
 import { ServiceOrderNotDeletableError } from './errors/service-order-not-deletable.error';
@@ -71,11 +73,16 @@ export interface UpdateServiceOrderProps {
 }
 
 export class ServiceOrder {
+  // Raised by this instance and not yet published. Held here rather than
+  // published on the spot: the write that makes them true has not happened
+  // yet, and an order that fails to save must not have announced anything.
+  private pendingEvents: DomainEvent[] = [];
+
   private constructor(private readonly props: ServiceOrderProps) {}
 
   static create(props: CreateServiceOrderProps): ServiceOrder {
     const now = new Date();
-    return new ServiceOrder({
+    const order = new ServiceOrder({
       id: randomUUID(),
       vehicleId: ServiceOrder.validateVehicleId(props.vehicleId),
       openedById: props.openedById,
@@ -94,6 +101,12 @@ export class ServiceOrder {
       updatedAt: now,
       deletedAt: null,
     });
+    // Opening counts as a status change: the customer hears about `received`
+    // the same way they hear about every status after it.
+    order.pendingEvents.push(
+      new ServiceOrderStatusChanged(order.id, null, 'received', now),
+    );
+    return order;
   }
 
   static restore(props: ServiceOrderProps): ServiceOrder {
@@ -139,6 +152,7 @@ export class ServiceOrder {
     }
 
     const now = new Date();
+    const previous = this.props.status;
     this.props.status = next;
 
     if (next === 'awaiting_execution') {
@@ -155,6 +169,17 @@ export class ServiceOrder {
     }
 
     this.props.updatedAt = now;
+    this.pendingEvents.push(
+      new ServiceOrderStatusChanged(this.props.id, previous, next, now),
+    );
+  }
+
+  /** Hands over the events raised since the last call and forgets them, so
+   *  saving the same instance twice never announces anything twice. */
+  pullEvents(): DomainEvent[] {
+    const events = this.pendingEvents;
+    this.pendingEvents = [];
+    return events;
   }
 
   delete(): void {
