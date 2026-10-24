@@ -1,10 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
   and,
+  asc,
   count,
-  desc,
   eq,
   gte,
+  inArray,
   isNotNull,
   isNull,
   lte,
@@ -13,7 +14,10 @@ import {
 import { DATABASE_CONNECTION } from '../../../../../shared/config/database/database.constants';
 import type { DrizzleDatabase } from '../../../../../shared/config/database/drizzle.provider';
 import { ServiceItem } from '../../domain/service-item';
-import { ServiceOrder } from '../../domain/service-order.entity';
+import {
+  LISTING_STATUS_PRIORITY,
+  ServiceOrder,
+} from '../../domain/service-order.entity';
 import type {
   ExecutionTimeFilter,
   ExecutionTimeStats,
@@ -28,6 +32,16 @@ type ServiceOrderRow = typeof serviceOrders.$inferSelect;
 function toEntity(row: ServiceOrderRow): ServiceOrder {
   return ServiceOrder.restore(row);
 }
+
+// Sorted in the database, not in memory: pagination has to slice the already
+// ordered queue. Statuses outside the priority list (only reachable through an
+// explicit filter) all share the last rank.
+const statusPriority = sql`case ${serviceOrders.status} ${sql.join(
+  LISTING_STATUS_PRIORITY.map(
+    (status, rank) => sql`when ${status} then ${sql.raw(String(rank))}`,
+  ),
+  sql` `,
+)} else ${sql.raw(String(LISTING_STATUS_PRIORITY.length))} end`;
 
 @Injectable()
 export class DrizzleServiceOrderRepository implements ServiceOrderRepository {
@@ -51,7 +65,9 @@ export class DrizzleServiceOrderRepository implements ServiceOrderRepository {
   }: ListServiceOrdersFilter): Promise<PaginatedServiceOrders> {
     const where = and(
       isNull(serviceOrders.deletedAt),
-      status ? eq(serviceOrders.status, status) : undefined,
+      status
+        ? eq(serviceOrders.status, status)
+        : inArray(serviceOrders.status, [...LISTING_STATUS_PRIORITY]),
     );
 
     const [rows, [{ total }]] = await Promise.all([
@@ -59,7 +75,11 @@ export class DrizzleServiceOrderRepository implements ServiceOrderRepository {
         .select()
         .from(serviceOrders)
         .where(where)
-        .orderBy(desc(serviceOrders.createdAt), serviceOrders.id)
+        .orderBy(
+          statusPriority,
+          asc(serviceOrders.createdAt),
+          asc(serviceOrders.id),
+        )
         .limit(limit)
         .offset((page - 1) * limit),
       this.db.select({ total: count() }).from(serviceOrders).where(where),

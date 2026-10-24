@@ -1,5 +1,8 @@
 import { ServiceItem } from '../domain/service-item';
-import { ServiceOrder } from '../domain/service-order.entity';
+import {
+  LISTING_STATUS_PRIORITY,
+  ServiceOrder,
+} from '../domain/service-order.entity';
 import {
   ExecutionTimeFilter,
   ExecutionTimeStats,
@@ -24,8 +27,18 @@ export class InMemoryServiceOrderRepository implements ServiceOrderRepository {
   }: ListServiceOrdersFilter): Promise<PaginatedServiceOrders> {
     const filtered = [...this.orders.values()]
       .filter((o) => !o.deletedAt)
-      .filter((o) => (status ? o.status === status : true))
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      .filter((o) =>
+        status
+          ? o.status === status
+          : LISTING_STATUS_PRIORITY.includes(o.status),
+      )
+      .sort(
+        (a, b) =>
+          LISTING_STATUS_PRIORITY.indexOf(a.status) -
+            LISTING_STATUS_PRIORITY.indexOf(b.status) ||
+          a.createdAt.getTime() - b.createdAt.getTime() ||
+          a.id.localeCompare(b.id),
+      );
 
     return Promise.resolve({
       items: filtered.slice((page - 1) * limit, page * limit),

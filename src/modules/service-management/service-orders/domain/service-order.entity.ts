@@ -30,6 +30,19 @@ const STATUS_TRANSITIONS: Record<
   delivered: null,
 };
 
+// The shop's work queue, most urgent first: the default listing shows only
+// these, in this order. `awaiting_execution` (approved, waiting for a
+// mechanic) sits right below `in_execution` because it is the next one to hit
+// the bench. Finished and delivered orders are closed and stay out unless
+// asked for by an explicit status filter.
+export const LISTING_STATUS_PRIORITY: readonly ServiceOrderStatus[] = [
+  'in_execution',
+  'awaiting_execution',
+  'awaiting_approval',
+  'in_diagnosis',
+  'received',
+];
+
 // Once execution starts, mileage and schedule become historical facts.
 const OPERATIONAL_LOCKED_STATUSES = new Set<ServiceOrderStatus>([
   'in_execution',
