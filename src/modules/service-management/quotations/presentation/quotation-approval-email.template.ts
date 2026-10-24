@@ -5,6 +5,7 @@ import {
   formatBRL,
   formatDateBR,
 } from '../../notifications/presentation/html';
+import { STATUS_COPY } from '../../notifications/presentation/status-change-email.template';
 
 /**
  * The email the customer receives. A plain string — no template engine and no
@@ -12,6 +13,9 @@ import {
  *
  * Table-based layout on purpose: email clients are not browsers, and flexbox
  * and grid are unreliable across Outlook and Gmail.
+ *
+ * It doubles as the `awaiting_approval` status email — notifications skips
+ * that status — so it carries the same status badge the others do.
  */
 export function renderQuotationApprovalEmail(input: {
   quotation: Quotation;
@@ -52,6 +56,12 @@ export function renderQuotationApprovalEmail(input: {
           Segue o orçamento para o
           <strong>${escapeHtml(vehicle.manufacturer)} ${escapeHtml(vehicle.model)} ${vehicle.year}</strong>,
           placa <strong>${escapeHtml(vehicle.licensePlate)}</strong>.
+        </p>
+
+        <p style="margin:0 0 16px;">
+          <span style="display:inline-block;background:#e90;color:#fff;padding:8px 16px;border-radius:6px;font-weight:bold;">
+            ${STATUS_COPY.awaiting_approval.label}
+          </span>
         </p>
 
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;">

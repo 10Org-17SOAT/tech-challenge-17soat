@@ -67,6 +67,15 @@ describe('SendQuotationApprovalEmailUseCase', () => {
     expect(emails.lastMessage!.html).toContain('99,90');
   });
 
+  // Notifications skips `awaiting_approval`, so this email is the only one the
+  // customer gets for that status and has to say so.
+  it('doubles as the awaiting_approval status email', async () => {
+    await useCase.execute(quotation.id);
+
+    expect(emails.lastMessage!.html).toContain('Aguardando aprovação');
+    expect(emails.lastMessage!.tag).toBe(`${order.id}--awaiting_approval`);
+  });
+
   it('builds the approval link from APP_BASE_URL, not from a request', async () => {
     await useCase.execute(quotation.id);
 

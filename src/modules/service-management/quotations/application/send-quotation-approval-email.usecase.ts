@@ -67,6 +67,7 @@ export class SendQuotationApprovalEmailUseCase {
       toName: recipient.name,
       subject: `Orçamento do seu ${recipient.vehicle.manufacturer} ${recipient.vehicle.model} (${recipient.vehicle.licensePlate})`,
       html: renderQuotationApprovalEmail({ quotation, recipient, approvalUrl }),
+      tag: `${quotation.serviceOrderId}--awaiting_approval`,
     });
 
     // Only after the provider accepted it. A send that threw leaves this null,
