@@ -10,6 +10,8 @@ import { DrizzleCustomerRepository } from './infrastructure/repositories/drizzle
 import { CustomerController } from './presentation/controllers/customer.controller';
 import { CUSTOMER_CONTACT_QUERY } from './public/customer-contact.query';
 import { DrizzleCustomerContactQuery } from './public/customer-contact.query.impl';
+import { CUSTOMER_REGISTRATION } from './public/customer-registration';
+import { DomainCustomerRegistration } from './public/customer-registration.impl';
 
 @Module({
   imports: [DatabaseModule],
@@ -17,14 +19,15 @@ import { DrizzleCustomerContactQuery } from './public/customer-contact.query.imp
   providers: [
     { provide: CUSTOMER_REPOSITORY, useClass: DrizzleCustomerRepository },
     { provide: CUSTOMER_CONTACT_QUERY, useClass: DrizzleCustomerContactQuery },
+    { provide: CUSTOMER_REGISTRATION, useClass: DomainCustomerRegistration },
     CreateCustomerUseCase,
     FindCustomerByIdUseCase,
     FindAllCustomersUseCase,
     UpdateCustomerUseCase,
     SoftDeleteCustomerUseCase,
   ],
-  // The only thing that leaves this module. Repositories, use cases and the
+  // The only things that leave this module. Repositories, use cases and the
   // Customer aggregate stay private.
-  exports: [CUSTOMER_CONTACT_QUERY],
+  exports: [CUSTOMER_CONTACT_QUERY, CUSTOMER_REGISTRATION],
 })
 export class CustomerModule {}

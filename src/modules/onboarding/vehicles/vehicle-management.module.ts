@@ -11,6 +11,8 @@ import { VehicleMapper } from './infrastructure/mappers/vehicle.mapper';
 import { CustomerModule } from '../customer/customer.module';
 import { VEHICLE_CATALOG_QUERY } from './public/vehicle-catalog.query';
 import { DrizzleVehicleCatalogQuery } from './public/vehicle-catalog.query.impl';
+import { VEHICLE_REGISTRATION } from './public/vehicle-registration';
+import { DomainVehicleRegistration } from './public/vehicle-registration.impl';
 
 @Module({
   // CustomerModule exports only CUSTOMER_CONTACT_QUERY, used here to reject a
@@ -35,9 +37,14 @@ import { DrizzleVehicleCatalogQuery } from './public/vehicle-catalog.query.impl'
       provide: VEHICLE_CATALOG_QUERY,
       useClass: DrizzleVehicleCatalogQuery,
     },
+    {
+      provide: VEHICLE_REGISTRATION,
+      useClass: DomainVehicleRegistration,
+    },
   ],
   exports: [
     VEHICLE_CATALOG_QUERY,
+    VEHICLE_REGISTRATION,
     'VEHICLE_REPOSITORY',
     CreateVehicleUseCase,
     FindVehicleByIdUseCase,
