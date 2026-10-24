@@ -146,6 +146,39 @@ describe('ServiceOrder', () => {
       );
     });
 
+    // A rejected quotation reopens the diagnosis — the one way back.
+    it('returns from awaiting_approval to in_diagnosis, without approval', () => {
+      const order = ServiceOrder.create({
+        vehicleId: VEHICLE_ID,
+        openedById: OPENED_BY_ID,
+        openedByName: OPENED_BY_NAME,
+      });
+      order.transitionTo('in_diagnosis');
+      order.transitionTo('awaiting_approval');
+
+      order.transitionTo('in_diagnosis');
+
+      expect(order.status).toBe('in_diagnosis');
+      expect(order.approvedByCustomer).toBe(false);
+      order.transitionTo('awaiting_approval');
+      expect(order.status).toBe('awaiting_approval');
+    });
+
+    it('does not reopen the diagnosis once the quotation is approved', () => {
+      const order = ServiceOrder.create({
+        vehicleId: VEHICLE_ID,
+        openedById: OPENED_BY_ID,
+        openedByName: OPENED_BY_NAME,
+      });
+      order.transitionTo('in_diagnosis');
+      order.transitionTo('awaiting_approval');
+      order.transitionTo('awaiting_execution');
+
+      expect(() => order.transitionTo('in_diagnosis')).toThrow(
+        InvalidServiceOrderTransitionError,
+      );
+    });
+
     it('rejects transitioning to the same status', () => {
       const order = ServiceOrder.create({
         vehicleId: VEHICLE_ID,
