@@ -14,6 +14,7 @@ import {
 } from './fixtures';
 import { ExecutionCompleted } from './../src/modules/mechanic/domain/events/execution-completed.event';
 import { ExecutionStarted } from './../src/modules/mechanic/domain/events/execution-started.event';
+import { PaymentReceived } from './../src/modules/payment/domain/events/payment-received.event';
 import type { DomainEvent } from './../src/shared/domain/events/domain-event';
 import { UserRole } from '../src/modules/auth/public/roles';
 
@@ -183,6 +184,9 @@ describe('ServiceOrders (e2e)', () => {
     if (target === 'in_execution') return;
 
     await emit(new ExecutionCompleted(id));
+    if (target === 'finished') return;
+
+    await emit(new PaymentReceived(id));
   }
 
   describe('GET /service-orders', () => {
@@ -201,6 +205,59 @@ describe('ServiceOrders (e2e)', () => {
       );
       expect(filtered.total).toBe(1);
       expect(filtered.items[0].id).toBe(toAdvance.serviceOrderId);
+    });
+
+    it('lists the open queue by status priority, oldest first, without closed orders', async () => {
+      // Created in this order, so within a status the first one is the oldest.
+      const statuses = [
+        'received',
+        'delivered',
+        'in_diagnosis',
+        'in_execution',
+        'finished',
+        'awaiting_approval',
+        'awaiting_execution',
+        'received',
+        'in_execution',
+      ];
+      const ids: Record<string, string[]> = {};
+      for (const status of statuses) {
+        const { serviceOrderId } = await givenAnamnesis();
+        await advanceTo(serviceOrderId, status);
+        (ids[status] ??= []).push(serviceOrderId);
+      }
+
+      const all = pageBody(await http().get('/service-orders').expect(200));
+      const expected = [
+        ...ids.in_execution,
+        ...ids.awaiting_execution,
+        ...ids.awaiting_approval,
+        ...ids.in_diagnosis,
+        ...ids.received,
+      ];
+      expect(all.items.map((o) => o.id)).toEqual(expected);
+      expect(all.total).toBe(expected.length);
+
+      // Paging through the same queue never repeats or skips an order.
+      const paged: string[] = [];
+      for (let page = 1; page <= 3; page++) {
+        const res = pageBody(
+          await http().get(`/service-orders?page=${page}&limit=3`).expect(200),
+        );
+        expect(res.total).toBe(expected.length);
+        paged.push(...res.items.map((o) => o.id));
+      }
+      expect(paged).toEqual(expected);
+
+      // Closed orders are out of the queue, not gone.
+      for (const status of ['finished', 'delivered']) {
+        const filtered = pageBody(
+          await http().get(`/service-orders?status=${status}`).expect(200),
+        );
+        expect(filtered.items.map((o) => o.id)).toEqual(ids[status]);
+        expect(filtered.total).toBe(1);
+        await http().get(`/service-orders/${ids[status][0]}`).expect(200);
+      }
     });
 
     it('rejects invalid params', async () => {
