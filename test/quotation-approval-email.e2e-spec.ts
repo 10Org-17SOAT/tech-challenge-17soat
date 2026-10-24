@@ -146,9 +146,10 @@ describe('Quotation approval by email (e2e)', () => {
     it('emails the quotation to the owner of the vehicle', async () => {
       const { totalInCents } = await givenQuotedOrder();
 
-      expect(emails.messages).toHaveLength(1);
-      expect(emails.lastMessage!.to).toBe(customerEmail);
-      expect(emails.lastMessage!.html).toContain(
+      const sent = emails.messagesFor('awaiting_approval');
+      expect(sent).toHaveLength(1);
+      expect(sent[0].to).toBe(customerEmail);
+      expect(sent[0].html).toContain(
         (totalInCents / 100).toLocaleString('pt-BR', {
           style: 'currency',
           currency: 'BRL',
@@ -264,7 +265,7 @@ describe('Quotation approval by email (e2e)', () => {
         .post(`/quotations/${quotationId}/send-approval-email`)
         .expect(200);
 
-      expect(emails.messages).toHaveLength(2);
+      expect(emails.messagesFor('awaiting_approval')).toHaveLength(2);
       await http().get(staleUrl).expect(404);
       await http().get(approvalUrl()).expect(200);
     });

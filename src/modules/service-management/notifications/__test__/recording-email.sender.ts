@@ -16,10 +16,21 @@ export class RecordingEmailSender implements EmailSender {
     return this.messages.at(-1);
   }
 
+  /** Messages about one status, by the `<orderId>--<status>` tag. Status
+   *  emails go out from a listener, so a suite cannot rely on their position
+   *  relative to the quotation email. */
+  messagesFor(status: string): EmailMessage[] {
+    return this.messages.filter((m) => m.tag?.endsWith(`--${status}`));
+  }
+
   /** The approval token as it reached the customer — only recoverable from the
-   *  message body, since the quotation stores nothing but its hash. */
+   *  message body, since the quotation stores nothing but its hash. Taken from
+   *  the latest message that has one: a status email may have landed after. */
   tokenFromLastLink(): string | null {
-    const match = /token=([A-Za-z0-9_-]+)/.exec(this.lastMessage?.html ?? '');
-    return match ? decodeURIComponent(match[1]) : null;
+    for (const message of [...this.messages].reverse()) {
+      const match = /token=([A-Za-z0-9_-]+)/.exec(message.html);
+      if (match) return decodeURIComponent(match[1]);
+    }
+    return null;
   }
 }
