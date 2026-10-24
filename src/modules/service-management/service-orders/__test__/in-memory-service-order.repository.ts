@@ -1,3 +1,4 @@
+import { RequestedItems } from '../domain/requested-items';
 import { ServiceItem } from '../domain/service-item';
 import { ServiceOrder } from '../domain/service-order.entity';
 import {
@@ -11,6 +12,7 @@ import {
 export class InMemoryServiceOrderRepository implements ServiceOrderRepository {
   readonly orders = new Map<string, ServiceOrder>();
   readonly items = new Map<string, ServiceItem[]>();
+  readonly requestedItems = new Map<string, RequestedItems>();
 
   findById(id: string): Promise<ServiceOrder | null> {
     const order = this.orders.get(id);
@@ -44,6 +46,23 @@ export class InMemoryServiceOrderRepository implements ServiceOrderRepository {
 
   replaceItems(serviceOrderId: string, items: ServiceItem[]): Promise<void> {
     this.items.set(serviceOrderId, [...items]);
+    return Promise.resolve();
+  }
+
+  findRequestedItems(serviceOrderId: string): Promise<RequestedItems> {
+    return Promise.resolve(
+      this.requestedItems.get(serviceOrderId) ?? { services: [], parts: [] },
+    );
+  }
+
+  saveRequestedItems(
+    serviceOrderId: string,
+    items: RequestedItems,
+  ): Promise<void> {
+    this.requestedItems.set(serviceOrderId, {
+      services: [...items.services],
+      parts: [...items.parts],
+    });
     return Promise.resolve();
   }
 
