@@ -9,6 +9,7 @@ import {
   CLEANUP_TABLES,
   givenConsultant,
   givenOwnedVehicle,
+  givenServiceOrder,
   httpAs,
   tokenFor,
 } from './fixtures';
@@ -102,16 +103,12 @@ describe('Quotation approval by email (e2e)', () => {
       .send({ supplies: [{ supplyId, quantity: 4 }] })
       .expect(200);
 
-    const order = await http()
-      .post('/service-order/anamnesis')
-      .send({
-        vehicleId,
-        consultantId: openedById,
-        mainComplaint: 'Barulho na suspensão',
-        problemDescription: 'Estalo ao passar em lombadas',
-      })
-      .expect(201);
-    const orderId = (order.body as { serviceOrderId: string }).serviceOrderId;
+    const orderId = await givenServiceOrder(
+      app.getHttpServer(),
+      token,
+      vehicleId,
+      openedById,
+    );
     await http().post(`/service-orders/${orderId}/diagnosis/start`).expect(200);
 
     const diagnosis = await http()

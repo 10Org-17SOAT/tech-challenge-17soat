@@ -215,6 +215,54 @@ export async function givenConsultant(
 }
 
 /**
+ * Opens an order for an existing vehicle through POST /service-orders, the
+ * reception step. The owner is read back from the vehicle so callers only
+ * need the ids they already hold.
+ *
+ * With `anamnesis` (the default) the customer's account of the problem is
+ * attached too: starting the diagnosis requires one, and most suites only care
+ * about what happens after reception.
+ */
+export async function givenServiceOrder(
+  app: App,
+  token: string,
+  vehicleId: string,
+  consultantId: string,
+  { anamnesis = true }: { anamnesis?: boolean } = {},
+): Promise<string> {
+  const vehicle = await request(app)
+    .get(`/vehicles/${vehicleId}`)
+    .set('Authorization', bearer(token))
+    .expect(200);
+  const customerId = (vehicle.body as { customerId: string }).customerId;
+
+  const order = await request(app)
+    .post('/service-orders')
+    .set('Authorization', bearer(token))
+    .send({
+      openedById: consultantId,
+      customer: { id: customerId },
+      vehicle: { id: vehicleId },
+    })
+    .expect(201);
+  const serviceOrderId = (order.body as { id: string }).id;
+
+  if (anamnesis) {
+    await request(app)
+      .post(`/service-orders/${serviceOrderId}/anamnesis`)
+      .set('Authorization', bearer(token))
+      .send({
+        consultantId,
+        mainComplaint: 'Barulho na suspensão',
+        problemDescription: 'Estalo ao passar em lombadas',
+      })
+      .expect(201);
+  }
+
+  return serviceOrderId;
+}
+
+/**
  * Truncation order matters: children before parents, and vehicles before the
  * customers they belong to.
  */
@@ -225,6 +273,8 @@ export const CLEANUP_TABLES = [
   'diagnostics',
   'anamneses',
   'service_items',
+  'service_order_requested_services',
+  'service_order_requested_parts',
   'service_supplies',
   'service_orders',
   'services',

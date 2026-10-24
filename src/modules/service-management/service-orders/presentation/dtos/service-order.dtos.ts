@@ -1,5 +1,6 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
+import type { CreateServiceOrderOutput } from '../../application/create-service-order.usecase';
 import { ServiceOrder } from '../../domain/service-order.entity';
 import { serviceOrderStatusEnum } from '../../infrastructure/persistence/schema';
 
@@ -7,17 +8,111 @@ const serviceOrderStatusValues = serviceOrderStatusEnum.enumValues;
 
 const isoDateTime = z.iso.datetime({ offset: true });
 
-export const createServiceOrderSchema = z.object({
-  vehicleId: z.uuid(),
-  openedById: z.uuid(),
-  notes: z.string().trim().max(2000).optional(),
-  vehicleMileageAtEntry: z.number().int().nonnegative().optional(),
-  scheduledAt: isoDateTime.optional(),
-});
+// The customer and the vehicle each come as either a reference to someone
+// already registered or the data to register them. Field rules mirror
+// POST /customers and POST /vehicles; what only the domain can judge (CPF
+// check digits, PF vs PJ names) is left to onboarding and answers 400 too.
+const existingRefSchema = z.object({ id: z.uuid() }).strict();
+
+const newCustomerSchema = z
+  .object({
+    userId: z.uuid(),
+    personType: z.enum(['CPF', 'CNPJ']),
+    document: z.string().trim().min(1),
+    name: z.string().trim().optional(),
+    corporateName: z.string().trim().optional(),
+    tradeName: z.string().trim().optional(),
+    email: z.email(),
+    phone: z
+      .object({
+        countryCode: z.string().trim().min(1),
+        areaCode: z.string().trim().optional(),
+        number: z.string().trim().min(1),
+      })
+      .strict(),
+    address: z
+      .object({
+        street: z.string().trim().min(1),
+        number: z.string().trim().min(1),
+        complement: z.string().trim().optional(),
+        neighborhood: z.string().trim().min(1),
+        city: z.string().trim().min(1),
+        state: z.string().trim().length(2),
+        zipCode: z
+          .string()
+          .trim()
+          .regex(/^\d{8}$/),
+      })
+      .strict(),
+  })
+  .strict();
+
+const LICENSE_PLATE_REGEX = /^[A-Z]{3}-?[0-9]{4}$|^[A-Z]{3}[0-9][A-Z][0-9]{2}$/;
+
+const newVehicleSchema = z
+  .object({
+    licensePlate: z.string().trim().toUpperCase().regex(LICENSE_PLATE_REGEX),
+    model: z.string().trim().min(1),
+    year: z.number().int().min(1886),
+    manufacturer: z.string().trim().min(1),
+    description: z.string().trim().optional(),
+    color: z.string().trim().min(1),
+    fuelType: z.string().trim().min(1),
+    odometer: z.number().nonnegative(),
+  })
+  .strict();
+
+// A repeated id is a typo, not two lines: the quantity is where "two" goes.
+const uniqueBy =
+  <T>(key: (item: T) => string, message: string) =>
+  (items: T[], ctx: z.RefinementCtx) => {
+    const seen = new Set<string>();
+    for (const item of items) {
+      if (seen.has(key(item))) {
+        ctx.addIssue({ code: 'custom', message });
+        return;
+      }
+      seen.add(key(item));
+    }
+  };
+
+export const createServiceOrderSchema = z
+  .object({
+    openedById: z.uuid(),
+    customer: z.union([existingRefSchema, newCustomerSchema]),
+    vehicle: z.union([existingRefSchema, newVehicleSchema]),
+    services: z
+      .array(
+        z.object({
+          serviceId: z.uuid(),
+          quantity: z.number().int().positive(),
+        }),
+      )
+      .superRefine(
+        uniqueBy((item) => item.serviceId, 'Each service may appear only once'),
+      )
+      .default([]),
+    parts: z
+      .array(
+        z.object({
+          supplyId: z.uuid(),
+          quantity: z.number().int().positive(),
+        }),
+      )
+      .superRefine(
+        uniqueBy((part) => part.supplyId, 'Each part may appear only once'),
+      )
+      .default([]),
+    notes: z.string().trim().max(2000).optional(),
+    vehicleMileageAtEntry: z.number().int().nonnegative().optional(),
+    scheduledAt: isoDateTime.optional(),
+  })
+  .strict();
 
 export class CreateServiceOrderDto extends createZodDto(
   createServiceOrderSchema,
 ) {}
+
 export const updateServiceOrderSchema = z
   .object({
     notes: z.string().trim().max(2000).nullable(),
@@ -57,6 +152,27 @@ export const serviceOrderResponseSchema = z.object({
 
 export class ServiceOrderResponseDto extends createZodDto(
   serviceOrderResponseSchema,
+) {}
+
+const requestedServiceResponseSchema = z.object({
+  serviceId: z.uuid(),
+  quantity: z.number().int(),
+});
+
+const requestedPartResponseSchema = z.object({
+  supplyId: z.uuid(),
+  quantity: z.number().int(),
+});
+
+export const createdServiceOrderResponseSchema =
+  serviceOrderResponseSchema.extend({
+    customerId: z.uuid(),
+    requestedServices: z.array(requestedServiceResponseSchema),
+    requestedParts: z.array(requestedPartResponseSchema),
+  });
+
+export class CreatedServiceOrderResponseDto extends createZodDto(
+  createdServiceOrderResponseSchema,
 ) {}
 
 export const serviceOrderStatusResponseSchema = z.object({
@@ -136,5 +252,24 @@ export function toServiceOrderResponse(
     deliveredAt: order.deliveredAt ? order.deliveredAt.toISOString() : null,
     createdAt: order.createdAt.toISOString(),
     updatedAt: order.updatedAt.toISOString(),
+  };
+}
+
+export function toCreatedServiceOrderResponse({
+  order,
+  customerId,
+  requestedItems,
+}: CreateServiceOrderOutput): CreatedServiceOrderResponseDto {
+  return {
+    ...toServiceOrderResponse(order),
+    customerId,
+    requestedServices: requestedItems.services.map((item) => ({
+      serviceId: item.serviceId,
+      quantity: item.quantity,
+    })),
+    requestedParts: requestedItems.parts.map((part) => ({
+      supplyId: part.supplyId,
+      quantity: part.quantity,
+    })),
   };
 }

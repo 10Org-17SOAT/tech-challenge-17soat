@@ -48,3 +48,9 @@ export class AnamnesisRequiredException extends AnamnesisException {
     this.name = 'AnamnesisRequiredException';
   }
 }
+export class AnamnesisConsultantNotFoundException extends AnamnesisException {
+  constructor(readonly consultantId: string) {
+    super(`Consultant "${consultantId}" was not found`);
+    this.name = 'AnamnesisConsultantNotFoundException';
+  }
+}
