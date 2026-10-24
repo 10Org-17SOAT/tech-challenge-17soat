@@ -14,6 +14,7 @@ import { serviceOrders } from '../../../service-orders/infrastructure/persistenc
 import {
   QUOTATION_ITEM_KINDS,
   QUOTATION_STATUSES,
+  REJECTION_REASON_MAX_LENGTH,
 } from '../../domain/quotation.entity';
 
 export const quotationStatusEnum = pgEnum(
@@ -36,6 +37,10 @@ export const quotations = pgTable(
     status: quotationStatusEnum('status').notNull().default('issued'),
     issuedAt: timestamp('issued_at', { withTimezone: true }).notNull(),
     approvedAt: timestamp('approved_at', { withTimezone: true }),
+    rejectedAt: timestamp('rejected_at', { withTimezone: true }),
+    rejectionReason: varchar('rejection_reason', {
+      length: REJECTION_REASON_MAX_LENGTH,
+    }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
     // Only the SHA-256 hex digest of the approval token is kept — the raw
@@ -51,9 +56,13 @@ export const quotations = pgTable(
     }),
   },
   (table) => [
-    // One quotation per service order. Rejection is out of scope, so there is
-    // no "live vs superseded" distinction to scope this index to yet.
-    uniqueIndex('quotations_service_order_unique').on(table.serviceOrderId),
+    // One live quotation per service order. A rejected one is kept as the
+    // record of what was refused, and the order is quoted again beside it.
+    // Scoped by `rejected_at` rather than `status`: a migration cannot use an
+    // enum value in the same transaction that adds it.
+    uniqueIndex('quotations_service_order_unique')
+      .on(table.serviceOrderId)
+      .where(sql`${table.rejectedAt} IS NULL`),
     // Partial: resending rotates the token, and quotations never emailed keep
     // a null hash — which must not collide with each other.
     uniqueIndex('quotations_approval_token_hash_unique')

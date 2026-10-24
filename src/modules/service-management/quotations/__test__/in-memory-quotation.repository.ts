@@ -17,13 +17,19 @@ export class InMemoryQuotationRepository implements QuotationRepository {
     return Promise.resolve(null);
   }
 
+  // The latest one, like the Drizzle repository: a rejected quotation is
+  // superseded by the next one issued for the same order.
   findByServiceOrderId(serviceOrderId: string): Promise<Quotation | null> {
+    let latest: Quotation | null = null;
     for (const quotation of this.quotations.values()) {
-      if (quotation.serviceOrderId === serviceOrderId) {
-        return Promise.resolve(quotation);
+      if (
+        quotation.serviceOrderId === serviceOrderId &&
+        (!latest || quotation.issuedAt >= latest.issuedAt)
+      ) {
+        latest = quotation;
       }
     }
-    return Promise.resolve(null);
+    return Promise.resolve(latest);
   }
 
   save(quotation: Quotation): Promise<void> {

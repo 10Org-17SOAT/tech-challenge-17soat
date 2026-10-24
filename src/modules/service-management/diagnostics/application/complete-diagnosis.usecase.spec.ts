@@ -171,7 +171,7 @@ describe('CompleteDiagnosisUseCase', () => {
     expect(saveDiagnosis).not.toHaveBeenCalled();
   });
 
-  it('emails the quotation to the customer with a working approval link', async () => {
+  it('emails the quotation to the customer with a working decision link', async () => {
     const order = await givenOrderInDiagnosis();
 
     const { quotation } = await useCase.execute({
@@ -184,7 +184,7 @@ describe('CompleteDiagnosisUseCase', () => {
     expect(emails.lastMessage!.to).toBe('ana@example.com');
     expect(emails.lastMessage!.html).toContain('ABC-1234');
     expect(emails.lastMessage!.html).toContain(
-      'https://oficina.example.com/quotations/approve?token=',
+      'https://oficina.example.com/quotations/decision?token=',
     );
     // The raw token exists only in the message; the quotation keeps its hash.
     expect(quotation.approvalTokenHash).not.toBeNull();
