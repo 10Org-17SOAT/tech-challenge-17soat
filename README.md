@@ -592,6 +592,7 @@ recomeçar do zero, veja [Recomeçar o banco](#resolucao-de-problemas).
 
 | O quê | Id |
 |-------|-----|
+| Cliente — Ana Souza | `22222222-2222-4222-8222-000000000001` |
 | Veículo — Fiat Uno `ABC-1234` (da Ana) | `33333333-3333-4333-8333-000000000001` |
 | Consultora Carla Menezes | `44444444-4444-4444-8444-000000000001` |
 | Serviço — Troca de pastilhas (R$ 150,00) | `88888888-8888-4888-8888-000000000002` |
@@ -620,23 +621,42 @@ autentique com o token do `POST /auth/login` no botão **Authorize**.
 
 ### 3. Recepção — abre a OS em `received`
 
-A anamnese é o ponto de entrada: registrar o relato do cliente é o que abre a
-ordem de serviço.
+A recepção abre a OS com o cliente, o veículo e o que o cliente pediu. Cliente
+e veículo vão como referência (`{ "id": ... }`) ou com os dados completos para
+cadastrá-los na hora — um documento ou uma placa já cadastrados são
+reaproveitados. Serviços e peças ficam como **itens solicitados**: o diagnóstico
+confirma ou ajusta o escopo, e só o orçamento aprovado reserva estoque. Se
+qualquer validação falhar, nada é gravado.
 
 ```bash
-OS=$(curl -s -X POST $API/service-order/anamnesis \
+OS=$(curl -s -X POST $API/service-orders \
   -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
   -d '{
-    "vehicleId": "33333333-3333-4333-8333-000000000001",
+    "openedById": "44444444-4444-4444-8444-000000000001",
+    "customer": { "id": "22222222-2222-4222-8222-000000000001" },
+    "vehicle":  { "id": "33333333-3333-4333-8333-000000000001" },
+    "services": [{ "serviceId": "88888888-8888-4888-8888-000000000002", "quantity": 1 }],
+    "parts":    [{ "supplyId": "77777777-7777-4777-8777-000000000001", "quantity": 2 }],
+    "notes": "Cliente relata barulho ao frear"
+  }' | field id)
+
+curl -s $API/service-orders/$OS/status -H "Authorization: Bearer $ADMIN"
+# {"status":"received"}
+```
+
+Com a OS aberta, registre a anamnese — o relato do cliente. Ela é obrigatória
+para iniciar o diagnóstico:
+
+```bash
+curl -s -X POST $API/service-orders/$OS/anamnesis \
+  -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
+  -d '{
     "consultantId": "44444444-4444-4444-8444-000000000001",
     "mainComplaint": "Barulho ao frear",
     "problemDescription": "Chiado agudo nas rodas dianteiras",
     "severity": "moderate",
     "frequency": "constant"
-  }' | field serviceOrderId)
-
-curl -s $API/service-orders/$OS/status -H "Authorization: Bearer $ADMIN"
-# {"status":"received"}
+  }' > /dev/null
 ```
 
 ### 4. Diagnóstico — `in_diagnosis` e depois `awaiting_approval`
@@ -923,6 +943,7 @@ PUT    /services/{id}/supplies                       # Substituir a ficha técni
 #### Ordens de serviço — `ADMIN`
 
 ```
+POST   /service-orders                               # Abrir ordem (cliente, veículo, serviços e peças)
 GET    /service-orders                               # Listar ordens
 GET    /service-orders/average-execution-time        # Tempo médio de execução
 GET    /service-orders/{id}                          # Obter ordem
@@ -934,7 +955,7 @@ DELETE /service-orders/{id}                          # Remover ordem (soft delet
 #### Anamnese — `ADMIN`
 
 ```
-POST   /service-order/anamnesis                      # Registrar anamnese
+POST   /service-orders/{serviceOrderId}/anamnesis    # Registrar anamnese
 GET    /service-orders/{serviceOrderId}/anamnesis    # Obter anamnese
 PATCH  /service-orders/{serviceOrderId}/anamnesis    # Atualizar anamnese
 DELETE /service-orders/{serviceOrderId}/anamnesis    # Remover anamnese
@@ -1014,6 +1035,9 @@ erDiagram
     VEHICLES  ||--o{ SERVICE_ORDERS : "is serviced in"
     SERVICE_ORDERS ||--o{ SERVICE_ITEMS : contains
     SERVICES ||--o{ SERVICE_ITEMS : "is scoped by"
+    SERVICE_ORDERS ||--o{ SERVICE_ORDER_REQUESTED_SERVICES : "was asked for"
+    SERVICES ||--o{ SERVICE_ORDER_REQUESTED_SERVICES : "is requested in"
+    SERVICE_ORDERS ||--o{ SERVICE_ORDER_REQUESTED_PARTS : "was asked for"
     SERVICES ||--o{ SERVICE_SUPPLIES : "consumes"
     SERVICE_ORDERS ||--o| ANAMNESES : has
     SERVICE_ORDERS ||--o{ DIAGNOSTICS : has
@@ -1124,6 +1148,18 @@ erDiagram
         integer quantity "Quantidade, sempre positiva"
     }
 
+    SERVICE_ORDER_REQUESTED_SERVICES {
+        uuid service_order_id PK "FK e parte da PK composta"
+        uuid service_id PK "FK e parte da PK composta"
+        integer quantity "Quantidade pedida na abertura, sempre positiva"
+    }
+
+    SERVICE_ORDER_REQUESTED_PARTS {
+        uuid service_order_id PK "FK e parte da PK composta"
+        uuid supply_id PK "Insumo do outro contexto, sem FK"
+        integer quantity "Quantidade pedida na abertura, sempre positiva"
+    }
+
     SERVICES {
         uuid service_id PK "ID único do serviço"
         varchar name "Nome, único entre os ativos"
@@ -1224,7 +1260,7 @@ erDiagram
     }
 ```
 
-> As tabelas `USERS`, `CONSULTANTS`, `MECHANICS`, `STOCK_KEEPERS`, `PAYMENTS` e as colunas `service_supplies.supply_id` / `quotation_items.reference_id` aparecem sem relacionamento desenhado de propósito: **não existe foreign key entre contextos** neste banco. Essas referências são validadas na camada de domínio — a fronteira do monolito modular vale também para o schema.
+> As tabelas `USERS`, `CONSULTANTS`, `MECHANICS`, `STOCK_KEEPERS`, `PAYMENTS` e as colunas `service_supplies.supply_id` / `service_order_requested_parts.supply_id` / `quotation_items.reference_id` aparecem sem relacionamento desenhado de propósito: **não existe foreign key entre contextos** neste banco. Essas referências são validadas na camada de domínio — a fronteira do monolito modular vale também para o schema.
 
 ### Invariantes garantidas pelo banco
 
@@ -1232,7 +1268,7 @@ erDiagram
 - `payments.service_order_reference` é único: uma ordem nunca é cobrada duas vezes
 - `quotations.service_order_id` é único: um orçamento por ordem
 - Unicidade "entre os ativos" (índices parciais com `deleted_at IS NULL`) para nome de insumo/serviço, CPF de mecânico/consultor/estoquista e documento do cliente — o soft delete libera o valor
-- `service_items.quantity > 0`, `service_supplies.quantity > 0`, `quotation_items.unit_price_in_cents >= 0`
+- `service_items.quantity > 0`, `service_order_requested_services.quantity > 0`, `service_order_requested_parts.quantity > 0`, `service_supplies.quantity > 0`, `quotation_items.unit_price_in_cents >= 0`
 - `mechanics.availability` restrito aos quatro estados válidos
 
 ### Migrações
