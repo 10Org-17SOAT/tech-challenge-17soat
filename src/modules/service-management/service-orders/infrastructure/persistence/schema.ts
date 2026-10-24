@@ -57,6 +57,14 @@ export const serviceOrders = pgTable(
     // The average-execution-time report scans a `completed_at` range; the
     // status and soft-delete filters ride along as cheap residuals.
     index('service_orders_completed_at_idx').on(table.completedAt),
+    // The listing filters live orders by status and orders each status oldest
+    // first. Closed orders pile up forever while the open queue stays small,
+    // so the status lookup is what keeps the default listing from scanning
+    // the whole history; `created_at, id` let a single-status filter read
+    // rows already in page order.
+    index('service_orders_listing_idx')
+      .on(table.status, table.createdAt, table.id)
+      .where(sql`${table.deletedAt} is null`),
   ],
 );
 
