@@ -6,9 +6,9 @@ import { InMemoryPartCatalog } from '../../quotations/__test__/in-memory-part-ca
 import { InMemoryQuotationRepository } from '../../quotations/__test__/in-memory-quotation.repository';
 import {
   aRecipient,
-  InMemoryQuotationRecipientQuery,
-} from '../../quotations/__test__/in-memory-quotation-recipient.query';
-import { RecordingEmailSender } from '../../quotations/__test__/recording-email.sender';
+  InMemoryOrderRecipientQuery,
+} from '../../notifications/__test__/in-memory-order-recipient.query';
+import { RecordingEmailSender } from '../../notifications/__test__/recording-email.sender';
 import { InvalidServiceOrderTransitionError } from '../../service-orders/domain/errors/invalid-service-order-transition.error';
 import { ServiceOrderNotFoundError } from '../../service-orders/domain/errors/service-order-not-found.error';
 import { ServiceOrder } from '../../service-orders/domain/service-order.entity';
@@ -32,7 +32,7 @@ describe('CompleteDiagnosisUseCase', () => {
   let services: InMemoryServiceRepository;
   let quotations: InMemoryQuotationRepository;
   let parts: InMemoryPartCatalog;
-  let recipients: InMemoryQuotationRecipientQuery;
+  let recipients: InMemoryOrderRecipientQuery;
   let emails: RecordingEmailSender;
   let useCase: CompleteDiagnosisUseCase;
   let service: Service;
@@ -45,7 +45,7 @@ describe('CompleteDiagnosisUseCase', () => {
     parts = new InMemoryPartCatalog();
     parts.add({ id: oilId, name: 'Oleo 5W30', priceInCents: 4500 });
 
-    recipients = new InMemoryQuotationRecipientQuery();
+    recipients = new InMemoryOrderRecipientQuery();
     emails = new RecordingEmailSender();
 
     useCase = new CompleteDiagnosisUseCase(

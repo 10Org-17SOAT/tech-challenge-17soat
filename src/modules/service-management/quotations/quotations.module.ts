@@ -1,9 +1,7 @@
 import { Module } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { DatabaseModule } from '../../../shared/config/database/database.module';
-import { CustomerModule } from '../../onboarding/customer/customer.module';
-import { VehicleManagementModule } from '../../onboarding/vehicles/vehicle-management.module';
 import { StockModule } from '../../stock/stock.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { ServiceOrdersModule } from '../service-orders/service-orders.module';
 import { ServicesModule } from '../services/services.module';
 import { ApproveQuotationByTokenUseCase } from './application/approve-quotation-by-token.usecase';
@@ -12,15 +10,9 @@ import { GetQuotationUseCase } from './application/get-quotation.usecase';
 import { GetServiceOrderQuotationUseCase } from './application/get-service-order-quotation.usecase';
 import { IssueQuotationUseCase } from './application/issue-quotation.usecase';
 import { SendQuotationApprovalEmailUseCase } from './application/send-quotation-approval-email.usecase';
-import { EMAIL_SENDER } from './domain/email-sender.port';
-import type { EmailSender } from './domain/email-sender.port';
 import { PART_CATALOG } from './domain/part-catalog.port';
-import { QUOTATION_RECIPIENT_QUERY } from './domain/quotation-recipient.port';
 import { QUOTATION_REPOSITORY } from './domain/quotation.repository';
 import { DrizzleQuotationRepository } from './infrastructure/persistence/drizzle-quotation.repository';
-import { BrevoEmailSender } from './infrastructure/brevo-email-sender';
-import { LogEmailSender } from './infrastructure/log-email-sender';
-import { OnboardingQuotationRecipientQuery } from './infrastructure/onboarding-quotation-recipient.query';
 import { StockPartCatalog } from './infrastructure/stock-part-catalog';
 import { SERVICE_ORDER_BILLING_QUERY } from './public/service-order-billing.query';
 import { ServiceOrderBillingQueryImpl } from './public/service-order-billing.query.impl';
@@ -36,10 +28,9 @@ import { ServiceOrderQuotationController } from './presentation/service-order-qu
     ServiceOrdersModule,
     ServicesModule,
     StockModule,
-    // Both export only their published query. The recipient adapter is the
-    // only thing here that touches either.
-    VehicleManagementModule,
-    CustomerModule,
+    // For EMAIL_SENDER and ORDER_RECIPIENT_QUERY: who the customer is and how
+    // to reach them belong to notifications, which also emails status changes.
+    NotificationsModule,
   ],
   // QuotationApprovalLinkController comes first on purpose: it owns
   // `GET /quotations/approve`, and Nest matches in registration order, so
@@ -53,20 +44,6 @@ import { ServiceOrderQuotationController } from './presentation/service-order-qu
   providers: [
     { provide: QUOTATION_REPOSITORY, useClass: DrizzleQuotationRepository },
     { provide: PART_CATALOG, useClass: StockPartCatalog },
-    {
-      provide: QUOTATION_RECIPIENT_QUERY,
-      useClass: OnboardingQuotationRecipientQuery,
-    },
-    // Chosen at boot from MAIL_DRIVER. `log` is the default so a fresh clone
-    // and the e2e suite never reach a provider or need an API key.
-    {
-      provide: EMAIL_SENDER,
-      inject: [ConfigService],
-      useFactory: (config: ConfigService): EmailSender =>
-        config.get<string>('MAIL_DRIVER') === 'brevo'
-          ? new BrevoEmailSender(config)
-          : new LogEmailSender(),
-    },
     IssueQuotationUseCase,
     ApproveQuotationUseCase,
     ApproveQuotationByTokenUseCase,

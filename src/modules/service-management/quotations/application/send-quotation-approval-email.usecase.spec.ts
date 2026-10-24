@@ -5,15 +5,15 @@ import { RecipientUnreachableError } from '../domain/errors/recipient-unreachabl
 import { Quotation } from '../domain/quotation.entity';
 import {
   aRecipient,
-  InMemoryQuotationRecipientQuery,
-} from '../__test__/in-memory-quotation-recipient.query';
+  InMemoryOrderRecipientQuery,
+} from '../../notifications/__test__/in-memory-order-recipient.query';
 import { InMemoryQuotationRepository } from '../__test__/in-memory-quotation.repository';
-import { RecordingEmailSender } from '../__test__/recording-email.sender';
+import { RecordingEmailSender } from '../../notifications/__test__/recording-email.sender';
 import { SendQuotationApprovalEmailUseCase } from './send-quotation-approval-email.usecase';
 
 describe('SendQuotationApprovalEmailUseCase', () => {
   let quotations: InMemoryQuotationRepository;
-  let recipients: InMemoryQuotationRecipientQuery;
+  let recipients: InMemoryOrderRecipientQuery;
   let emails: RecordingEmailSender;
   let useCase: SendQuotationApprovalEmailUseCase;
   let quotation: Quotation;
@@ -26,7 +26,7 @@ describe('SendQuotationApprovalEmailUseCase', () => {
 
   beforeEach(async () => {
     quotations = new InMemoryQuotationRepository();
-    recipients = new InMemoryQuotationRecipientQuery();
+    recipients = new InMemoryOrderRecipientQuery();
     emails = new RecordingEmailSender();
     useCase = new SendQuotationApprovalEmailUseCase(
       quotations,

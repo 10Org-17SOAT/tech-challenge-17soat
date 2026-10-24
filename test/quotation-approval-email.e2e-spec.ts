@@ -3,8 +3,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Pool } from 'pg';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
-import { EMAIL_SENDER } from './../src/modules/service-management/quotations/domain/email-sender.port';
-import { RecordingEmailSender } from './../src/modules/service-management/quotations/__test__/recording-email.sender';
+import { EMAIL_SENDER } from './../src/modules/service-management/notifications/domain/email-sender.port';
+import { RecordingEmailSender } from './../src/modules/service-management/notifications/__test__/recording-email.sender';
 import {
   CLEANUP_TABLES,
   givenConsultant,

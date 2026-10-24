@@ -1,6 +1,10 @@
 import type { Quotation } from '../domain/quotation.entity';
-import type { QuotationRecipient } from '../domain/quotation-recipient.port';
-import { escapeHtml, formatBRL, formatDateBR } from './html';
+import type { OrderRecipient } from '../../notifications/domain/order-recipient.port';
+import {
+  escapeHtml,
+  formatBRL,
+  formatDateBR,
+} from '../../notifications/presentation/html';
 
 /**
  * The email the customer receives. A plain string — no template engine and no
@@ -11,7 +15,7 @@ import { escapeHtml, formatBRL, formatDateBR } from './html';
  */
 export function renderQuotationApprovalEmail(input: {
   quotation: Quotation;
-  recipient: QuotationRecipient;
+  recipient: OrderRecipient;
   approvalUrl: string;
 }): string {
   const { quotation, recipient, approvalUrl } = input;

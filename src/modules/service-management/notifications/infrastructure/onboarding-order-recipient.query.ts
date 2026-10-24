@@ -6,12 +6,12 @@ import type { VehicleCatalogQuery } from '../../../onboarding/vehicles/public/ve
 import { SERVICE_ORDER_REPOSITORY } from '../../service-orders/domain/service-order.repository';
 import type { ServiceOrderRepository } from '../../service-orders/domain/service-order.repository';
 import type {
-  QuotationRecipient,
-  QuotationRecipientQuery,
-} from '../domain/quotation-recipient.port';
+  OrderRecipient,
+  OrderRecipientQuery,
+} from '../domain/order-recipient.port';
 
 /**
- * The single place that knows the customer of a quotation is the owner of the
+ * The single place that knows the customer of a service order is the owner of the
  * vehicle on its service order.
  *
  * It imports only the published contracts of `vehicles` and `customer` — never
@@ -20,7 +20,7 @@ import type {
  * who that person is.
  */
 @Injectable()
-export class OnboardingQuotationRecipientQuery implements QuotationRecipientQuery {
+export class OnboardingOrderRecipientQuery implements OrderRecipientQuery {
   constructor(
     @Inject(SERVICE_ORDER_REPOSITORY)
     private readonly orders: ServiceOrderRepository,
@@ -32,7 +32,7 @@ export class OnboardingQuotationRecipientQuery implements QuotationRecipientQuer
 
   async findForServiceOrder(
     serviceOrderId: string,
-  ): Promise<QuotationRecipient | null> {
+  ): Promise<OrderRecipient | null> {
     const order = await this.orders.findById(serviceOrderId);
     if (!order) return null;
 
