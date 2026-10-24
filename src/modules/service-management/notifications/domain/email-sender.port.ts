@@ -11,6 +11,9 @@ export interface EmailMessage {
   toName: string;
   subject: string;
   html: string;
+  /** Filename-safe label for drivers that keep messages around — the `file`
+   *  driver names each file after it. Providers ignore it. */
+  tag?: string;
 }
 
 export interface EmailSender {

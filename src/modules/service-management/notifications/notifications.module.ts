@@ -6,8 +6,7 @@ import { ServiceOrdersModule } from '../service-orders/service-orders.module';
 import { EMAIL_SENDER } from './domain/email-sender.port';
 import type { EmailSender } from './domain/email-sender.port';
 import { ORDER_RECIPIENT_QUERY } from './domain/order-recipient.port';
-import { BrevoEmailSender } from './infrastructure/brevo-email-sender';
-import { LogEmailSender } from './infrastructure/log-email-sender';
+import { createEmailSender } from './infrastructure/email-sender.factory';
 import { OnboardingOrderRecipientQuery } from './infrastructure/onboarding-order-recipient.query';
 
 /**
@@ -32,9 +31,7 @@ import { OnboardingOrderRecipientQuery } from './infrastructure/onboarding-order
       provide: EMAIL_SENDER,
       inject: [ConfigService],
       useFactory: (config: ConfigService): EmailSender =>
-        config.get<string>('MAIL_DRIVER') === 'brevo'
-          ? new BrevoEmailSender(config)
-          : new LogEmailSender(),
+        createEmailSender(config),
     },
   ],
   exports: [EMAIL_SENDER, ORDER_RECIPIENT_QUERY],
