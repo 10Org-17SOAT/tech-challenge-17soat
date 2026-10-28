@@ -1,5 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, count, eq, ilike, isNull, sql } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  count,
+  eq,
+  ilike,
+  isNotNull,
+  isNull,
+  sql,
+} from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../../../../../shared/config/database/database.constants';
 import type { DrizzleDatabase } from '../../../../../shared/config/database/drizzle.provider';
 import { UserRole } from '../../../../auth/roles/role.enum';
@@ -66,6 +75,7 @@ export class DrizzleCustomerRepository implements CustomerRepository {
           eq(users.user_id, id),
           eq(users.role_id, UserRole.CUSTOMER),
           isNull(users.deleted_at),
+          isNotNull(users.document),
         ),
       )
       .limit(1);
@@ -94,6 +104,8 @@ export class DrizzleCustomerRepository implements CustomerRepository {
     const conditions = [
       eq(users.role_id, UserRole.CUSTOMER),
       isNull(users.deleted_at),
+      // Skips users created with this role whose profile was not filled yet.
+      isNotNull(users.document),
     ];
 
     if (filters?.personType) {

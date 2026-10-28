@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, eq, ilike, isNull } from 'drizzle-orm';
+import { and, count, eq, ilike, isNotNull, isNull } from 'drizzle-orm';
 import { UserRole } from '../../../../auth/roles/role.enum';
 import { users } from '../../../../auth/infrastructure/persistence/schema';
 import { DATABASE_CONNECTION } from '../../../../../shared/config/database/database.constants';
@@ -47,6 +47,7 @@ export class DrizzleConsultantRepository implements ConsultantRepository {
           eq(users.user_id, id),
           eq(users.role_id, UserRole.CONSULTANT),
           isNull(users.deleted_at),
+          isNotNull(users.document),
         ),
       )
       .limit(1);
@@ -77,6 +78,8 @@ export class DrizzleConsultantRepository implements ConsultantRepository {
     const where = and(
       eq(users.role_id, UserRole.CONSULTANT),
       isNull(users.deleted_at),
+      // Skips users created with this role whose profile was not filled yet.
+      isNotNull(users.document),
       name ? ilike(users.name, `%${name}%`) : undefined,
     );
 
