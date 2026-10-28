@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+  customType,
   index,
   integer,
   jsonb,
@@ -9,6 +10,16 @@ import {
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
+
+/**
+ * `pg` already parses jsonb into JS values, but Drizzle's `jsonb()` runs
+ * `JSON.parse` again on any string it gets back. A phone stored as the JSON
+ * string "11987654321" would then come out as the number 11987654321.
+ */
+const parsedJsonb = customType<{ data: unknown; driverData: unknown }>({
+  dataType: () => 'jsonb',
+  toDriver: (value) => JSON.stringify(value),
+});
 
 export const roles = pgTable('roles', {
   role_id: integer('role_id').primaryKey(),
@@ -23,7 +34,7 @@ export const users = pgTable(
     email: varchar('email', { length: 255 }).notNull(),
     password_hash: varchar('password_hash', { length: 255 }).notNull(),
     document: varchar('document', { length: 14 }),
-    phone: jsonb('phone').$type<unknown>(),
+    phone: parsedJsonb('phone'),
     role_id: integer('role_id')
       .notNull()
       .references(() => roles.role_id),
