@@ -4,6 +4,14 @@ CREATE TABLE "roles" (
 	CONSTRAINT "roles_name_unique" UNIQUE("name")
 );
 --> statement-breakpoint
+INSERT INTO "roles" ("role_id", "name") VALUES
+  (1, 'admin'),
+  (2, 'stock_keeper'),
+  (3, 'mechanic'),
+  (4, 'customer'),
+  (5, 'consultant')
+ON CONFLICT DO NOTHING;
+--> statement-breakpoint
 CREATE TABLE "mechanic_availability" (
 	"user_id" uuid PRIMARY KEY NOT NULL,
 	"availability" varchar(16) NOT NULL,

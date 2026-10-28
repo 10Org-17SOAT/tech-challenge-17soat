@@ -2,10 +2,7 @@ import 'dotenv/config';
 import * as bcrypt from 'bcryptjs';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
-import {
-  USER_ROLE_LABELS,
-  UserRole,
-} from '../src/modules/auth/roles/role.enum';
+import { UserRole } from '../src/modules/auth/roles/role.enum';
 
 import * as schema from '../src/shared/config/database/schema';
 import type { Specialty } from '../src/modules/mechanic/domain/value-objects/specialty.enum';
@@ -75,29 +72,6 @@ async function seed(): Promise<void> {
   const passwordHash = await bcrypt.hash(SEED_PASSWORD, 10);
 
   try {
-    await db
-      .insert(schema.roles)
-      .values([
-        { role_id: UserRole.ADMIN, name: USER_ROLE_LABELS[UserRole.ADMIN] },
-        {
-          role_id: UserRole.STOCK_KEEPER,
-          name: USER_ROLE_LABELS[UserRole.STOCK_KEEPER],
-        },
-        {
-          role_id: UserRole.MECHANIC,
-          name: USER_ROLE_LABELS[UserRole.MECHANIC],
-        },
-        {
-          role_id: UserRole.CUSTOMER,
-          name: USER_ROLE_LABELS[UserRole.CUSTOMER],
-        },
-        {
-          role_id: UserRole.CONSULTANT,
-          name: USER_ROLE_LABELS[UserRole.CONSULTANT],
-        },
-      ])
-      .onConflictDoNothing();
-
     await db
       .insert(schema.users)
       .values([
