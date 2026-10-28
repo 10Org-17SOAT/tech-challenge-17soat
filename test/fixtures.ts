@@ -195,7 +195,7 @@ export async function givenOwnedVehicle(
  * consultant/stock-keeper style profiles that store an 11-digit CPF rather
  * than the customer's up-to-14-digit document.
  */
-const uniqueCpf = (): string => uniqueDocument().slice(0, 11);
+export const uniqueCpf = (): string => uniqueDocument().slice(0, 11);
 
 export async function givenConsultant(
   app: App,

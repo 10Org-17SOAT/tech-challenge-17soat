@@ -5,7 +5,7 @@ import { Pool } from 'pg';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
-import { givenUser, httpAs, tokenFor } from './fixtures';
+import { givenUser, httpAs, tokenFor, uniqueCpf } from './fixtures';
 import { DOMAIN_EVENT_PUBLISHER } from './../src/shared/domain/events/domain-event-publisher';
 import { RecordingDomainEventPublisher } from './../src/modules/stock/__test__/recording-domain-event.publisher';
 import { UserRole } from '../src/modules/auth/public/roles';
@@ -56,7 +56,9 @@ describe('Reservations (e2e)', () => {
       .send({
         userId: stockKeeperUserId,
         name: 'Estoquista de teste',
-        cpf: '11144477735',
+        // Documents are unique across every role and this suite keeps the
+        // users other suites left behind, so a fixed CPF would collide.
+        cpf: uniqueCpf(),
         phone: '11987654321',
       })
       .expect(201)

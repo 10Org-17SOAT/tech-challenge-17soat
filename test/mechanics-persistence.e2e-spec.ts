@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { AppModule } from './../src/app.module';
 import { describeMechanicRepositoryContract } from './../src/modules/mechanic/__test__/mechanic-repository.contract';
 import { MECHANIC_REPOSITORY } from './../src/modules/mechanic/domain/repository/mechanic.repository';
@@ -9,6 +9,7 @@ import { DATABASE_CONNECTION } from './../src/shared/config/database/database.co
 import type { DrizzleDatabase } from './../src/shared/config/database/drizzle.provider';
 import { mechanicAvailability } from './../src/modules/mechanic/infrastructure/persistence/mechanic.schema';
 import { users } from './../src/modules/auth/infrastructure/persistence/schema';
+import { CLEANUP_TABLES } from './fixtures';
 
 // Exercises the Drizzle adapter against a real Postgres: the atomic claim
 // semantics (FOR UPDATE SKIP LOCKED + conditional updates) live in SQL, so the
@@ -57,8 +58,11 @@ describe('Mechanic persistence (e2e)', () => {
   });
 
   beforeEach(async () => {
-    await db.delete(mechanicAvailability);
-    await db.delete(users).where(eq(users.role_id, 3));
+    // Documents are unique across every role, and the contract reuses fixed
+    // CPFs, so users other suites left behind must go too.
+    for (const table of CLEANUP_TABLES) {
+      await db.execute(sql.raw(`DELETE FROM ${table}`));
+    }
     await db
       .insert(users)
       .values({
