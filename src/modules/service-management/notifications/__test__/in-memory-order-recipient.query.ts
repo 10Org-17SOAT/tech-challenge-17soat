@@ -15,7 +15,7 @@ export class InMemoryOrderRecipientQuery implements OrderRecipientQuery {
   }
 }
 
-export function aRecipient(
+export function makeRecipient(
   overrides: Partial<OrderRecipient> = {},
 ): OrderRecipient {
   return {

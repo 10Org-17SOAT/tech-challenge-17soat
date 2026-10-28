@@ -2,7 +2,7 @@ import { Logger } from '@nestjs/common';
 import { ServiceOrderStatusChanged } from '../../service-orders/domain/events/service-order-status-changed.event';
 import type { ServiceOrderStatus } from '../../service-orders/domain/service-order.entity';
 import {
-  aRecipient,
+  makeRecipient,
   InMemoryOrderRecipientQuery,
 } from '../__test__/in-memory-order-recipient.query';
 import { RecordingEmailSender } from '../__test__/recording-email.sender';
@@ -31,7 +31,7 @@ describe('NotifyCustomerOfStatusChangeHandler', () => {
 
   beforeEach(() => {
     recipients = new InMemoryOrderRecipientQuery();
-    recipients.set(ORDER_ID, aRecipient());
+    recipients.set(ORDER_ID, makeRecipient());
     emails = new RecordingEmailSender();
     handler = new NotifyCustomerOfStatusChangeHandler(
       recipients,
@@ -77,7 +77,7 @@ describe('NotifyCustomerOfStatusChangeHandler', () => {
   it('escapes every customer-supplied value', async () => {
     recipients.set(
       ORDER_ID,
-      aRecipient({
+      makeRecipient({
         name: '<script>alert(1)</script>',
         vehicle: {
           manufacturer: '<b>Fiat</b>',
@@ -118,7 +118,7 @@ describe('NotifyCustomerOfStatusChangeHandler', () => {
   });
 
   it('skips with a warning when the customer has no email', async () => {
-    recipients.set(ORDER_ID, aRecipient({ email: '' }));
+    recipients.set(ORDER_ID, makeRecipient({ email: '' }));
 
     await handler.handle(changedTo('in_diagnosis', 'received'));
 

@@ -5,7 +5,7 @@ import { PartUnavailableForQuotationError } from '../../quotations/domain/errors
 import { InMemoryPartCatalog } from '../../quotations/__test__/in-memory-part-catalog';
 import { InMemoryQuotationRepository } from '../../quotations/__test__/in-memory-quotation.repository';
 import {
-  aRecipient,
+  makeRecipient,
   InMemoryOrderRecipientQuery,
 } from '../../notifications/__test__/in-memory-order-recipient.query';
 import { RecordingEmailSender } from '../../notifications/__test__/recording-email.sender';
@@ -79,7 +79,7 @@ describe('CompleteDiagnosisUseCase', () => {
     });
     order.transitionTo('in_diagnosis');
     await orders.save(order);
-    recipients.set(order.id, aRecipient());
+    recipients.set(order.id, makeRecipient());
     return order;
   };
 

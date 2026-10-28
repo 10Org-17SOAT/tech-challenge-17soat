@@ -4,7 +4,7 @@ import { QuotationNotFoundError } from '../domain/errors/quotation-not-found.err
 import { RecipientUnreachableError } from '../domain/errors/recipient-unreachable.error';
 import { Quotation } from '../domain/quotation.entity';
 import {
-  aRecipient,
+  makeRecipient,
   InMemoryOrderRecipientQuery,
 } from '../../notifications/__test__/in-memory-order-recipient.query';
 import { InMemoryQuotationRepository } from '../__test__/in-memory-quotation.repository';
@@ -48,7 +48,7 @@ describe('SendQuotationApprovalEmailUseCase', () => {
       ],
     });
     await quotations.save(quotation);
-    recipients.set(order.id, aRecipient());
+    recipients.set(order.id, makeRecipient());
   });
 
   it('sends the quotation to the vehicle owner', async () => {
