@@ -95,6 +95,28 @@ describe('MechanicMapper', () => {
       expect(restored.getDeletedAt()).toBeNull();
     });
 
+    it('fails fast when the user has no document yet', () => {
+      const mechanic = makeMechanic();
+      const persistence = MechanicMapper.toPersistence(mechanic);
+
+      expect(() =>
+        MechanicMapper.toDomain({
+          userId: mechanic.getUserId(),
+          name: mechanic.getName(),
+          email: mechanic.getEmail().getValue(),
+          document: null,
+          phone: persistence.profile.phone,
+          attributes: persistence.profile.attributes ?? {},
+          createdAt: mechanic.getCreatedAt(),
+          updatedAt: mechanic.getUpdatedAt(),
+          deletedAt: null,
+          availability: persistence.availability.availability,
+          availableSince: persistence.availability.availableSince,
+          currentServiceOrderId: null,
+        }),
+      ).toThrow('Mechanic user is missing a document.');
+    });
+
     it('fails fast on a corrupted cpf', () => {
       const mechanic = makeMechanic();
       const persistence = MechanicMapper.toPersistence(mechanic);

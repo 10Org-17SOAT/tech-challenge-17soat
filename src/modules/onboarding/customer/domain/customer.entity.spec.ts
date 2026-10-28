@@ -319,4 +319,19 @@ describe('Customer entity', () => {
       });
     });
   });
+
+  it('rejects a restored profile whose id differs from its user id', () => {
+    expect(() =>
+      Customer.restore({
+        id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12',
+        userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+        personType: PersonType.CPF,
+        document: new Document('52998224725'),
+        name: 'João Silva',
+        email: new Email('joao@example.com'),
+        phone: validPhone,
+        address: validAddress,
+      }),
+    ).toThrow('A customer profile id must match its user id.');
+  });
 });

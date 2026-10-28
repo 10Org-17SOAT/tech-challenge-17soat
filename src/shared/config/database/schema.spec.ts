@@ -3,6 +3,7 @@ import {
   roles,
   users,
 } from '../../../modules/auth/infrastructure/persistence/schema';
+import { vehiclesTable } from '../../../modules/onboarding/vehicles/infrastructure/persistence/vehicle.schema';
 import { mechanicAvailability } from '../../../modules/mechanic/infrastructure/persistence/mechanic.schema';
 import {
   stockMovements,
@@ -16,6 +17,7 @@ describe('database schemas', () => {
 
     expect(getTableConfig(roles).name).toBe('roles');
     expect(usersConfig.foreignKeys).toHaveLength(1);
+    expect(usersConfig.foreignKeys[0].reference().foreignTable).toBe(roles);
     const documentIndex = usersConfig.indexes.find(
       (index) => index.config.name === 'users_document_active_unique',
     );
@@ -39,6 +41,7 @@ describe('database schemas', () => {
     const config = getTableConfig(mechanicAvailability);
 
     expect(config.foreignKeys).toHaveLength(1);
+    expect(config.foreignKeys[0].reference().foreignTable).toBe(users);
     expect(config.checks.map((check) => check.name)).toEqual([
       'mechanic_availability_valid',
     ]);
@@ -60,5 +63,11 @@ describe('database schemas', () => {
     expect(
       getTableConfig(supplies).indexes.map((index) => index.config.name),
     ).toEqual(['supplies_name_active_unique']);
+  });
+
+  it('points vehicle ownership at users', () => {
+    const [ownerKey] = getTableConfig(vehiclesTable).foreignKeys;
+
+    expect(ownerKey.reference().foreignTable).toBe(users);
   });
 });

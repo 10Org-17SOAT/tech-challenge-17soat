@@ -151,4 +151,26 @@ describe('CustomerMapper', () => {
 
     expect(restored.getDeletedAt()).not.toBeNull();
   });
+
+  it('fails fast when the user has no document yet', () => {
+    const original = makePfCustomer();
+    const persistence = CustomerMapper.toPersistence(original);
+    const primitives = original.toPrimitives();
+
+    expect(() =>
+      CustomerMapper.toDomain({
+        user_id: original.getUserId(),
+        name: primitives.name ?? '',
+        email: primitives.email,
+        password_hash: 'hash',
+        role_id: 4,
+        document: null,
+        phone: primitives.phone,
+        attributes: persistence.attributes,
+        created_at: primitives.createdAt,
+        updated_at: persistence.updated_at,
+        deleted_at: null,
+      }),
+    ).toThrow('Customer user is missing a document or phone.');
+  });
 });
