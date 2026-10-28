@@ -12,7 +12,10 @@ import {
   type MechanicRepository,
   type PaginatedResult,
 } from '../../domain/repository/mechanic.repository';
-import { DuplicateCpfException } from '../../domain/exceptions/mechanic.exceptions';
+import {
+  DuplicateCpfException,
+  DuplicateEmailException,
+} from '../../domain/exceptions/mechanic.exceptions';
 import { MECHANIC_AVAILABILITY } from '../../domain/value-objects/mechanic-availability.enum';
 import { mechanicAvailability } from '../persistence/mechanic.schema';
 import { MechanicMapper } from '../mappers/mechanic.mapper';
@@ -22,6 +25,8 @@ import {
 } from '../mappers/mechanic.mapper';
 
 const PG_UNIQUE_VIOLATION = '23505';
+const DOCUMENT_UNIQUE_INDEX = 'users_document_active_unique';
+const EMAIL_UNIQUE_INDEX = 'users_email_active_unique';
 
 @Injectable()
 export class DrizzleMechanicRepository implements MechanicRepository {
@@ -61,8 +66,14 @@ export class DrizzleMechanicRepository implements MechanicRepository {
           });
       });
     } catch (error) {
-      if (isUniqueViolation(error)) {
+      const constraint = uniqueViolationConstraint(error);
+      if (constraint === DOCUMENT_UNIQUE_INDEX) {
         throw new DuplicateCpfException(mechanic.getCpf().getValue(), {
+          cause: error,
+        });
+      }
+      if (constraint === EMAIL_UNIQUE_INDEX) {
+        throw new DuplicateEmailException(mechanic.getEmail().getValue(), {
           cause: error,
         });
       }
@@ -337,12 +348,19 @@ export class DrizzleMechanicRepository implements MechanicRepository {
   }
 }
 
-function isUniqueViolation(error: unknown): boolean {
+function uniqueViolationConstraint(error: unknown): string | undefined {
   if (typeof error !== 'object' || error === null) {
-    return false;
+    return undefined;
   }
-  const candidate = error as { code?: unknown; cause?: unknown };
-  return (
-    candidate.code === PG_UNIQUE_VIOLATION || isUniqueViolation(candidate.cause)
-  );
+  const candidate = error as {
+    code?: unknown;
+    constraint?: unknown;
+    cause?: unknown;
+  };
+  if (candidate.code === PG_UNIQUE_VIOLATION) {
+    return typeof candidate.constraint === 'string'
+      ? candidate.constraint
+      : undefined;
+  }
+  return uniqueViolationConstraint(candidate.cause);
 }

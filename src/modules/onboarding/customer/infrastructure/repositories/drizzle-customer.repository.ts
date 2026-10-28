@@ -19,10 +19,15 @@ import {
   type FindAllParams,
   type PaginatedResult,
 } from '../../domain/repository/customer.repository';
-import { DuplicateDocumentException } from '../../domain/exceptions/customer.exceptions';
+import {
+  DuplicateDocumentException,
+  DuplicateEmailException,
+} from '../../domain/exceptions/customer.exceptions';
 import { CustomerMapper } from '../mappers/customer.mapper';
 
 const PG_UNIQUE_VIOLATION = '23505';
+const DOCUMENT_UNIQUE_INDEX = 'users_document_active_unique';
+const EMAIL_UNIQUE_INDEX = 'users_email_active_unique';
 
 @Injectable()
 export class DrizzleCustomerRepository implements CustomerRepository {
@@ -57,8 +62,12 @@ export class DrizzleCustomerRepository implements CustomerRepository {
         throw new Error('Customer user does not exist or has another role.');
       }
     } catch (error) {
-      if (isUniqueViolation(error)) {
+      const constraint = uniqueViolationConstraint(error);
+      if (constraint === DOCUMENT_UNIQUE_INDEX) {
         throw new DuplicateDocumentException(row.document, { cause: error });
+      }
+      if (constraint === EMAIL_UNIQUE_INDEX) {
+        throw new DuplicateEmailException(row.email, { cause: error });
       }
       throw error;
     }
@@ -166,12 +175,19 @@ export class DrizzleCustomerRepository implements CustomerRepository {
   }
 }
 
-function isUniqueViolation(error: unknown): boolean {
+function uniqueViolationConstraint(error: unknown): string | undefined {
   if (typeof error !== 'object' || error === null) {
-    return false;
+    return undefined;
   }
-  const candidate = error as { code?: unknown; cause?: unknown };
-  return (
-    candidate.code === PG_UNIQUE_VIOLATION || isUniqueViolation(candidate.cause)
-  );
+  const candidate = error as {
+    code?: unknown;
+    constraint?: unknown;
+    cause?: unknown;
+  };
+  if (candidate.code === PG_UNIQUE_VIOLATION) {
+    return typeof candidate.constraint === 'string'
+      ? candidate.constraint
+      : undefined;
+  }
+  return uniqueViolationConstraint(candidate.cause);
 }

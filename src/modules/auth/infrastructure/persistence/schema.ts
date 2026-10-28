@@ -57,6 +57,9 @@ export const users = pgTable(
       .where(
         sql`${table.document} IS NOT NULL AND ${table.deleted_at} IS NULL`,
       ),
+    uniqueIndex('users_email_active_unique')
+      .on(sql`lower(${table.email})`)
+      .where(sql`${table.deleted_at} IS NULL`),
     index('users_attributes_gin_idx').using('gin', table.attributes),
   ],
 );

@@ -8,6 +8,7 @@ import { PaginatedUsers, UserRepository } from '../../domain/user.repository';
 import { users } from './schema';
 
 const PG_UNIQUE_VIOLATION = '23505';
+const EMAIL_UNIQUE_INDEX = 'users_email_active_unique';
 
 type UserRow = typeof users.$inferSelect;
 
@@ -88,7 +89,7 @@ export class DrizzleUserRepository implements UserRepository {
           },
         });
     } catch (error) {
-      if (isUniqueViolation(error)) {
+      if (uniqueViolationConstraint(error) === EMAIL_UNIQUE_INDEX) {
         throw new UserEmailAlreadyExistsError(user.email, { cause: error });
       }
       throw error;
@@ -104,10 +105,19 @@ export class DrizzleUserRepository implements UserRepository {
   }
 }
 
-function isUniqueViolation(error: unknown): boolean {
-  if (typeof error !== 'object' || error === null) return false;
-  const candidate = error as { code?: unknown; cause?: unknown };
-  return (
-    candidate.code === PG_UNIQUE_VIOLATION || isUniqueViolation(candidate.cause)
-  );
+// Drizzle wraps the driver error, so the SQLSTATE and constraint name live
+// somewhere down the `cause` chain.
+function uniqueViolationConstraint(error: unknown): string | undefined {
+  if (typeof error !== 'object' || error === null) return undefined;
+  const candidate = error as {
+    code?: unknown;
+    constraint?: unknown;
+    cause?: unknown;
+  };
+  if (candidate.code === PG_UNIQUE_VIOLATION) {
+    return typeof candidate.constraint === 'string'
+      ? candidate.constraint
+      : undefined;
+  }
+  return uniqueViolationConstraint(candidate.cause);
 }

@@ -24,6 +24,7 @@ describe('database schemas', () => {
     expect(indexNames).toEqual(
       expect.arrayContaining([
         'users_document_active_unique',
+        'users_email_active_unique',
         'users_attributes_gin_idx',
       ]),
     );

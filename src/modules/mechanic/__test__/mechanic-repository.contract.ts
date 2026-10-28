@@ -51,7 +51,7 @@ const makeMechanic = (overrides?: {
     userId,
     name: overrides?.name ?? 'John Doe',
     cpf: new Cpf(overrides?.cpf ?? validCpf('111444777')),
-    email: new Email('john.doe@example.com'),
+    email: new Email(`mechanic-${userId}@example.com`),
     phone: new Phone({
       countryCode: '55',
       areaCode: '11',
