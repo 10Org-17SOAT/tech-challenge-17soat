@@ -1,0 +1,154 @@
+name: CI - Quality Gate
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+
+  push:
+    branches:
+      - develop
+      - main
+
+  workflow_dispatch:
+
+# Cancel older runs when a newer commit is pushed to the same pull request.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build & types
+    # A draft PR only pays for a pipeline once it is ready for review.
+    if: github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          # Same Node as the developers: see .nvmrc.
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # `nest build` reads tsconfig.build.json and skips specs; this typecheck
+      # reads tsconfig.json and therefore also covers test/ and scripts/.
+      - name: Check TypeScript types
+        run: npx tsc --noEmit
+
+      - name: Build application
+        run: npm run build
+
+  test:
+    name: Unit + E2E + Sonar
+    needs: build
+    if: github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    # Current baseline is ~2.5 min; the cap exists to kill hangs, not to squeeze.
+    timeout-minutes: 20
+
+    permissions:
+      contents: read
+      # SonarCloud reads pull request data to analyse and decorate the PR.
+      pull-requests: read
+
+    env:
+      # Kept at "test" on purpose: with NODE_ENV=production `npm ci` omits
+      # devDependencies and both the build and the tests break.
+      NODE_ENV: test
+      PORT: 3000
+
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: tech_challenge
+
+      JWT_SECRET: ci-only-test-secret-not-used-outside-this-workflow
+
+      APP_BASE_URL: http://localhost:3000
+
+      # `log` keeps CI away from Brevo: a suite that forgets to override
+      # EMAIL_SENDER fails loudly here instead of calling the provider.
+      MAIL_DRIVER: log
+      MAIL_FROM: oficina@example.com
+      MAIL_FROM_NAME: Oficina
+
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tech_challenge
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d tech_challenge"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+          --health-start-period 10s
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          # Full history so Sonar can attribute issues and compute new code.
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Thresholds live in package.json, so `npm run test:cov` fails locally for
+      # the same reason it fails here.
+      - name: Run unit tests with coverage
+        run: npm run test:cov
+
+      - name: Run database migrations
+        run: npm run db:migrate
+
+      - name: Run end-to-end tests with coverage
+        run: npm run test:e2e:cov
+
+      - name: Upload coverage on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 3
+
+      # Runs in the same job as the tests so it consumes the coverage produced
+      # above instead of recomputing it in a second pipeline.
+      - name: SonarCloud scan
+        # Skipped on pull requests from forks, where SONAR_TOKEN is unavailable.
+        if: env.SONAR_TOKEN != ''
+        uses: SonarSource/sonarqube-scan-action@v8
