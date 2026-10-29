@@ -11,13 +11,13 @@ import { STOCK_KEEPER_DIRECTORY_QUERY } from './public/stock-keeper-directory.qu
 import { StockKeeperDirectoryQueryImpl } from './public/stock-keeper-directory.query.impl';
 
 /**
- * The employees who operate the stock context, as a profile of their own —
- * mirroring how `customers` is its own table in onboarding.
+ * The stock keeper profile. A stock keeper is not an identity of its own: it
+ * is a row in auth's `users` with the STOCK_KEEPER role, and this module owns
+ * only the profile on top of it (CPF, phone) and the routes that manage it —
+ * the same shape mechanic and consultant have.
  *
- * Provisional by design: stock keepers, mechanics and consultants are all
- * becoming plain users in a later refactor, and this module is meant to be
- * absorbed by it. Depend on STOCK_KEEPER_DIRECTORY_QUERY and nothing else, so
- * that day is a provider swap.
+ * Inventory depends on STOCK_KEEPER_DIRECTORY_QUERY and nothing else, so how
+ * the profile is stored stays this module's business.
  */
 @Module({
   controllers: [StockKeepersController],

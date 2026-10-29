@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { StockKeepersModule } from '../stock-keepers/stock-keepers.module';
 import { CreateSupplyUseCase } from './application/create-supply.usecase';
 import { DeleteSupplyUseCase } from './application/delete-supply.usecase';
+import { QuotationApprovedHandler } from './application/event-handlers/quotation-approved.handler';
+import { ServiceOrderFinishedHandler } from './application/event-handlers/service-order-finished.handler';
 import { GetSupplyUseCase } from './application/get-supply.usecase';
 import { ListSuppliesUseCase } from './application/list-supplies.usecase';
 import { LookupStockUseCase } from './application/lookup-stock.usecase';
@@ -44,6 +46,12 @@ import { SupplyCatalogQueryImpl } from './public/supply-catalog.query.impl';
     LookupStockUseCase,
     ReservePartUseCase,
     WriteOffReservedPartUseCase,
+    // The automation: reservation and write-off follow the order's own status
+    // instead of waiting for someone to call the endpoints. Both listen to
+    // service-management events without importing that module — the event
+    // classes are `type`-only imports, so nothing crosses at runtime.
+    QuotationApprovedHandler,
+    ServiceOrderFinishedHandler,
     { provide: SUPPLY_CATALOG_QUERY, useClass: SupplyCatalogQueryImpl },
   ],
   // The published contract, and nothing else. Other modules inject

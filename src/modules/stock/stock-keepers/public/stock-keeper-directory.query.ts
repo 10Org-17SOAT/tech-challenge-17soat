@@ -5,9 +5,9 @@
  *
  * It answers one question: who is this stock keeper, right now. Callers get
  * a plain view, never the `StockKeeper` entity, so this module stays free to
- * reshape its own model — which it will, once stock keepers become plain
- * users. Absence (soft-deleted or unknown id) is a `null`, not an error: the
- * caller decides what that means for its own domain.
+ * reshape its own model. The id is the stock keeper's user id. Absence
+ * (soft-deleted, unknown id, or a user with another role) is a `null`, not an
+ * error: the caller decides what that means for its own domain.
  */
 export interface StockKeeperView {
   id: string;

@@ -1,5 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { randomUUID } from 'node:crypto';
 import { httpAs, tokenFor } from './fixtures';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
@@ -56,7 +57,7 @@ describe('Consultants (e2e)', () => {
       const res = await http()
         .post('/consultants')
         .send({
-          userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+          userId: randomUUID(),
           name: 'Carlos Consultor',
           cpf: '529.982.247-25',
           phone: '(11) 98765-4321',
@@ -74,7 +75,7 @@ describe('Consultants (e2e)', () => {
       await http()
         .post('/consultants')
         .send({
-          userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+          userId: randomUUID(),
           name: 'Carlos Consultor',
           cpf: '52998224725',
           phone: '11987654321',
@@ -84,7 +85,7 @@ describe('Consultants (e2e)', () => {
       await http()
         .post('/consultants')
         .send({
-          userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+          userId: randomUUID(),
           name: 'Outra Pessoa',
           cpf: '52998224725',
           phone: '11912345678',
@@ -96,7 +97,7 @@ describe('Consultants (e2e)', () => {
       await http()
         .post('/consultants')
         .send({
-          userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+          userId: randomUUID(),
           name: '',
           cpf: '1',
           phone: '1',
@@ -110,7 +111,7 @@ describe('Consultants (e2e)', () => {
       const created = await http()
         .post('/consultants')
         .send({
-          userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+          userId: randomUUID(),
           name: 'Carlos Consultor',
           cpf: '52998224725',
           phone: '11987654321',
@@ -135,7 +136,7 @@ describe('Consultants (e2e)', () => {
       await http()
         .post('/consultants')
         .send({
-          userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+          userId: randomUUID(),
           name: 'Carlos Consultor',
           cpf: '52998224725',
           phone: '11987654321',
@@ -144,7 +145,7 @@ describe('Consultants (e2e)', () => {
       await http()
         .post('/consultants')
         .send({
-          userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+          userId: randomUUID(),
           name: 'Ana Consultora',
           cpf: '15350946056',
           phone: '11911112222',
@@ -166,7 +167,7 @@ describe('Consultants (e2e)', () => {
       const created = await http()
         .post('/consultants')
         .send({
-          userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+          userId: randomUUID(),
           name: 'Carlos Consultor',
           cpf: '52998224725',
           phone: '11987654321',
@@ -197,7 +198,7 @@ describe('Consultants (e2e)', () => {
       const created = await http()
         .post('/consultants')
         .send({
-          userId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+          userId: randomUUID(),
           name: 'Carlos Consultor',
           cpf: '52998224725',
           phone: '11987654321',

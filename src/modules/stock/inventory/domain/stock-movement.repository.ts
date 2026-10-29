@@ -1,5 +1,11 @@
 import { StockMovement } from './stock-movement.entity';
 
+/** A supply with units still committed to a service order and not yet consumed. */
+export interface OutstandingReservation {
+  supplyId: string;
+  quantity: number;
+}
+
 export interface StockMovementRepository {
   save(movement: StockMovement): Promise<void>;
   /**
@@ -24,6 +30,16 @@ export interface StockMovementRepository {
     supplyId: string,
     serviceOrderReference?: string,
   ): Promise<number>;
+  /**
+   * Everything still reserved for one service order, a row per supply, in no
+   * particular order. Supplies whose reservations were already fully consumed
+   * are absent rather than present with zero — the caller is asking what is
+   * left to write off, and an empty array is the honest answer for an order
+   * that has none.
+   */
+  findOutstandingReservations(
+    serviceOrderReference: string,
+  ): Promise<OutstandingReservation[]>;
 }
 
 export const STOCK_MOVEMENT_REPOSITORY = Symbol('STOCK_MOVEMENT_REPOSITORY');

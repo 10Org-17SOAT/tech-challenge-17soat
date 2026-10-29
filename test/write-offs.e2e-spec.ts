@@ -43,8 +43,14 @@ describe('Write-offs (e2e)', () => {
       database: process.env.DB_NAME ?? 'tech_challenge',
     });
 
-    const stockKeeperUserId = (await givenUser(app.getHttpServer(), adminToken))
-      .id;
+    const stockKeeperUserId = (
+      await givenUser(
+        app.getHttpServer(),
+        adminToken,
+        undefined,
+        UserRole.STOCK_KEEPER,
+      )
+    ).id;
     stockKeeperId = await http()
       .post('/stock-keepers')
       .send({

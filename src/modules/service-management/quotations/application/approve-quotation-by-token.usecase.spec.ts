@@ -6,6 +6,8 @@ import { ApprovalTokenExpiredError } from '../domain/errors/approval-token-expir
 import { InvalidApprovalTokenError } from '../domain/errors/invalid-approval-token.error';
 import { QuotationAlreadyApprovedError } from '../domain/errors/quotation-already-approved.error';
 import { Quotation } from '../domain/quotation.entity';
+import { QuotationApproved } from '../domain/events/quotation-approved.event';
+import { RecordingDomainEventPublisher } from '../../__test__/recording-domain-event.publisher';
 import { InMemoryQuotationRepository } from '../__test__/in-memory-quotation.repository';
 import { ApproveQuotationByTokenUseCase } from './approve-quotation-by-token.usecase';
 
@@ -16,6 +18,7 @@ const OPENED_BY_NAME = 'Consultant Fixture';
 describe('ApproveQuotationByTokenUseCase', () => {
   let quotations: InMemoryQuotationRepository;
   let orders: InMemoryServiceOrderRepository;
+  let publisher: RecordingDomainEventPublisher;
   let useCase: ApproveQuotationByTokenUseCase;
   let order: ServiceOrder;
   let quotation: Quotation;
@@ -24,7 +27,8 @@ describe('ApproveQuotationByTokenUseCase', () => {
   beforeEach(async () => {
     quotations = new InMemoryQuotationRepository();
     orders = new InMemoryServiceOrderRepository();
-    useCase = new ApproveQuotationByTokenUseCase(quotations, orders);
+    publisher = new RecordingDomainEventPublisher();
+    useCase = new ApproveQuotationByTokenUseCase(quotations, orders, publisher);
 
     order = ServiceOrder.create({
       vehicleId: VEHICLE_ID,
@@ -116,5 +120,25 @@ describe('ApproveQuotationByTokenUseCase', () => {
     await expect(useCase.execute(rawToken)).rejects.toThrow(
       ServiceOrderNotFoundError,
     );
+  });
+
+  // The email path must move stock exactly like the panel path: whoever
+  // clicked is irrelevant to the ledger.
+  it('publishes QuotationApproved so stock reserves the parts', async () => {
+    await useCase.execute(rawToken);
+
+    const published = publisher.events.filter(
+      (event): event is QuotationApproved => event instanceof QuotationApproved,
+    );
+    expect(published).toHaveLength(1);
+    expect(published[0].serviceOrderId).toBe(order.id);
+  });
+
+  it('publishes nothing when the token is refused', async () => {
+    await expect(useCase.execute('not-the-token')).rejects.toThrow(
+      InvalidApprovalTokenError,
+    );
+
+    expect(publisher.events).toHaveLength(0);
   });
 });
