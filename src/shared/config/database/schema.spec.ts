@@ -8,7 +8,7 @@ import { mechanicAvailability } from '../../../modules/mechanic/infrastructure/p
 import {
   stockMovements,
   supplies,
-} from '../../../modules/stock/infrastructure/persistence/schema';
+} from '../../../modules/stock/inventory/infrastructure/persistence/schema';
 
 describe('database schemas', () => {
   it('stores roles and profile identity in a single users table', () => {

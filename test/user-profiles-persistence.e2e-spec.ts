@@ -32,11 +32,11 @@ import {
   CONSULTANT_REPOSITORY,
   type ConsultantRepository,
 } from './../src/modules/onboarding/consultant/domain/consultant.repository';
-import { StockKeeper } from './../src/modules/stock/domain/stock-keeper.entity';
+import { StockKeeper } from './../src/modules/stock/stock-keepers/domain/stock-keeper.entity';
 import {
   STOCK_KEEPER_REPOSITORY,
   type StockKeeperRepository,
-} from './../src/modules/stock/domain/stock-keeper.repository';
+} from './../src/modules/stock/stock-keepers/domain/stock-keeper.repository';
 import { Mechanic } from './../src/modules/mechanic/domain/mechanic.entity';
 import {
   MECHANIC_REPOSITORY,
