@@ -7,15 +7,18 @@ import {
   HttpStatus,
   Param,
   Patch,
+  Post,
   Query,
   UseFilters,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiBody,
   ApiOperation,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { CreateServiceOrderUseCase } from '../application/create-service-order.usecase';
 import { DeleteServiceOrderUseCase } from '../application/delete-service-order.usecase';
 import { GetAverageExecutionTimeUseCase } from '../application/get-average-execution-time.usecase';
 import { GetServiceOrderStatusUseCase } from '../application/get-service-order-status.usecase';
@@ -25,14 +28,21 @@ import { UpdateServiceOrderUseCase } from '../application/update-service-order.u
 import {
   AverageExecutionTimeQueryDto,
   AverageExecutionTimeResponseDto,
+  CreatedServiceOrderResponseDto,
+  CreateServiceOrderDto,
   ListServiceOrdersQueryDto,
   ServiceOrderIdParamDto,
   ServiceOrderResponseDto,
   ServiceOrderStatusResponseDto,
   PaginatedServiceOrdersResponseDto,
+  toCreatedServiceOrderResponse,
   toServiceOrderResponse,
   UpdateServiceOrderDto,
 } from './dtos/service-order.dtos';
+import {
+  createServiceOrderExample,
+  createdServiceOrderExample,
+} from './service-order.examples';
 import { ServiceOrderErrorsFilter } from './service-order-errors.filter';
 import { Roles, UserRole } from '../../../auth/public/roles';
 import { CurrentUser } from '../../../auth/public/current-user';
@@ -45,6 +55,7 @@ import type { AuthenticatedUser } from '../../../auth/public/current-user';
 @UseFilters(ServiceOrderErrorsFilter)
 export class ServiceOrdersController {
   constructor(
+    private readonly createOrder: CreateServiceOrderUseCase,
     private readonly getOrder: GetServiceOrderUseCase,
     private readonly getOrderStatus: GetServiceOrderStatusUseCase,
     private readonly listOrders: ListServiceOrdersUseCase,
@@ -52,6 +63,46 @@ export class ServiceOrdersController {
     private readonly deleteOrder: DeleteServiceOrderUseCase,
     private readonly getAverageExecutionTime: GetAverageExecutionTimeUseCase,
   ) {}
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Abre uma OS em received para um veículo, com serviços e peças',
+    description:
+      'Cliente e veículo são cadastrados antes, em POST /customers e ' +
+      'POST /vehicles, e referenciados aqui pelo veículo: o cliente da OS é o ' +
+      'dono do veículo. Serviços e peças ficam registrados como itens ' +
+      'solicitados: o diagnóstico confirma ou ajusta o escopo, e só o ' +
+      'orçamento aprovado reserva estoque. Nada é gravado se qualquer ' +
+      'validação falhar.',
+  })
+  @ApiBody({
+    type: CreateServiceOrderDto,
+    examples: {
+      default: { summary: 'Abertura de OS', value: createServiceOrderExample },
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    type: CreatedServiceOrderResponseDto,
+    example: createdServiceOrderExample,
+  })
+  @ApiResponse({ status: 400, description: 'Payload inválido' })
+  @ApiResponse({
+    status: 422,
+    description: 'Veículo, consultor, serviço ou peça inexistente',
+  })
+  async create(
+    @Body() body: CreateServiceOrderDto,
+  ): Promise<CreatedServiceOrderResponseDto> {
+    const { scheduledAt, ...rest } = body;
+
+    const created = await this.createOrder.execute({
+      ...rest,
+      scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
+    });
+    return toCreatedServiceOrderResponse(created);
+  }
 
   @Get()
   @ApiOperation({ summary: 'Lista as OSs (paginado, filtro por status)' })

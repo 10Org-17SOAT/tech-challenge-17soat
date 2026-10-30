@@ -1,3 +1,4 @@
+import { RequestedItems } from './requested-items';
 import { ServiceItem } from './service-item';
 import { ServiceOrder, ServiceOrderStatus } from './service-order.entity';
 
@@ -37,6 +38,12 @@ export interface ServiceOrderRepository {
   // list has no use for every order's items.
   findItems(serviceOrderId: string): Promise<ServiceItem[]>;
   replaceItems(serviceOrderId: string, items: ServiceItem[]): Promise<void>;
+  // What the customer asked for at opening. Written once, with the order.
+  findRequestedItems(serviceOrderId: string): Promise<RequestedItems>;
+  saveRequestedItems(
+    serviceOrderId: string,
+    items: RequestedItems,
+  ): Promise<void>;
   // Bench time only: the stretch between `in_execution` and `finished`. The
   // wait for diagnosis and for the customer's approval is deliberately out.
   averageExecutionTime(

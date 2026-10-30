@@ -84,3 +84,57 @@ export const serviceItems = pgTable(
     check('service_items_quantity_positive', sql`${table.quantity} > 0`),
   ],
 );
+
+// What the customer asked for when the order was opened — services from the
+// catalogue and parts from stock. A request, not the scope of work: the
+// diagnosis turns it into `service_items`, and only the quotation reserves
+// stock. Parts carry no FK to `supplies`: that table belongs to the stock
+// module, and quotation lines keep the same distance.
+export const requestedServices = pgTable(
+  'service_order_requested_services',
+  {
+    serviceOrderId: uuid('service_order_id').notNull(),
+    serviceId: uuid('service_id').notNull(),
+    quantity: integer('quantity').notNull(),
+  },
+  // Every constraint is named: the generated names would run past Postgres'
+  // 63-character identifier limit on these table names.
+  (table) => [
+    primaryKey({
+      name: 'requested_services_pk',
+      columns: [table.serviceOrderId, table.serviceId],
+    }),
+    foreignKey({
+      columns: [table.serviceOrderId],
+      foreignColumns: [serviceOrders.id],
+      name: 'requested_services_service_order_id_fk',
+    }),
+    foreignKey({
+      columns: [table.serviceId],
+      foreignColumns: [services.id],
+      name: 'requested_services_service_id_fk',
+    }),
+    check('requested_services_quantity_positive', sql`${table.quantity} > 0`),
+  ],
+);
+
+export const requestedParts = pgTable(
+  'service_order_requested_parts',
+  {
+    serviceOrderId: uuid('service_order_id').notNull(),
+    supplyId: uuid('supply_id').notNull(),
+    quantity: integer('quantity').notNull(),
+  },
+  (table) => [
+    primaryKey({
+      name: 'requested_parts_pk',
+      columns: [table.serviceOrderId, table.supplyId],
+    }),
+    foreignKey({
+      columns: [table.serviceOrderId],
+      foreignColumns: [serviceOrders.id],
+      name: 'requested_parts_service_order_id_fk',
+    }),
+    check('requested_parts_quantity_positive', sql`${table.quantity} > 0`),
+  ],
+);

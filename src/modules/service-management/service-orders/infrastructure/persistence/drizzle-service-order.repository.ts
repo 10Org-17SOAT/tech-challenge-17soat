@@ -12,6 +12,8 @@ import {
 } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../../../../../shared/config/database/database.constants';
 import type { DrizzleDatabase } from '../../../../../shared/config/database/drizzle.provider';
+import { RequestedPart } from '../../domain/requested-items';
+import type { RequestedItems } from '../../domain/requested-items';
 import { ServiceItem } from '../../domain/service-item';
 import { ServiceOrder } from '../../domain/service-order.entity';
 import type {
@@ -21,7 +23,12 @@ import type {
   ServiceOrderRepository,
   PaginatedServiceOrders,
 } from '../../domain/service-order.repository';
-import { serviceItems, serviceOrders } from './schema';
+import {
+  requestedParts,
+  requestedServices,
+  serviceItems,
+  serviceOrders,
+} from './schema';
 
 type ServiceOrderRow = typeof serviceOrders.$inferSelect;
 
@@ -158,5 +165,56 @@ export class DrizzleServiceOrderRepository implements ServiceOrderRepository {
         quantity: item.quantity,
       })),
     );
+  }
+
+  async findRequestedItems(serviceOrderId: string): Promise<RequestedItems> {
+    const [serviceRows, partRows] = await Promise.all([
+      this.db
+        .select()
+        .from(requestedServices)
+        .where(eq(requestedServices.serviceOrderId, serviceOrderId)),
+      this.db
+        .select()
+        .from(requestedParts)
+        .where(eq(requestedParts.serviceOrderId, serviceOrderId)),
+    ]);
+    return {
+      services: serviceRows.map((row) =>
+        ServiceItem.create({
+          serviceId: row.serviceId,
+          quantity: row.quantity,
+        }),
+      ),
+      parts: partRows.map((row) =>
+        RequestedPart.create({
+          supplyId: row.supplyId,
+          quantity: row.quantity,
+        }),
+      ),
+    };
+  }
+
+  async saveRequestedItems(
+    serviceOrderId: string,
+    items: RequestedItems,
+  ): Promise<void> {
+    if (items.services.length > 0) {
+      await this.db.insert(requestedServices).values(
+        items.services.map((item) => ({
+          serviceOrderId,
+          serviceId: item.serviceId,
+          quantity: item.quantity,
+        })),
+      );
+    }
+    if (items.parts.length > 0) {
+      await this.db.insert(requestedParts).values(
+        items.parts.map((part) => ({
+          serviceOrderId,
+          supplyId: part.supplyId,
+          quantity: part.quantity,
+        })),
+      );
+    }
   }
 }

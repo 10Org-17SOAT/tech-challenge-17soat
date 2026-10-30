@@ -8,6 +8,7 @@ import {
   CLEANUP_TABLES,
   givenConsultant,
   givenOwnedVehicle,
+  givenServiceOrder,
   httpAs,
   tokenFor,
 } from './fixtures';
@@ -81,11 +82,22 @@ describe('Anamnesis (e2e)', () => {
   const anamnesisBody = (res: request.Response) =>
     res.body as AnamnesisResponse;
 
+  // The order is opened at reception first; the anamnesis attaches to it.
+  async function givenOrder(): Promise<string> {
+    return givenServiceOrder(
+      app.getHttpServer(),
+      token,
+      vehicleId,
+      consultantId,
+      { anamnesis: false },
+    );
+  }
+
   async function givenAnamnesis(): Promise<AnamnesisResponse> {
+    const serviceOrderId = await givenOrder();
     const res = await http()
-      .post('/service-order/anamnesis')
+      .post(`/service-orders/${serviceOrderId}/anamnesis`)
       .send({
-        vehicleId,
         consultantId,
         mainComplaint: 'Barulho na suspensão',
         problemDescription: 'Estalo ao passar em lombadas',
@@ -94,13 +106,14 @@ describe('Anamnesis (e2e)', () => {
     return anamnesisBody(res);
   }
 
-  describe('POST /service-order/anamnesis', () => {
-    it('creates the anamnesis and opens the OS in received (AC-01)', async () => {
+  describe('POST /service-orders/:serviceOrderId/anamnesis', () => {
+    it('attaches the anamnesis to an order in received (AC-01)', async () => {
+      const serviceOrderId = await givenOrder();
+
       const body = anamnesisBody(
         await http()
-          .post('/service-order/anamnesis')
+          .post(`/service-orders/${serviceOrderId}/anamnesis`)
           .send({
-            vehicleId,
             consultantId,
             mainComplaint: '  Barulho na suspensão  ',
             problemDescription: 'Estalo ao passar em lombadas',
@@ -110,7 +123,7 @@ describe('Anamnesis (e2e)', () => {
       );
 
       expect(body.id).toMatch(/^[0-9a-f-]{36}$/i);
-      expect(body.serviceOrderId).toMatch(/^[0-9a-f-]{36}$/i);
+      expect(body.serviceOrderId).toBe(serviceOrderId);
       expect(body.vehicleId).toBe(vehicleId);
       expect(body.mainComplaint).toBe('Barulho na suspensão');
       expect(body.frequency).toBe('intermittent');
@@ -118,16 +131,15 @@ describe('Anamnesis (e2e)', () => {
       expect(body.createdAt).toBeDefined();
 
       const order = await http()
-        .get(`/service-orders/${body.serviceOrderId}`)
+        .get(`/service-orders/${serviceOrderId}`)
         .expect(200);
       expect((order.body as { status: string }).status).toBe('received');
     });
 
-    it('rejects an unknown vehicle with 404 (AC-02)', async () => {
+    it('rejects an unknown order with 404 (AC-02)', async () => {
       await http()
-        .post('/service-order/anamnesis')
+        .post('/service-orders/6f2c8e0a-0b0e-4f6e-9e1e-000000000000/anamnesis')
         .send({
-          vehicleId: '6f2c8e0a-0b0e-4f6e-9e1e-000000000000',
           consultantId,
           mainComplaint: 'Barulho',
           problemDescription: 'Estalo',
@@ -136,34 +148,71 @@ describe('Anamnesis (e2e)', () => {
     });
 
     it('rejects missing mandatory fields with 400 (AC-03)', async () => {
+      const serviceOrderId = await givenOrder();
       await http()
-        .post('/service-order/anamnesis')
-        .send({
-          vehicleId,
-          consultantId,
-        })
+        .post(`/service-orders/${serviceOrderId}/anamnesis`)
+        .send({ consultantId })
         .expect(400);
       await http()
-        .post('/service-order/anamnesis')
-        .send({
-          vehicleId,
-          mainComplaint: 'Barulho',
-          problemDescription: 'Estalo',
-        })
+        .post(`/service-orders/${serviceOrderId}/anamnesis`)
+        .send({ mainComplaint: 'Barulho', problemDescription: 'Estalo' })
         .expect(400);
     });
 
     it('rejects an invalid enum with 400 (AC-04)', async () => {
+      const serviceOrderId = await givenOrder();
       await http()
-        .post('/service-order/anamnesis')
+        .post(`/service-orders/${serviceOrderId}/anamnesis`)
         .send({
-          vehicleId,
           consultantId,
           mainComplaint: 'Barulho',
           problemDescription: 'Estalo',
           frequency: 'always',
         })
         .expect(400);
+    });
+
+    it('rejects a second anamnesis for the same order with 409', async () => {
+      const { serviceOrderId } = await givenAnamnesis();
+      await http()
+        .post(`/service-orders/${serviceOrderId}/anamnesis`)
+        .send({
+          consultantId,
+          mainComplaint: 'Outro relato',
+          problemDescription: 'Outro problema',
+        })
+        .expect(409);
+    });
+
+    it('rejects an order that already left received with 409', async () => {
+      // Starting the diagnosis needs an anamnesis, so the only way to reach
+      // this state without one is to move the order behind the API's back.
+      const serviceOrderId = await givenOrder();
+      await pool.query(
+        `UPDATE service_orders SET status = 'in_diagnosis' WHERE service_order_id = $1`,
+        [serviceOrderId],
+      );
+
+      await http()
+        .post(`/service-orders/${serviceOrderId}/anamnesis`)
+        .send({
+          consultantId,
+          mainComplaint: 'Barulho',
+          problemDescription: 'Estalo',
+        })
+        .expect(409);
+    });
+
+    it('rejects an unknown consultant with 422', async () => {
+      const serviceOrderId = await givenOrder();
+      await http()
+        .post(`/service-orders/${serviceOrderId}/anamnesis`)
+        .send({
+          consultantId: '6f2c8e0a-0b0e-4f6e-9e1e-000000000000',
+          mainComplaint: 'Barulho',
+          problemDescription: 'Estalo',
+        })
+        .expect(422);
     });
   });
 

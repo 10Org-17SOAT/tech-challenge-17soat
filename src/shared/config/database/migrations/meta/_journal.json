@@ -197,6 +197,13 @@
       "when": 1793227153882,
       "tag": "20261028223913_users_email_active_unique",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1793319460081,
+      "tag": "20261030001740_add_service_order_requested_items",
+      "breakpoints": true
     }
   ]
 }

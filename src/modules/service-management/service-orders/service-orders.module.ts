@@ -3,7 +3,8 @@ import { DatabaseModule } from '../../../shared/config/database/database.module'
 import { ConsultantModule } from '../../onboarding/consultant/consultant.module';
 import { CustomerModule } from '../../onboarding/customer/customer.module';
 import { VehicleManagementModule } from '../../onboarding/vehicles/vehicle-management.module';
-import { VEHICLE_LOOKUP } from '../../../shared/domain/ports/vehicle-lookup';
+import { InventoryModule } from '../../stock/inventory/inventory.module';
+import { ServicesModule } from '../services/services.module';
 import { CreateServiceOrderUseCase } from './application/create-service-order.usecase';
 import { DeleteServiceOrderUseCase } from './application/delete-service-order.usecase';
 import { ExecutionCompletedHandler } from './application/event-handlers/execution-completed.handler';
@@ -20,15 +21,15 @@ import { ANAMNESIS_CASCADE_PORT } from './domain/ports/anamnesis-cascade.port';
 import { ANAMNESIS_EXISTENCE_PORT } from './domain/ports/anamnesis-existence.port';
 import { DrizzleAnamnesisCascadeAdapter } from './infrastructure/adapters/drizzle-anamnesis-cascade.adapter';
 import { DrizzleAnamnesisExistenceAdapter } from './infrastructure/adapters/drizzle-anamnesis-existence.adapter';
-import { DrizzleVehicleLookupAdapter } from './infrastructure/adapters/drizzle-vehicle-lookup.adapter';
 import { DrizzleServiceOrderRepository } from './infrastructure/persistence/drizzle-service-order.repository';
 import { ServiceOrdersController } from './presentation/service-orders.controller';
 
 @Module({
-  // VehicleManagementModule exports only VEHICLE_CATALOG_QUERY, used to reject
-  // an order opened for a vehicle that does not exist. ConsultantModule
-  // exports only CONSULTANT_DIRECTORY_QUERY, used the same way to resolve
-  // and validate the consultant opening the order.
+  // VehicleManagementModule exports VEHICLE_CATALOG_QUERY, used to reject an
+  // order opened for a vehicle that does not exist. ConsultantModule exports
+  // only CONSULTANT_DIRECTORY_QUERY, used the same way to resolve and
+  // validate the consultant opening the order. ServicesModule and InventoryModule
+  // check the requested services and parts against the catalogue and stock.
   imports: [
     DatabaseModule,
     VehicleManagementModule,
@@ -36,6 +37,8 @@ import { ServiceOrdersController } from './presentation/service-orders.controlle
     // For CUSTOMER_CONTACT_QUERY: resolving which customer is behind the
     // requesting account is how order ownership is proved.
     CustomerModule,
+    ServicesModule,
+    InventoryModule,
   ],
   controllers: [ServiceOrdersController],
   providers: [
@@ -51,10 +54,6 @@ import { ServiceOrdersController } from './presentation/service-orders.controlle
       provide: ANAMNESIS_CASCADE_PORT,
       useClass: DrizzleAnamnesisCascadeAdapter,
     },
-    {
-      provide: VEHICLE_LOOKUP,
-      useClass: DrizzleVehicleLookupAdapter,
-    },
     CreateServiceOrderUseCase,
     GetServiceOrderUseCase,
     GetServiceOrderStatusUseCase,
@@ -68,13 +67,8 @@ import { ServiceOrdersController } from './presentation/service-orders.controlle
     PaymentReceivedHandler,
   ],
   // StartDiagnosisUseCase and the order repository are consumed by the
-  // diagnostics and quotations modules — direct calls, same bounded context.
-  // CreateServiceOrderUseCase is consumed by the anamnesis module, which opens
-  // the service order as the entry point of the flow.
-  exports: [
-    SERVICE_ORDER_REPOSITORY,
-    StartDiagnosisUseCase,
-    CreateServiceOrderUseCase,
-  ],
+  // diagnostics, quotations and anamnesis modules — direct calls, same
+  // bounded context.
+  exports: [SERVICE_ORDER_REPOSITORY, StartDiagnosisUseCase],
 })
 export class ServiceOrdersModule {}

@@ -621,23 +621,41 @@ autentique com o token do `POST /auth/login` no botão **Authorize**.
 
 ### 3. Recepção — abre a OS em `received`
 
-A anamnese é o ponto de entrada: registrar o relato do cliente é o que abre a
-ordem de serviço.
+A recepção abre a OS para o veículo, com o que o cliente pediu. Cliente e
+veículo são cadastrados antes (`POST /customers` e `POST /vehicles`) e entram
+aqui pelo id do veículo — o cliente da OS é o dono dele. Serviços e peças ficam
+como **itens solicitados**: o diagnóstico confirma ou ajusta o escopo, e só o
+orçamento aprovado reserva estoque. Se qualquer validação falhar, nada é
+gravado.
 
 ```bash
-OS=$(curl -s -X POST $API/service-order/anamnesis \
+OS=$(curl -s -X POST $API/service-orders \
   -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
   -d '{
     "vehicleId": "33333333-3333-4333-8333-000000000001",
+    "openedById": "11111111-1111-4111-8111-000000000002",
+    "services": [{ "serviceId": "88888888-8888-4888-8888-000000000002", "quantity": 1 }],
+    "parts":    [{ "supplyId": "77777777-7777-4777-8777-000000000001", "quantity": 2 }],
+    "notes": "Cliente relata barulho ao frear"
+  }' | field id)
+
+curl -s $API/service-orders/$OS/status -H "Authorization: Bearer $ADMIN"
+# {"status":"received"}
+```
+
+Com a OS aberta, registre a anamnese — o relato do cliente. Ela é obrigatória
+para iniciar o diagnóstico:
+
+```bash
+curl -s -X POST $API/service-orders/$OS/anamnesis \
+  -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
+  -d '{
     "consultantId": "11111111-1111-4111-8111-000000000002",
     "mainComplaint": "Barulho ao frear",
     "problemDescription": "Chiado agudo nas rodas dianteiras",
     "severity": "moderate",
     "frequency": "constant"
-  }' | field serviceOrderId)
-
-curl -s $API/service-orders/$OS/status -H "Authorization: Bearer $ADMIN"
-# {"status":"received"}
+  }' > /dev/null
 ```
 
 ### 4. Diagnóstico — `in_diagnosis` e depois `awaiting_approval`
@@ -924,6 +942,7 @@ PUT    /services/{id}/supplies                       # Substituir a ficha técni
 #### Ordens de serviço — `ADMIN`
 
 ```
+POST   /service-orders                               # Abrir ordem (veículo, serviços e peças)
 GET    /service-orders                               # Listar ordens
 GET    /service-orders/average-execution-time        # Tempo médio de execução
 GET    /service-orders/{id}                          # Obter ordem
@@ -935,7 +954,7 @@ DELETE /service-orders/{id}                          # Remover ordem (soft delet
 #### Anamnese — `ADMIN`
 
 ```
-POST   /service-order/anamnesis                      # Registrar anamnese
+POST   /service-orders/{serviceOrderId}/anamnesis    # Registrar anamnese
 GET    /service-orders/{serviceOrderId}/anamnesis    # Obter anamnese
 PATCH  /service-orders/{serviceOrderId}/anamnesis    # Atualizar anamnese
 DELETE /service-orders/{serviceOrderId}/anamnesis    # Remover anamnese
@@ -1017,6 +1036,9 @@ erDiagram
     VEHICLES  ||--o{ SERVICE_ORDERS : "is serviced in"
     SERVICE_ORDERS ||--o{ SERVICE_ITEMS : contains
     SERVICES ||--o{ SERVICE_ITEMS : "is scoped by"
+    SERVICE_ORDERS ||--o{ SERVICE_ORDER_REQUESTED_SERVICES : "was asked for"
+    SERVICES ||--o{ SERVICE_ORDER_REQUESTED_SERVICES : "is requested in"
+    SERVICE_ORDERS ||--o{ SERVICE_ORDER_REQUESTED_PARTS : "was asked for"
     SERVICES ||--o{ SERVICE_SUPPLIES : "consumes"
     SERVICE_ORDERS ||--o| ANAMNESES : has
     SERVICE_ORDERS ||--o{ DIAGNOSTICS : has
@@ -1088,6 +1110,18 @@ erDiagram
         uuid service_order_id PK "FK e parte da PK composta"
         uuid service_id PK "FK e parte da PK composta"
         integer quantity "Quantidade, sempre positiva"
+    }
+
+    SERVICE_ORDER_REQUESTED_SERVICES {
+        uuid service_order_id PK "FK e parte da PK composta"
+        uuid service_id PK "FK e parte da PK composta"
+        integer quantity "Quantidade pedida na abertura, sempre positiva"
+    }
+
+    SERVICE_ORDER_REQUESTED_PARTS {
+        uuid service_order_id PK "FK e parte da PK composta"
+        uuid supply_id PK "Insumo do outro contexto, sem FK"
+        integer quantity "Quantidade pedida na abertura, sempre positiva"
     }
 
     SERVICES {
@@ -1190,7 +1224,7 @@ erDiagram
     }
 ```
 
-> `roles`, veículos e `mechanic_availability` possuem FKs explícitas para `users`. A validação de role continua na aplicação, pois a FK de `vehicles.customer_id` garante a identidade, não o papel do usuário.
+> `roles`, veículos e `mechanic_availability` possuem FKs explícitas para `users`. A validação de role continua na aplicação, pois a FK de `vehicles.customer_id` garante a identidade, não o papel do usuário. `service_order_requested_parts.supply_id` aponta para o insumo do contexto de estoque sem FK: a existência é validada na abertura da OS.
 
 ### Invariantes garantidas pelo banco
 
@@ -1199,7 +1233,7 @@ erDiagram
 - `quotations.service_order_id` é único: um orçamento por ordem
 - Unicidade global de documento entre usuários ativos (índice parcial em `users`); `users.attributes` tem índice GIN
 - Unicidade de nome de insumo/serviço — o soft delete libera o valor
-- `service_items.quantity > 0`, `service_supplies.quantity > 0`, `quotation_items.unit_price_in_cents >= 0`
+- `service_items.quantity > 0`, `service_order_requested_services.quantity > 0`, `service_order_requested_parts.quantity > 0`, `service_supplies.quantity > 0`, `quotation_items.unit_price_in_cents >= 0`
 - `mechanic_availability.availability` restrito aos quatro estados válidos, com índice B-tree em `(availability, available_since)` para a fila FIFO
 
 ### Migrações
