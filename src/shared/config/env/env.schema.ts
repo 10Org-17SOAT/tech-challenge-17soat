@@ -37,7 +37,10 @@ export const envSchema = z
 
     // `log` writes the message to the Nest logger and sends nothing. It is the
     // default so that a fresh clone and `npm run test:e2e` never reach a provider.
-    MAIL_DRIVER: z.enum(['log', 'brevo']).default('log'),
+    // `file` writes each message to MAIL_DIRECTORY as a page that opens in a
+    // browser: a demo or a template check without an account or a quota.
+    MAIL_DRIVER: z.enum(['log', 'file', 'brevo']).default('log'),
+    MAIL_DIRECTORY: z.string().min(1).default('var/mail'),
     MAIL_FROM: z.email().default('oficina@example.com'),
     MAIL_FROM_NAME: z.string().min(1).default('Oficina'),
     BREVO_API_KEY: z.string().min(1).optional(),

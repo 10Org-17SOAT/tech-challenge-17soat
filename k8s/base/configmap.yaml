@@ -49,7 +49,7 @@ data:
   # `log` writes the message to the application log and sends nothing, the same
   # choice docker-compose makes, so a fresh cluster never reaches a provider.
   # Point it at `brevo` and supply BREVO_API_KEY through the Secret to deliver
-  # for real.
+  # for real. Not `file`: the pod's disk is ephemeral and nobody can open it.
   MAIL_DRIVER: log
   MAIL_FROM: oficina@example.com
   MAIL_FROM_NAME: Oficina

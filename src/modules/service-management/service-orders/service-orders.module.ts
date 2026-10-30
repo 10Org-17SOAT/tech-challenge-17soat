@@ -3,6 +3,8 @@ import { DatabaseModule } from '../../../shared/config/database/database.module'
 import { ConsultantModule } from '../../onboarding/consultant/consultant.module';
 import { CustomerModule } from '../../onboarding/customer/customer.module';
 import { VehicleManagementModule } from '../../onboarding/vehicles/vehicle-management.module';
+import { DOMAIN_EVENT_PUBLISHER } from '../../../shared/domain/events/domain-event-publisher';
+import type { DomainEventPublisher } from '../../../shared/domain/events/domain-event-publisher';
 import { VEHICLE_LOOKUP } from '../../../shared/domain/ports/vehicle-lookup';
 import { CreateServiceOrderUseCase } from './application/create-service-order.usecase';
 import { DeleteServiceOrderUseCase } from './application/delete-service-order.usecase';
@@ -22,6 +24,7 @@ import { DrizzleAnamnesisCascadeAdapter } from './infrastructure/adapters/drizzl
 import { DrizzleAnamnesisExistenceAdapter } from './infrastructure/adapters/drizzle-anamnesis-existence.adapter';
 import { DrizzleVehicleLookupAdapter } from './infrastructure/adapters/drizzle-vehicle-lookup.adapter';
 import { DrizzleServiceOrderRepository } from './infrastructure/persistence/drizzle-service-order.repository';
+import { EventPublishingServiceOrderRepository } from './infrastructure/persistence/event-publishing-service-order.repository';
 import { ServiceOrdersController } from './presentation/service-orders.controller';
 
 @Module({
@@ -39,9 +42,16 @@ import { ServiceOrdersController } from './presentation/service-orders.controlle
   ],
   controllers: [ServiceOrdersController],
   providers: [
+    DrizzleServiceOrderRepository,
+    // Every consumer of the token, in this module and outside it, gets the
+    // publishing wrapper: whoever saves an order publishes what it raised.
     {
       provide: SERVICE_ORDER_REPOSITORY,
-      useClass: DrizzleServiceOrderRepository,
+      inject: [DrizzleServiceOrderRepository, DOMAIN_EVENT_PUBLISHER],
+      useFactory: (
+        repository: DrizzleServiceOrderRepository,
+        publisher: DomainEventPublisher,
+      ) => new EventPublishingServiceOrderRepository(repository, publisher),
     },
     {
       provide: ANAMNESIS_EXISTENCE_PORT,

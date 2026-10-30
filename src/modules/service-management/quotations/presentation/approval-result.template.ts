@@ -1,5 +1,9 @@
 import type { Quotation } from '../domain/quotation.entity';
-import { escapeHtml, formatBRL, formatDateBR } from './html';
+import {
+  escapeHtml,
+  formatBRL,
+  formatDateBR,
+} from '../../../../shared/formatting/html';
 
 /**
  * The page the customer lands on after clicking the link in the email.
