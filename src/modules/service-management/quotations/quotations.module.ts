@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { DatabaseModule } from '../../../shared/config/database/database.module';
 import { CustomerModule } from '../../onboarding/customer/customer.module';
 import { VehicleManagementModule } from '../../onboarding/vehicles/vehicle-management.module';
-import { StockModule } from '../../stock/stock.module';
+import { InventoryModule } from '../../stock/inventory/inventory.module';
 import { ServiceOrdersModule } from '../service-orders/service-orders.module';
 import { ServicesModule } from '../services/services.module';
 import { ApproveQuotationByTokenUseCase } from './application/approve-quotation-by-token.usecase';
@@ -29,13 +29,13 @@ import { QuotationsController } from './presentation/quotations.controller';
 import { ServiceOrderQuotationController } from './presentation/service-order-quotation.controller';
 
 @Module({
-  // StockModule exports only SUPPLY_CATALOG_QUERY — its repositories and use
+  // InventoryModule exports only SUPPLY_CATALOG_QUERY — its repositories and use
   // cases stay private, and only StockPartCatalog ever touches that contract.
   imports: [
     DatabaseModule,
     ServiceOrdersModule,
     ServicesModule,
-    StockModule,
+    InventoryModule,
     // Both export only their published query. The recipient adapter is the
     // only thing here that touches either.
     VehicleManagementModule,

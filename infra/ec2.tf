@@ -1,4 +1,4 @@
-# AMI Ubuntu 24.04 LTS ARM64 mais recente da Canonical (decisão D-10).
+# Latest Ubuntu 24.04 LTS ARM64 AMI from Canonical (decision D-10).
 data "aws_ami" "ubuntu" {
   most_recent = true
   owners      = [var.ami_owner]
@@ -11,11 +11,11 @@ data "aws_ami" "ubuntu" {
 
 variable "ssh_public_key" {
   type        = string
-  description = "Conteúdo da chave pública SSH (ex.: o arquivo ~/.ssh/id_ed25519.pub) autorizada a entrar na VM como `ubuntu`. É por SSH que se copia o kubeconfig. Obrigatória: a VM não tem outra forma de acesso, e trocar a chave depois recria a instância."
+  description = "SSH public key content (e.g. the ~/.ssh/id_ed25519.pub file) allowed to log into the VM as `ubuntu`. The kubeconfig is copied over SSH. Required: the VM has no other way in, and changing the key later recreates the instance."
 
   validation {
     condition     = can(regex("^(ssh-(ed25519|rsa)|ecdsa-sha2-nistp[0-9]+) ", var.ssh_public_key))
-    error_message = "ssh_public_key deve ser o conteúdo de uma chave pública OpenSSH, ex.: \"ssh-ed25519 AAAA... voce@maquina\"."
+    error_message = "ssh_public_key must be the content of an OpenSSH public key, e.g. \"ssh-ed25519 AAAA... you@machine\"."
   }
 }
 
@@ -24,10 +24,10 @@ resource "aws_key_pair" "admin" {
   public_key = var.ssh_public_key
 }
 
-# IP fixo da VM. Criado ANTES da instância para que o IP já seja conhecido no
-# user-data (vai no certificado do K3s via --tls-san) e para que o kubeconfig
-# continue válido se a VM for parada e ligada de novo. Custo igual ao do IP
-# público automático enquanto estiver associado.
+# Static IP of the VM. Created BEFORE the instance so the IP is already known
+# in the user-data (it goes into the K3s certificate via --tls-san) and so the
+# kubeconfig stays valid if the VM is stopped and started again. Costs the same
+# as the automatic public IP while it is associated.
 resource "aws_eip" "k3s" {
   domain = "vpc"
 
@@ -36,9 +36,10 @@ resource "aws_eip" "k3s" {
   }
 }
 
-# Interface de rede criada fora da instância para receber o EIP antes do boot.
-# Se o EIP fosse associado à instância já ligada, a troca de IP derrubaria o
-# download do K3s no meio do user-data, que não roda de novo.
+# Network interface created outside the instance so it gets the EIP before
+# boot. If the EIP were associated with an already running instance, the IP
+# swap would cut the K3s download in the middle of the user-data, which never
+# runs again.
 resource "aws_network_interface" "k3s" {
   subnet_id       = aws_subnet.public.id
   security_groups = [aws_security_group.k3s.id]
@@ -66,8 +67,8 @@ resource "aws_instance" "k3s" {
     k3s_version = var.k3s_version == null ? "" : var.k3s_version
     public_ip   = aws_eip.k3s.public_ip
   })
-  # Mudar o script só tem efeito num boot novo: recria a VM em vez de deixar
-  # o user-data alterado sem nunca rodar.
+  # A script change only takes effect on a fresh boot: recreate the VM instead
+  # of leaving changed user-data that never runs.
   user_data_replace_on_change = true
 
   root_block_device {
@@ -76,19 +77,20 @@ resource "aws_instance" "k3s" {
     encrypted   = true
   }
 
-  # IMDSv2 obrigatório: bloqueia o roubo de credencial via SSRF no IMDSv1.
+  # IMDSv2 required: blocks credential theft through SSRF on IMDSv1.
   metadata_options {
     http_tokens = "required"
   }
 
-  # O user-data baixa o K3s no primeiro boot; sem a rota para a internet
-  # pronta e o EIP já na interface, o download falha e o cluster nunca sobe.
+  # The user-data downloads K3s on first boot; without the internet route in
+  # place and the EIP already on the interface, the download fails and the
+  # cluster never comes up.
   depends_on = [aws_route_table_association.public, aws_eip_association.k3s]
 
-  # O data source sempre pega a AMI mais recente: sem isto, qualquer apply após
-  # a Canonical publicar uma imagem nova recriaria a VM (cluster vazio,
-  # certificados novos, kubeconfig inválido). Para atualizar a imagem de
-  # propósito: terraform apply -replace=aws_instance.k3s
+  # The data source always picks the latest AMI: without this, any apply after
+  # Canonical publishes a new image would recreate the VM (empty cluster, new
+  # certificates, invalid kubeconfig). To update the image on purpose:
+  # terraform apply -replace=aws_instance.k3s
   lifecycle {
     ignore_changes = [ami]
   }

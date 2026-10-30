@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { SUPPLY_CATALOG_QUERY } from '../../../stock/public/supply-catalog.query';
-import type { SupplyCatalogQuery } from '../../../stock/public/supply-catalog.query';
+import { SUPPLY_CATALOG_QUERY } from '../../../stock/inventory/public/supply-catalog.query';
+import type { SupplyCatalogQuery } from '../../../stock/inventory/public/supply-catalog.query';
 import type { PartCatalog, PartView } from '../domain/part-catalog.port';
 
 /**

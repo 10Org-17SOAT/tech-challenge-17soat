@@ -1,0 +1,3 @@
+# Written by `terraform apply` (infra/database.tf). Never committed: it is
+# derived from the provisioned RDS instance, not configuration.
+db.env
