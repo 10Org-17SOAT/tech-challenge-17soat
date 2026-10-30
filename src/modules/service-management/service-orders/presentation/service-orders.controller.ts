@@ -40,7 +40,7 @@ import {
   UpdateServiceOrderDto,
 } from './dtos/service-order.dtos';
 import {
-  createServiceOrderExamples,
+  createServiceOrderExample,
   createdServiceOrderExample,
 } from './service-order.examples';
 import { ServiceOrderErrorsFilter } from './service-order-errors.filter';
@@ -67,18 +67,20 @@ export class ServiceOrdersController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
-    summary: 'Abre uma OS em received com cliente, veículo, serviços e peças',
+    summary: 'Abre uma OS em received para um veículo, com serviços e peças',
     description:
-      'Cliente e veículo chegam como referência ({ "id": ... }) ou com os ' +
-      'dados para cadastrá-los. Um cliente com o mesmo documento ou um ' +
-      'veículo com a mesma placa já cadastrados são reaproveitados, sem ' +
-      'alteração. Serviços e peças ficam registrados como itens solicitados: ' +
-      'o diagnóstico confirma ou ajusta o escopo, e só o orçamento aprovado ' +
-      'reserva estoque. Nada é gravado se qualquer validação falhar.',
+      'Cliente e veículo são cadastrados antes, em POST /customers e ' +
+      'POST /vehicles, e referenciados aqui pelo veículo: o cliente da OS é o ' +
+      'dono do veículo. Serviços e peças ficam registrados como itens ' +
+      'solicitados: o diagnóstico confirma ou ajusta o escopo, e só o ' +
+      'orçamento aprovado reserva estoque. Nada é gravado se qualquer ' +
+      'validação falhar.',
   })
   @ApiBody({
     type: CreateServiceOrderDto,
-    examples: createServiceOrderExamples,
+    examples: {
+      default: { summary: 'Abertura de OS', value: createServiceOrderExample },
+    },
   })
   @ApiResponse({
     status: 201,
@@ -87,24 +89,16 @@ export class ServiceOrdersController {
   })
   @ApiResponse({ status: 400, description: 'Payload inválido' })
   @ApiResponse({
-    status: 409,
-    description: 'Placa já cadastrada para outro cliente',
-  })
-  @ApiResponse({
     status: 422,
-    description:
-      'Consultor, cliente, veículo, serviço ou peça inexistente, ou veículo ' +
-      'de outro cliente',
+    description: 'Veículo, consultor, serviço ou peça inexistente',
   })
   async create(
     @Body() body: CreateServiceOrderDto,
   ): Promise<CreatedServiceOrderResponseDto> {
-    const { customer, vehicle, scheduledAt, ...rest } = body;
+    const { scheduledAt, ...rest } = body;
 
     const created = await this.createOrder.execute({
       ...rest,
-      customer: 'id' in customer ? { id: customer.id } : { data: customer },
-      vehicle: 'id' in vehicle ? { id: vehicle.id } : { data: vehicle },
       scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
     });
     return toCreatedServiceOrderResponse(created);

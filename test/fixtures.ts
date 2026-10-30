@@ -216,8 +216,7 @@ export async function givenConsultant(
 
 /**
  * Opens an order for an existing vehicle through POST /service-orders, the
- * reception step. The owner is read back from the vehicle so callers only
- * need the ids they already hold.
+ * reception step.
  *
  * With `anamnesis` (the default) the customer's account of the problem is
  * attached too: starting the diagnosis requires one, and most suites only care
@@ -230,20 +229,10 @@ export async function givenServiceOrder(
   consultantId: string,
   { anamnesis = true }: { anamnesis?: boolean } = {},
 ): Promise<string> {
-  const vehicle = await request(app)
-    .get(`/vehicles/${vehicleId}`)
-    .set('Authorization', bearer(token))
-    .expect(200);
-  const customerId = (vehicle.body as { customerId: string }).customerId;
-
   const order = await request(app)
     .post('/service-orders')
     .set('Authorization', bearer(token))
-    .send({
-      openedById: consultantId,
-      customer: { id: customerId },
-      vehicle: { id: vehicleId },
-    })
+    .send({ vehicleId, openedById: consultantId })
     .expect(201);
   const serviceOrderId = (order.body as { id: string }).id;
 

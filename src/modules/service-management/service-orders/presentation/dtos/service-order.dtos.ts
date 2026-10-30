@@ -8,60 +8,6 @@ const serviceOrderStatusValues = serviceOrderStatusEnum.enumValues;
 
 const isoDateTime = z.iso.datetime({ offset: true });
 
-// The customer and the vehicle each come as either a reference to someone
-// already registered or the data to register them. Field rules mirror
-// POST /customers and POST /vehicles; what only the domain can judge (CPF
-// check digits, PF vs PJ names) is left to onboarding and answers 400 too.
-const existingRefSchema = z.object({ id: z.uuid() }).strict();
-
-const newCustomerSchema = z
-  .object({
-    userId: z.uuid(),
-    personType: z.enum(['CPF', 'CNPJ']),
-    document: z.string().trim().min(1),
-    name: z.string().trim().optional(),
-    corporateName: z.string().trim().optional(),
-    tradeName: z.string().trim().optional(),
-    email: z.email(),
-    phone: z
-      .object({
-        countryCode: z.string().trim().min(1),
-        areaCode: z.string().trim().optional(),
-        number: z.string().trim().min(1),
-      })
-      .strict(),
-    address: z
-      .object({
-        street: z.string().trim().min(1),
-        number: z.string().trim().min(1),
-        complement: z.string().trim().optional(),
-        neighborhood: z.string().trim().min(1),
-        city: z.string().trim().min(1),
-        state: z.string().trim().length(2),
-        zipCode: z
-          .string()
-          .trim()
-          .regex(/^\d{8}$/),
-      })
-      .strict(),
-  })
-  .strict();
-
-const LICENSE_PLATE_REGEX = /^[A-Z]{3}-?[0-9]{4}$|^[A-Z]{3}[0-9][A-Z][0-9]{2}$/;
-
-const newVehicleSchema = z
-  .object({
-    licensePlate: z.string().trim().toUpperCase().regex(LICENSE_PLATE_REGEX),
-    model: z.string().trim().min(1),
-    year: z.number().int().min(1886),
-    manufacturer: z.string().trim().min(1),
-    description: z.string().trim().optional(),
-    color: z.string().trim().min(1),
-    fuelType: z.string().trim().min(1),
-    odometer: z.number().nonnegative(),
-  })
-  .strict();
-
 // A repeated id is a typo, not two lines: the quantity is where "two" goes.
 const uniqueBy =
   <T>(key: (item: T) => string, message: string) =>
@@ -78,9 +24,8 @@ const uniqueBy =
 
 export const createServiceOrderSchema = z
   .object({
+    vehicleId: z.uuid(),
     openedById: z.uuid(),
-    customer: z.union([existingRefSchema, newCustomerSchema]),
-    vehicle: z.union([existingRefSchema, newVehicleSchema]),
     services: z
       .array(
         z.object({
@@ -166,7 +111,6 @@ const requestedPartResponseSchema = z.object({
 
 export const createdServiceOrderResponseSchema =
   serviceOrderResponseSchema.extend({
-    customerId: z.uuid(),
     requestedServices: z.array(requestedServiceResponseSchema),
     requestedParts: z.array(requestedPartResponseSchema),
   });
@@ -257,12 +201,10 @@ export function toServiceOrderResponse(
 
 export function toCreatedServiceOrderResponse({
   order,
-  customerId,
   requestedItems,
 }: CreateServiceOrderOutput): CreatedServiceOrderResponseDto {
   return {
     ...toServiceOrderResponse(order),
-    customerId,
     requestedServices: requestedItems.services.map((item) => ({
       serviceId: item.serviceId,
       quantity: item.quantity,

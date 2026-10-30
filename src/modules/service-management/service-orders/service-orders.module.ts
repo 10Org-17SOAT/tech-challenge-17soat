@@ -25,11 +25,11 @@ import { DrizzleServiceOrderRepository } from './infrastructure/persistence/driz
 import { ServiceOrdersController } from './presentation/service-orders.controller';
 
 @Module({
-  // Opening an order resolves — or registers — its customer and vehicle
-  // through onboarding's published queries and registrations, and checks the
-  // requested services and parts against the catalogue and stock.
-  // ConsultantModule exports only CONSULTANT_DIRECTORY_QUERY, used to resolve
-  // and validate the consultant opening the order.
+  // VehicleManagementModule exports VEHICLE_CATALOG_QUERY, used to reject an
+  // order opened for a vehicle that does not exist. ConsultantModule exports
+  // only CONSULTANT_DIRECTORY_QUERY, used the same way to resolve and
+  // validate the consultant opening the order. ServicesModule and StockModule
+  // check the requested services and parts against the catalogue and stock.
   imports: [
     DatabaseModule,
     VehicleManagementModule,

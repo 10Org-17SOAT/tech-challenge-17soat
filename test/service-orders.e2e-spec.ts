@@ -10,7 +10,6 @@ import {
   givenConsultant,
   givenOwnedVehicle,
   givenServiceOrder,
-  givenUser,
   httpAs,
   tokenFor,
 } from './fixtures';
@@ -29,8 +28,6 @@ describe('ServiceOrders (e2e)', () => {
   let openedById: string;
   // The auth account behind the vehicle's owner, for the ownership checks.
   let ownerUserId: string;
-  // The vehicle's owner, for opening orders that reference it.
-  let customerId: string;
   let emitter: EventEmitter2;
 
   beforeAll(async () => {
@@ -63,7 +60,6 @@ describe('ServiceOrders (e2e)', () => {
     const owned = await givenOwnedVehicle(app.getHttpServer(), token);
     vehicleId = owned.vehicleId;
     ownerUserId = owned.userId;
-    customerId = owned.customerId;
     openedById = await givenConsultant(app.getHttpServer(), token);
   });
 
@@ -186,7 +182,6 @@ describe('ServiceOrders (e2e)', () => {
 
   describe('POST /service-orders', () => {
     interface CreatedResponse extends ServiceOrderResponse {
-      customerId: string;
       openedByName: string;
       requestedServices: { serviceId: string; quantity: number }[];
       requestedParts: { supplyId: string; quantity: number }[];
@@ -212,38 +207,9 @@ describe('ServiceOrders (e2e)', () => {
       return Number(rows[0].total);
     }
 
-    // Valid CPF; the e2e database starts empty for every test, so a fixed
-    // document cannot collide.
-    const newCustomer = (userId: string, document = '52998224725') => ({
-      userId,
-      personType: 'CPF',
-      document,
-      name: 'Bruno Lima',
-      email: 'bruno.lima@example.com',
-      phone: { countryCode: '55', areaCode: '11', number: '988887777' },
-      address: {
-        street: 'Rua A',
-        number: '10',
-        neighborhood: 'Centro',
-        city: 'Sao Paulo',
-        state: 'SP',
-        zipCode: '01001000',
-      },
-    });
-
-    const newVehicle = (licensePlate = 'XYZ1A23') => ({
-      licensePlate,
-      model: 'Onix',
-      year: 2022,
-      manufacturer: 'Chevrolet',
-      color: 'Branco',
-      fuelType: 'GASOLINE',
-      odometer: 12000,
-    });
-
     const unknownId = '6f2c8e0a-0b0e-4f6e-9e1e-000000000000';
 
-    it('opens the order in received for an existing customer and vehicle', async () => {
+    it('opens the order in received with the requested items', async () => {
       const serviceId = await givenService();
       const supplyId = await givenSupply();
 
@@ -251,9 +217,8 @@ describe('ServiceOrders (e2e)', () => {
         await http()
           .post('/service-orders')
           .send({
+            vehicleId,
             openedById,
-            customer: { id: customerId },
-            vehicle: { id: vehicleId },
             services: [{ serviceId, quantity: 1 }],
             parts: [{ supplyId, quantity: 4 }],
             notes: 'Barulho na suspensão',
@@ -264,7 +229,6 @@ describe('ServiceOrders (e2e)', () => {
 
       expect(body.id).toMatch(/^[0-9a-f-]{36}$/i);
       expect(body.status).toBe('received');
-      expect(body.customerId).toBe(customerId);
       expect(body.vehicleId).toBe(vehicleId);
       expect(body.openedByName).toBe('Carlos Consultor');
       expect(body.notes).toBe('Barulho na suspensão');
@@ -275,67 +239,25 @@ describe('ServiceOrders (e2e)', () => {
       expect(orderBody(order).status).toBe('received');
     });
 
-    it('registers a new customer and vehicle along with the order', async () => {
-      const user = await givenUser(app.getHttpServer(), token);
-
+    it('accepts an order with nothing requested yet', async () => {
       const body = createdBody(
         await http()
           .post('/service-orders')
-          .send({
-            openedById,
-            customer: newCustomer(user.id),
-            vehicle: newVehicle(),
-          })
+          .send({ vehicleId, openedById })
           .expect(201),
       );
 
-      const customer = await http()
-        .get(`/customers/${body.customerId}`)
-        .expect(200);
-      expect((customer.body as { document: string }).document).toBe(
-        '52998224725',
-      );
-      const vehicle = await http()
-        .get(`/vehicles/${body.vehicleId}`)
-        .expect(200);
-      expect(
-        vehicle.body as { customerId: string; licensePlate: string },
-      ).toMatchObject({ customerId: body.customerId, licensePlate: 'XYZ1A23' });
       expect(body.requestedServices).toEqual([]);
       expect(body.requestedParts).toEqual([]);
     });
 
-    it('reuses the customer and vehicle when document and plate are known', async () => {
-      const user = await givenUser(app.getHttpServer(), token);
-      const payload = {
-        openedById,
-        customer: newCustomer(user.id),
-        vehicle: newVehicle(),
-      };
-
-      const first = createdBody(
-        await http().post('/service-orders').send(payload).expect(201),
-      );
-      const second = createdBody(
-        await http().post('/service-orders').send(payload).expect(201),
-      );
-
-      expect(second.id).not.toBe(first.id);
-      expect(second.customerId).toBe(first.customerId);
-      expect(second.vehicleId).toBe(first.vehicleId);
-    });
-
     it('rejects an invalid payload with 400', async () => {
-      await http()
-        .post('/service-orders')
-        .send({ openedById, customer: { id: customerId } })
-        .expect(400);
+      await http().post('/service-orders').send({ openedById }).expect(400);
       await http()
         .post('/service-orders')
         .send({
+          vehicleId,
           openedById,
-          customer: { id: customerId },
-          vehicle: { id: vehicleId },
           services: [{ serviceId: unknownId, quantity: 0 }],
         })
         .expect(400);
@@ -344,9 +266,8 @@ describe('ServiceOrders (e2e)', () => {
       await http()
         .post('/service-orders')
         .send({
+          vehicleId,
           openedById,
-          customer: { id: customerId },
-          vehicle: { id: vehicleId },
           services: [
             { serviceId, quantity: 1 },
             { serviceId, quantity: 2 },
@@ -355,22 +276,9 @@ describe('ServiceOrders (e2e)', () => {
         .expect(400);
     });
 
-    it('rejects customer data only the domain can judge with 400', async () => {
-      const user = await givenUser(app.getHttpServer(), token);
-      await http()
-        .post('/service-orders')
-        .send({
-          openedById,
-          customer: newCustomer(user.id, '12345678900'),
-          vehicle: newVehicle(),
-        })
-        .expect(400);
-    });
-
     it.each([
       ['consultant', () => ({ openedById: unknownId })],
-      ['customer', () => ({ customer: { id: unknownId } })],
-      ['vehicle', () => ({ vehicle: { id: unknownId } })],
+      ['vehicle', () => ({ vehicleId: unknownId })],
       [
         'service',
         () => ({ services: [{ serviceId: unknownId, quantity: 1 }] }),
@@ -380,9 +288,8 @@ describe('ServiceOrders (e2e)', () => {
       await http()
         .post('/service-orders')
         .send({
+          vehicleId,
           openedById,
-          customer: { id: customerId },
-          vehicle: { id: vehicleId },
           ...override(),
         })
         .expect(422);
@@ -390,55 +297,21 @@ describe('ServiceOrders (e2e)', () => {
       expect(await count('service_orders')).toBe(0);
     });
 
-    it('rejects a vehicle that belongs to another customer with 422', async () => {
-      const stranger = await givenOwnedVehicle(app.getHttpServer(), token);
-      await http()
-        .post('/service-orders')
-        .send({
-          openedById,
-          customer: { id: stranger.customerId },
-          vehicle: { id: vehicleId },
-        })
-        .expect(422);
-    });
-
-    it('rejects a plate registered to another customer with 409', async () => {
-      const plate = (
-        (await http().get(`/vehicles/${vehicleId}`).expect(200)).body as {
-          licensePlate: string;
-        }
-      ).licensePlate;
-      const user = await givenUser(app.getHttpServer(), token);
-
-      await http()
-        .post('/service-orders')
-        .send({
-          openedById,
-          customer: newCustomer(user.id),
-          vehicle: newVehicle(plate),
-        })
-        .expect(409);
-    });
-
-    // The new customer and vehicle are valid; the unknown service is what
-    // fails, and it must take them down with it.
+    // The service is valid; the unknown part is what fails, and the order
+    // must not be left behind without its requested items.
     it('persists nothing when a later validation fails', async () => {
-      const user = await givenUser(app.getHttpServer(), token);
-      const customersBefore = await count('customers');
-      const vehiclesBefore = await count('vehicles');
+      const serviceId = await givenService();
 
       await http()
         .post('/service-orders')
         .send({
+          vehicleId,
           openedById,
-          customer: newCustomer(user.id),
-          vehicle: newVehicle(),
-          services: [{ serviceId: unknownId, quantity: 1 }],
+          services: [{ serviceId, quantity: 1 }],
+          parts: [{ supplyId: unknownId, quantity: 1 }],
         })
         .expect(422);
 
-      expect(await count('customers')).toBe(customersBefore);
-      expect(await count('vehicles')).toBe(vehiclesBefore);
       expect(await count('service_orders')).toBe(0);
       expect(await count('service_order_requested_services')).toBe(0);
     });
