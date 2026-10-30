@@ -1,6 +1,6 @@
 {
-  "id": "8de83bda-e476-4d85-acf8-90494e14ae0d",
-  "prevId": "823529ea-fae7-434d-9344-582f5e9dbc36",
+  "id": "e13e2202-9d99-425a-aeba-b0ef5b6f18cc",
+  "prevId": "eae1f18c-9c30-44fd-a80c-4e1867af95d6",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -951,6 +951,34 @@
             }
           ],
           "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "service_orders_listing_idx": {
+          "name": "service_orders_listing_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "service_order_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"service_orders\".\"deleted_at\" is null",
           "concurrently": false,
           "method": "btree",
           "with": {}

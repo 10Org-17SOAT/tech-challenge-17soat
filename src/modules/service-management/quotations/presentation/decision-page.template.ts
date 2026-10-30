@@ -3,7 +3,11 @@ import {
   type Quotation,
   type QuotationDecision,
 } from '../domain/quotation.entity';
-import { escapeHtml, formatBRL, formatDateBR } from './html';
+import {
+  escapeHtml,
+  formatBRL,
+  formatDateBR,
+} from '../../../../shared/formatting/html';
 
 /**
  * The pages the customer sees after clicking the link in the email: the

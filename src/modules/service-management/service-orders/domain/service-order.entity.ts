@@ -1,4 +1,6 @@
 import { randomUUID } from 'node:crypto';
+import type { DomainEvent } from '../../../../shared/domain/events/domain-event';
+import { ServiceOrderStatusChanged } from './events/service-order-status-changed.event';
 import { InvalidServiceOrderError } from './errors/invalid-service-order.error';
 import { InvalidServiceOrderTransitionError } from './errors/invalid-service-order-transition.error';
 import { ServiceOrderNotDeletableError } from './errors/service-order-not-deletable.error';
@@ -32,6 +34,19 @@ const STATUS_TRANSITIONS: Record<
   finished: ['delivered'],
   delivered: [],
 };
+
+// The shop's work queue, most urgent first: the default listing shows only
+// these, in this order. `awaiting_execution` (approved, waiting for a
+// mechanic) sits right below `in_execution` because it is the next one to hit
+// the bench. Finished and delivered orders are closed and stay out unless
+// asked for by an explicit status filter.
+export const LISTING_STATUS_PRIORITY: readonly ServiceOrderStatus[] = [
+  'in_execution',
+  'awaiting_execution',
+  'awaiting_approval',
+  'in_diagnosis',
+  'received',
+];
 
 // Once execution starts, mileage and schedule become historical facts.
 const OPERATIONAL_LOCKED_STATUSES = new Set<ServiceOrderStatus>([
@@ -74,11 +89,16 @@ export interface UpdateServiceOrderProps {
 }
 
 export class ServiceOrder {
+  // Raised by this instance and not yet published. Held here rather than
+  // published on the spot: the write that makes them true has not happened
+  // yet, and an order that fails to save must not have announced anything.
+  private pendingEvents: DomainEvent[] = [];
+
   private constructor(private readonly props: ServiceOrderProps) {}
 
   static create(props: CreateServiceOrderProps): ServiceOrder {
     const now = new Date();
-    return new ServiceOrder({
+    const order = new ServiceOrder({
       id: randomUUID(),
       vehicleId: ServiceOrder.validateVehicleId(props.vehicleId),
       openedById: props.openedById,
@@ -97,6 +117,12 @@ export class ServiceOrder {
       updatedAt: now,
       deletedAt: null,
     });
+    // Opening counts as a status change: the customer hears about `received`
+    // the same way they hear about every status after it.
+    order.pendingEvents.push(
+      new ServiceOrderStatusChanged(order.id, null, 'received', now),
+    );
+    return order;
   }
 
   static restore(props: ServiceOrderProps): ServiceOrder {
@@ -141,6 +167,7 @@ export class ServiceOrder {
     }
 
     const now = new Date();
+    const previous = this.props.status;
     this.props.status = next;
 
     if (next === 'awaiting_execution') {
@@ -157,6 +184,17 @@ export class ServiceOrder {
     }
 
     this.props.updatedAt = now;
+    this.pendingEvents.push(
+      new ServiceOrderStatusChanged(this.props.id, previous, next, now),
+    );
+  }
+
+  /** Hands over the events raised since the last call and forgets them, so
+   *  saving the same instance twice never announces anything twice. */
+  pullEvents(): DomainEvent[] {
+    const events = this.pendingEvents;
+    this.pendingEvents = [];
+    return events;
   }
 
   delete(): void {

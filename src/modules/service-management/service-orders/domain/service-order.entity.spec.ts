@@ -1,6 +1,7 @@
 import { InvalidServiceOrderError } from './errors/invalid-service-order.error';
 import { InvalidServiceOrderTransitionError } from './errors/invalid-service-order-transition.error';
 import { ServiceOrderNotDeletableError } from './errors/service-order-not-deletable.error';
+import { ServiceOrderStatusChanged } from './events/service-order-status-changed.event';
 import { ServiceOrder } from './service-order.entity';
 
 // Orders always reference a vehicle; which one is irrelevant here.
@@ -204,6 +205,95 @@ describe('ServiceOrder', () => {
       expect(() => order.transitionTo('received')).toThrow(
         InvalidServiceOrderTransitionError,
       );
+    });
+  });
+
+  describe('status change events', () => {
+    const open = () =>
+      ServiceOrder.create({
+        vehicleId: VEHICLE_ID,
+        openedById: OPENED_BY_ID,
+        openedByName: OPENED_BY_NAME,
+      });
+
+    it('records the opening as a change from nothing to received', () => {
+      const order = open();
+
+      const events = order.pullEvents();
+
+      expect(events).toHaveLength(1);
+      expect(events[0]).toBeInstanceOf(ServiceOrderStatusChanged);
+      expect(events[0]).toMatchObject({
+        name: 'service-order.status-changed',
+        serviceOrderId: order.id,
+        from: null,
+        to: 'received',
+      });
+    });
+
+    it('records one event per transition, in order', () => {
+      const order = open();
+      order.transitionTo('in_diagnosis');
+      order.transitionTo('awaiting_approval');
+      order.transitionTo('awaiting_execution');
+      order.transitionTo('in_execution');
+      order.transitionTo('finished');
+      order.transitionTo('delivered');
+
+      const changes = order
+        .pullEvents()
+        .map((event) => event as ServiceOrderStatusChanged)
+        .map(({ from, to }) => [from, to]);
+
+      expect(changes).toEqual([
+        [null, 'received'],
+        ['received', 'in_diagnosis'],
+        ['in_diagnosis', 'awaiting_approval'],
+        ['awaiting_approval', 'awaiting_execution'],
+        ['awaiting_execution', 'in_execution'],
+        ['in_execution', 'finished'],
+        ['finished', 'delivered'],
+      ]);
+    });
+
+    it('hands each event over only once', () => {
+      const order = open();
+      order.pullEvents();
+
+      expect(order.pullEvents()).toEqual([]);
+    });
+
+    it('records nothing for a rejected transition', () => {
+      const order = open();
+      order.pullEvents();
+
+      expect(() => order.transitionTo('finished')).toThrow(
+        InvalidServiceOrderTransitionError,
+      );
+      expect(order.pullEvents()).toEqual([]);
+    });
+
+    it('records nothing for an order restored from storage', () => {
+      const order = open();
+      const restored = ServiceOrder.restore({
+        id: order.id,
+        vehicleId: order.vehicleId,
+        openedById: order.openedById,
+        openedByName: order.openedByName,
+        status: order.status,
+        approvedByCustomer: order.approvedByCustomer,
+        notes: order.notes,
+        vehicleMileageAtEntry: order.vehicleMileageAtEntry,
+        scheduledAt: order.scheduledAt,
+        startedAt: order.startedAt,
+        completedAt: order.completedAt,
+        deliveredAt: order.deliveredAt,
+        createdAt: order.createdAt,
+        updatedAt: order.updatedAt,
+        deletedAt: order.deletedAt,
+      });
+
+      expect(restored.pullEvents()).toEqual([]);
     });
   });
 

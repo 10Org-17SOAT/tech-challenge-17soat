@@ -1,11 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { EMAIL_SENDER } from '../domain/email-sender.port';
-import type { EmailSender } from '../domain/email-sender.port';
+import { EMAIL_SENDER } from '../../notifications/domain/email-sender.port';
+import type { EmailSender } from '../../notifications/domain/email-sender.port';
 import { QuotationNotFoundError } from '../domain/errors/quotation-not-found.error';
 import { RecipientUnreachableError } from '../domain/errors/recipient-unreachable.error';
-import { QUOTATION_RECIPIENT_QUERY } from '../domain/quotation-recipient.port';
-import type { QuotationRecipientQuery } from '../domain/quotation-recipient.port';
+import { ORDER_RECIPIENT_QUERY } from '../../notifications/domain/order-recipient.port';
+import type { OrderRecipientQuery } from '../../notifications/domain/order-recipient.port';
 import { Quotation } from '../domain/quotation.entity';
 import { QUOTATION_REPOSITORY } from '../domain/quotation.repository';
 import type { QuotationRepository } from '../domain/quotation.repository';
@@ -34,8 +34,8 @@ export class SendQuotationApprovalEmailUseCase {
   constructor(
     @Inject(QUOTATION_REPOSITORY)
     private readonly quotationRepository: QuotationRepository,
-    @Inject(QUOTATION_RECIPIENT_QUERY)
-    private readonly recipients: QuotationRecipientQuery,
+    @Inject(ORDER_RECIPIENT_QUERY)
+    private readonly recipients: OrderRecipientQuery,
     @Inject(EMAIL_SENDER)
     private readonly emailSender: EmailSender,
     private readonly config: ConfigService,
@@ -67,6 +67,7 @@ export class SendQuotationApprovalEmailUseCase {
       toName: recipient.name,
       subject: `Orçamento do seu ${recipient.vehicle.manufacturer} ${recipient.vehicle.model} (${recipient.vehicle.licensePlate})`,
       html: renderQuotationApprovalEmail({ quotation, recipient, decisionUrl }),
+      tag: `${quotation.serviceOrderId}--awaiting_approval`,
     });
 
     // Only after the provider accepted it. A send that threw leaves this null,

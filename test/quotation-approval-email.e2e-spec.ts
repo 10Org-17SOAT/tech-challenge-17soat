@@ -4,8 +4,8 @@ import { Pool } from 'pg';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
-import { EMAIL_SENDER } from './../src/modules/service-management/quotations/domain/email-sender.port';
-import { RecordingEmailSender } from './../src/modules/service-management/quotations/__test__/recording-email.sender';
+import { EMAIL_SENDER } from './../src/modules/service-management/notifications/domain/email-sender.port';
+import { RecordingEmailSender } from './../src/modules/service-management/notifications/__test__/recording-email.sender';
 import {
   CLEANUP_TABLES,
   givenConsultant,
@@ -177,9 +177,10 @@ describe('Quotation approval by email (e2e)', () => {
     it('emails the quotation to the owner of the vehicle', async () => {
       const { totalInCents } = await givenQuotedOrder();
 
-      expect(emails.messages).toHaveLength(1);
-      expect(emails.lastMessage!.to).toBe(customerEmail);
-      expect(emails.lastMessage!.html).toContain(
+      const sent = emails.messagesFor('awaiting_approval');
+      expect(sent).toHaveLength(1);
+      expect(sent[0].to).toBe(customerEmail);
+      expect(sent[0].html).toContain(
         (totalInCents / 100).toLocaleString('pt-BR', {
           style: 'currency',
           currency: 'BRL',
@@ -223,7 +224,7 @@ describe('Quotation approval by email (e2e)', () => {
   describe('the email', () => {
     it('offers both answers, each opening the decision page', async () => {
       await givenQuotedOrder();
-      const html = emails.lastMessage!.html;
+      const html = emails.messagesFor('awaiting_approval').at(-1)!.html;
 
       expect(html).toContain('Aprovar orçamento');
       expect(html).toContain('Recusar');
@@ -578,7 +579,7 @@ describe('Quotation approval by email (e2e)', () => {
 
       expect(second.id).not.toBe(quotationId);
       expect(second.status).toBe('issued');
-      expect(emails.messages).toHaveLength(2);
+      expect(emails.messagesFor('awaiting_approval')).toHaveLength(2);
       expect(lastToken()).not.toBe(firstToken);
       expect(await orderStatus(orderId)).toBe('awaiting_approval');
 
@@ -623,7 +624,7 @@ describe('Quotation approval by email (e2e)', () => {
         .post(`/quotations/${quotationId}/send-approval-email`)
         .expect(200);
 
-      expect(emails.messages).toHaveLength(2);
+      expect(emails.messagesFor('awaiting_approval')).toHaveLength(2);
       await anonymous().get(decisionPageUrl(staleToken)).expect(404);
       await decide({ token: staleToken, decision: 'approved' }).expect(401);
       await decide({ token: lastToken(), decision: 'approved' }).expect(200);

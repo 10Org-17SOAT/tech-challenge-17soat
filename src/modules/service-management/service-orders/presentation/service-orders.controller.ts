@@ -54,7 +54,16 @@ export class ServiceOrdersController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Lista as OSs (paginado, filtro por status)' })
+  @ApiOperation({
+    summary: 'Lista as OSs (paginado, filtro por status)',
+    description:
+      'Sem filtro, retorna a fila de trabalho ordenada por prioridade de ' +
+      'status (in_execution > awaiting_execution > awaiting_approval > ' +
+      'in_diagnosis > received) e, dentro do mesmo status, das mais antigas ' +
+      'para as mais novas. OSs finished e delivered ficam fora da listagem ' +
+      'padrão, mas seguem acessíveis por GET /service-orders/{id} e pelo ' +
+      'filtro explícito ?status=finished ou ?status=delivered.',
+  })
   @ApiResponse({ status: 200, type: PaginatedServiceOrdersResponseDto })
   async list(
     @Query() query: ListServiceOrdersQueryDto,

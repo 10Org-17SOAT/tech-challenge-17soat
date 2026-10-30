@@ -4,16 +4,16 @@ import { QuotationNotFoundError } from '../domain/errors/quotation-not-found.err
 import { RecipientUnreachableError } from '../domain/errors/recipient-unreachable.error';
 import { Quotation } from '../domain/quotation.entity';
 import {
-  aRecipient,
-  InMemoryQuotationRecipientQuery,
-} from '../__test__/in-memory-quotation-recipient.query';
+  makeRecipient,
+  InMemoryOrderRecipientQuery,
+} from '../../notifications/__test__/in-memory-order-recipient.query';
 import { InMemoryQuotationRepository } from '../__test__/in-memory-quotation.repository';
-import { RecordingEmailSender } from '../__test__/recording-email.sender';
+import { RecordingEmailSender } from '../../notifications/__test__/recording-email.sender';
 import { SendQuotationApprovalEmailUseCase } from './send-quotation-approval-email.usecase';
 
 describe('SendQuotationApprovalEmailUseCase', () => {
   let quotations: InMemoryQuotationRepository;
-  let recipients: InMemoryQuotationRecipientQuery;
+  let recipients: InMemoryOrderRecipientQuery;
   let emails: RecordingEmailSender;
   let useCase: SendQuotationApprovalEmailUseCase;
   let quotation: Quotation;
@@ -26,7 +26,7 @@ describe('SendQuotationApprovalEmailUseCase', () => {
 
   beforeEach(async () => {
     quotations = new InMemoryQuotationRepository();
-    recipients = new InMemoryQuotationRecipientQuery();
+    recipients = new InMemoryOrderRecipientQuery();
     emails = new RecordingEmailSender();
     useCase = new SendQuotationApprovalEmailUseCase(
       quotations,
@@ -48,7 +48,7 @@ describe('SendQuotationApprovalEmailUseCase', () => {
       ],
     });
     await quotations.save(quotation);
-    recipients.set(order.id, aRecipient());
+    recipients.set(order.id, makeRecipient());
   });
 
   it('sends the quotation to the vehicle owner', async () => {
@@ -65,6 +65,15 @@ describe('SendQuotationApprovalEmailUseCase', () => {
 
     expect(emails.lastMessage!.html).toContain('Troca de oleo');
     expect(emails.lastMessage!.html).toContain('99,90');
+  });
+
+  // Notifications skips `awaiting_approval`, so this email is the only one the
+  // customer gets for that status and has to say so.
+  it('doubles as the awaiting_approval status email', async () => {
+    await useCase.execute(quotation.id);
+
+    expect(emails.lastMessage!.html).toContain('Aguardando aprovação');
+    expect(emails.lastMessage!.tag).toBe(`${order.id}--awaiting_approval`);
   });
 
   it('builds the decision links from APP_BASE_URL, not from a request', async () => {
