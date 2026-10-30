@@ -592,7 +592,6 @@ recomeçar do zero, veja [Recomeçar o banco](#resolucao-de-problemas).
 
 | O quê | Id |
 |-------|-----|
-| Cliente — Ana Souza | `22222222-2222-4222-8222-000000000001` |
 | Veículo — Fiat Uno `ABC-1234` (da Ana) | `33333333-3333-4333-8333-000000000001` |
 | Consultora Carla Menezes | `44444444-4444-4444-8444-000000000001` |
 | Serviço — Troca de pastilhas (R$ 150,00) | `88888888-8888-4888-8888-000000000002` |
@@ -621,20 +620,19 @@ autentique com o token do `POST /auth/login` no botão **Authorize**.
 
 ### 3. Recepção — abre a OS em `received`
 
-A recepção abre a OS com o cliente, o veículo e o que o cliente pediu. Cliente
-e veículo vão como referência (`{ "id": ... }`) ou com os dados completos para
-cadastrá-los na hora — um documento ou uma placa já cadastrados são
-reaproveitados. Serviços e peças ficam como **itens solicitados**: o diagnóstico
-confirma ou ajusta o escopo, e só o orçamento aprovado reserva estoque. Se
-qualquer validação falhar, nada é gravado.
+A recepção abre a OS para o veículo, com o que o cliente pediu. Cliente e
+veículo são cadastrados antes (`POST /customers` e `POST /vehicles`) e entram
+aqui pelo id do veículo — o cliente da OS é o dono dele. Serviços e peças ficam
+como **itens solicitados**: o diagnóstico confirma ou ajusta o escopo, e só o
+orçamento aprovado reserva estoque. Se qualquer validação falhar, nada é
+gravado.
 
 ```bash
 OS=$(curl -s -X POST $API/service-orders \
   -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
   -d '{
+    "vehicleId": "33333333-3333-4333-8333-000000000001",
     "openedById": "44444444-4444-4444-8444-000000000001",
-    "customer": { "id": "22222222-2222-4222-8222-000000000001" },
-    "vehicle":  { "id": "33333333-3333-4333-8333-000000000001" },
     "services": [{ "serviceId": "88888888-8888-4888-8888-000000000002", "quantity": 1 }],
     "parts":    [{ "supplyId": "77777777-7777-4777-8777-000000000001", "quantity": 2 }],
     "notes": "Cliente relata barulho ao frear"
@@ -943,7 +941,7 @@ PUT    /services/{id}/supplies                       # Substituir a ficha técni
 #### Ordens de serviço — `ADMIN`
 
 ```
-POST   /service-orders                               # Abrir ordem (cliente, veículo, serviços e peças)
+POST   /service-orders                               # Abrir ordem (veículo, serviços e peças)
 GET    /service-orders                               # Listar ordens
 GET    /service-orders/average-execution-time        # Tempo médio de execução
 GET    /service-orders/{id}                          # Obter ordem
