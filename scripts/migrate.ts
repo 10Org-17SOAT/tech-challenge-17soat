@@ -2,6 +2,8 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { Pool } from 'pg';
 
+import { dbSslSchema } from '../src/shared/config/database/db-ssl';
+
 // Applies the SQL files shipped in the image. Deliberately does not use
 // drizzle-kit: that is a devDependency, absent from the production install.
 const MIGRATIONS_FOLDER =
@@ -22,6 +24,7 @@ async function run(): Promise<void> {
     user: process.env.DB_USER ?? 'postgres',
     password: process.env.DB_PASSWORD ?? 'postgres',
     database: process.env.DB_NAME ?? 'tech_challenge',
+    ssl: dbSslSchema.parse(process.env.DB_SSL),
   });
 
   try {

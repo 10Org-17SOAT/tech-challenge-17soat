@@ -1,17 +1,18 @@
 locals {
-  # Prefixo de nome de recurso: ${local.name_prefix}-<papel>.
-  # Decisão D-04: o ambiente NÃO entra no nome. Ambientes diferentes são
-  # stacks diferentes, e stacks diferentes já têm prefixo próprio via
-  # `var.project_name`. Rótulo é para dado, não é para identidade de recurso.
+  # Resource name prefix: ${local.name_prefix}-<role>.
+  # Decision D-04: the environment is NOT part of the name. Different
+  # environments are different stacks, and different stacks already get their
+  # own prefix through `var.project_name`. Labels are for data, not for
+  # resource identity.
   name_prefix = var.project_name
 
-  # Tags aplicadas pelo `default_tags` do provider, logo valem para TODO
-  # recurso criado em qualquer camada sem que ninguém precise repeti-las.
+  # Tags applied by the provider's `default_tags`, so they reach EVERY resource
+  # created in any layer without anyone repeating them.
   #
-  # A tag `Name` NÃO está aqui de propósito: `default_tags` não interpola, e o
-  # nome de um recurso depende do tipo dele (`${local.name_prefix}-vpc`,
-  # `${local.name_prefix}-ec2`, ...). Quem cria o recurso declara a própria
-  # `Name` no seu arquivo — uma vez, sem duplicar as três de cima.
+  # The `Name` tag is NOT here on purpose: `default_tags` does not interpolate,
+  # and a resource name depends on its type (`${local.name_prefix}-vpc`,
+  # `${local.name_prefix}-ec2`, ...). Whoever creates the resource declares its
+  # own `Name` in their file — once, without repeating the three below.
   common_tags = {
     Project     = var.project_name
     Environment = var.environment
