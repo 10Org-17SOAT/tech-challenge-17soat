@@ -76,13 +76,17 @@ describe('SendQuotationApprovalEmailUseCase', () => {
     expect(emails.lastMessage!.tag).toBe(`${order.id}--awaiting_approval`);
   });
 
-  it('builds the approval link from APP_BASE_URL, not from a request', async () => {
+  it('builds the decision links from APP_BASE_URL, not from a request', async () => {
     await useCase.execute(quotation.id);
 
     const token = emails.tokenFromLastLink();
     expect(token).not.toBeNull();
+    const pageUrl = `https://oficina.example.com/quotations/decision?token=${encodeURIComponent(token!)}`;
     expect(emails.lastMessage!.html).toContain(
-      `https://oficina.example.com/quotations/approve?token=${encodeURIComponent(token!)}`,
+      `${pageUrl}&amp;decision=approved`,
+    );
+    expect(emails.lastMessage!.html).toContain(
+      `${pageUrl}&amp;decision=rejected`,
     );
   });
 

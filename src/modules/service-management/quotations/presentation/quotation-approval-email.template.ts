@@ -20,9 +20,11 @@ import { STATUS_COPY } from '../../notifications/presentation/status-change-emai
 export function renderQuotationApprovalEmail(input: {
   quotation: Quotation;
   recipient: OrderRecipient;
-  approvalUrl: string;
+  // The decision page, token included. Each button adds the answer it
+  // stands for; the page still asks the customer to confirm it.
+  decisionUrl: string;
 }): string {
-  const { quotation, recipient, approvalUrl } = input;
+  const { quotation, recipient, decisionUrl } = input;
   const vehicle = recipient.vehicle;
 
   const rows = quotation.items
@@ -80,10 +82,13 @@ export function renderQuotationApprovalEmail(input: {
           </tr>
         </table>
 
-        <p style="margin:24px 0 8px;">Se estiver de acordo, aprove pelo botão abaixo:</p>
+        <p style="margin:24px 0 8px;">Responda pelos botões abaixo. Você confirma a resposta na página seguinte.</p>
         <p style="margin:0 0 16px;">
-          <a href="${approvalUrl}" style="display:inline-block;background:#0b7;color:#fff;text-decoration:none;padding:12px 24px;border-radius:6px;font-weight:bold;">
+          <a href="${decisionUrl}&amp;decision=approved" style="display:inline-block;background:#0b7;color:#fff;text-decoration:none;padding:12px 24px;border-radius:6px;font-weight:bold;margin:0 8px 8px 0;">
             Aprovar orçamento
+          </a>
+          <a href="${decisionUrl}&amp;decision=rejected" style="display:inline-block;background:#fff;color:#c33;border:1px solid #c33;text-decoration:none;padding:11px 23px;border-radius:6px;font-weight:bold;margin:0 0 8px;">
+            Recusar
           </a>
         </p>
         ${

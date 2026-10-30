@@ -4,11 +4,13 @@ import { InventoryModule } from '../../stock/inventory/inventory.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { ServiceOrdersModule } from '../service-orders/service-orders.module';
 import { ServicesModule } from '../services/services.module';
-import { ApproveQuotationByTokenUseCase } from './application/approve-quotation-by-token.usecase';
 import { ApproveQuotationUseCase } from './application/approve-quotation.usecase';
+import { DecideQuotationByTokenUseCase } from './application/decide-quotation-by-token.usecase';
+import { GetQuotationByTokenUseCase } from './application/get-quotation-by-token.usecase';
 import { GetQuotationUseCase } from './application/get-quotation.usecase';
 import { GetServiceOrderQuotationUseCase } from './application/get-service-order-quotation.usecase';
 import { IssueQuotationUseCase } from './application/issue-quotation.usecase';
+import { RejectQuotationUseCase } from './application/reject-quotation.usecase';
 import { SendQuotationApprovalEmailUseCase } from './application/send-quotation-approval-email.usecase';
 import { PART_CATALOG } from './domain/part-catalog.port';
 import { QUOTATION_REPOSITORY } from './domain/quotation.repository';
@@ -16,7 +18,8 @@ import { DrizzleQuotationRepository } from './infrastructure/persistence/drizzle
 import { StockPartCatalog } from './infrastructure/stock-part-catalog';
 import { SERVICE_ORDER_BILLING_QUERY } from './public/service-order-billing.query';
 import { ServiceOrderBillingQueryImpl } from './public/service-order-billing.query.impl';
-import { QuotationApprovalLinkController } from './presentation/quotation-approval-link.controller';
+import { QuotationDecisionPageController } from './presentation/quotation-decision-page.controller';
+import { QuotationDecisionController } from './presentation/quotation-decision.controller';
 import { QuotationsController } from './presentation/quotations.controller';
 import { ServiceOrderQuotationController } from './presentation/service-order-quotation.controller';
 
@@ -32,12 +35,13 @@ import { ServiceOrderQuotationController } from './presentation/service-order-qu
     // to reach them belong to notifications, which also emails status changes.
     NotificationsModule,
   ],
-  // QuotationApprovalLinkController comes first on purpose: it owns
-  // `GET /quotations/approve`, and Nest matches in registration order, so
-  // `GET /quotations/:id` would otherwise swallow it and answer a JSON 400
-  // about "approve" not being a UUID.
+  // QuotationDecisionPageController comes first on purpose: it owns
+  // `GET /quotations/approve` and `GET /quotations/decision`, and Nest matches
+  // in registration order, so `GET /quotations/:id` would otherwise swallow
+  // them and answer a JSON 400 about the segment not being a UUID.
   controllers: [
-    QuotationApprovalLinkController,
+    QuotationDecisionPageController,
+    QuotationDecisionController,
     QuotationsController,
     ServiceOrderQuotationController,
   ],
@@ -46,7 +50,9 @@ import { ServiceOrderQuotationController } from './presentation/service-order-qu
     { provide: PART_CATALOG, useClass: StockPartCatalog },
     IssueQuotationUseCase,
     ApproveQuotationUseCase,
-    ApproveQuotationByTokenUseCase,
+    RejectQuotationUseCase,
+    GetQuotationByTokenUseCase,
+    DecideQuotationByTokenUseCase,
     SendQuotationApprovalEmailUseCase,
     GetQuotationUseCase,
     GetServiceOrderQuotationUseCase,

@@ -19,17 +19,20 @@ export type ServiceOrderStatus = (typeof ORDER_STATUSES)[number];
 
 const STATUS_TRANSITIONS: Record<
   ServiceOrderStatus,
-  ServiceOrderStatus | null
+  readonly ServiceOrderStatus[]
 > = {
-  received: 'in_diagnosis',
-  in_diagnosis: 'awaiting_approval',
-  awaiting_approval: 'awaiting_execution',
-  awaiting_execution: 'in_execution',
-  in_execution: 'finished',
+  received: ['in_diagnosis'],
+  in_diagnosis: ['awaiting_approval'],
+  // The customer answers the quotation either way. Rejecting sends the order
+  // back to diagnosis, where completing it again issues a fresh quotation —
+  // the only step of the lifecycle that goes backwards.
+  awaiting_approval: ['awaiting_execution', 'in_diagnosis'],
+  awaiting_execution: ['in_execution'],
+  in_execution: ['finished'],
   // Payment is what closes an order: the payment context publishes
   // `payment.received` and this is the transition its handler drives.
-  finished: 'delivered',
-  delivered: null,
+  finished: ['delivered'],
+  delivered: [],
 };
 
 // The shop's work queue, most urgent first: the default listing shows only
@@ -159,8 +162,7 @@ export class ServiceOrder {
   }
 
   transitionTo(next: ServiceOrderStatus): void {
-    const expected = STATUS_TRANSITIONS[this.props.status];
-    if (expected !== next) {
+    if (!STATUS_TRANSITIONS[this.props.status].includes(next)) {
       throw new InvalidServiceOrderTransitionError(this.props.status, next);
     }
 

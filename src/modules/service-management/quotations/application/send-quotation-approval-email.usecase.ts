@@ -60,13 +60,13 @@ export class SendQuotationApprovalEmailUseCase {
     await this.quotationRepository.save(quotation);
 
     const baseUrl = this.config.getOrThrow<string>('APP_BASE_URL');
-    const approvalUrl = `${stripTrailingSlashes(baseUrl)}/quotations/approve?token=${encodeURIComponent(rawToken)}`;
+    const decisionUrl = `${stripTrailingSlashes(baseUrl)}/quotations/decision?token=${encodeURIComponent(rawToken)}`;
 
     await this.emailSender.send({
       to: recipient.email,
       toName: recipient.name,
       subject: `Orçamento do seu ${recipient.vehicle.manufacturer} ${recipient.vehicle.model} (${recipient.vehicle.licensePlate})`,
-      html: renderQuotationApprovalEmail({ quotation, recipient, approvalUrl }),
+      html: renderQuotationApprovalEmail({ quotation, recipient, decisionUrl }),
       tag: `${quotation.serviceOrderId}--awaiting_approval`,
     });
 

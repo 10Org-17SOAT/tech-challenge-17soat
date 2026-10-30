@@ -4,23 +4,19 @@ import type { DomainEventPublisher } from '../../../../shared/domain/events/doma
 import { ServiceOrderNotFoundError } from '../../service-orders/domain/errors/service-order-not-found.error';
 import { SERVICE_ORDER_REPOSITORY } from '../../service-orders/domain/service-order.repository';
 import type { ServiceOrderRepository } from '../../service-orders/domain/service-order.repository';
-import { InvalidApprovalTokenError } from '../domain/errors/invalid-approval-token.error';
-import { QuotationApproved } from '../domain/events/quotation-approved.event';
+import { QuotationNotFoundError } from '../domain/errors/quotation-not-found.error';
+import { QuotationRejected } from '../domain/events/quotation-rejected.event';
 import { Quotation } from '../domain/quotation.entity';
 import { QUOTATION_REPOSITORY } from '../domain/quotation.repository';
 import type { QuotationRepository } from '../domain/quotation.repository';
 
 /**
- * The customer approving from the email link.
- *
- * Same two writes as ApproveQuotationUseCase and in the same order — the
- * quotation first, the order's status last — so a failure between them leaves
- * the order in a valid earlier state rather than a lying one. It publishes
- * the same `QuotationApproved` too: stock must reserve the parts whether the
- * customer clicked in the panel or in the email.
+ * The customer turning the price down. The mirror of ApproveQuotationUseCase:
+ * the same two aggregates, mutated in memory first and written in the same
+ * order, with the order sent back to `in_diagnosis` instead of forward.
  */
 @Injectable()
-export class ApproveQuotationByTokenUseCase {
+export class RejectQuotationUseCase {
   constructor(
     @Inject(QUOTATION_REPOSITORY)
     private readonly quotationRepository: QuotationRepository,
@@ -30,14 +26,13 @@ export class ApproveQuotationByTokenUseCase {
     private readonly eventPublisher: DomainEventPublisher,
   ) {}
 
-  async execute(rawToken: string): Promise<Quotation> {
-    // Hashed here: the raw token never reaches a query, and an unknown token
-    // is indistinguishable from a wrong one.
-    const hash = Quotation.hashApprovalToken(rawToken);
-    const quotation =
-      await this.quotationRepository.findByApprovalTokenHash(hash);
+  async execute(
+    quotationId: string,
+    reason?: string | null,
+  ): Promise<Quotation> {
+    const quotation = await this.quotationRepository.findById(quotationId);
     if (!quotation) {
-      throw new InvalidApprovalTokenError();
+      throw new QuotationNotFoundError(quotationId);
     }
 
     const order = await this.orderRepository.findById(quotation.serviceOrderId);
@@ -45,17 +40,22 @@ export class ApproveQuotationByTokenUseCase {
       throw new ServiceOrderNotFoundError(quotation.serviceOrderId);
     }
 
-    // Both aggregates are mutated in memory first: an expired token, an
-    // already-approved quotation or an order that is not awaiting approval all
-    // throw here, before anything has been written.
-    quotation.approveWithToken(rawToken);
-    order.transitionTo('awaiting_execution');
+    // An already-decided quotation, a reason over the limit or an order that
+    // is not awaiting approval all throw here, before anything is written.
+    quotation.reject(reason);
+    order.transitionTo('in_diagnosis');
 
     await this.quotationRepository.save(quotation);
     await this.orderRepository.save(order);
 
+    // Only once both writes landed: a listener must never hear about a
+    // rejection that a failed save then took back.
     this.eventPublisher.publish(
-      new QuotationApproved(quotation.id, order.id, quotation.partLines),
+      new QuotationRejected(
+        quotation.id,
+        quotation.serviceOrderId,
+        quotation.rejectionReason,
+      ),
     );
 
     return quotation;

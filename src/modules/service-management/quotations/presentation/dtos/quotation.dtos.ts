@@ -1,13 +1,17 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
-import { Quotation } from '../../domain/quotation.entity';
 import {
-  quotationItemKindEnum,
-  quotationStatusEnum,
-} from '../../infrastructure/persistence/schema';
+  Quotation,
+  QUOTATION_DECISIONS,
+  QUOTATION_ITEM_KINDS,
+  QUOTATION_STATUSES,
+  REJECTION_REASON_MAX_LENGTH,
+} from '../../domain/quotation.entity';
 
-const quotationStatusValues = quotationStatusEnum.enumValues;
-const quotationItemKindValues = quotationItemKindEnum.enumValues;
+// From the domain, like the schema's pgEnums: presentation never reaches into
+// infrastructure, and both stay in step through the same constants.
+const quotationStatusValues = QUOTATION_STATUSES;
+const quotationItemKindValues = QUOTATION_ITEM_KINDS;
 
 export const quotationIdParamSchema = z.object({ id: z.uuid() });
 
@@ -37,6 +41,8 @@ export const quotationResponseSchema = z.object({
   totalInCents: z.number().int(),
   issuedAt: z.iso.datetime(),
   approvedAt: z.iso.datetime().nullable(),
+  rejectedAt: z.iso.datetime().nullable(),
+  rejectionReason: z.string().nullable(),
   // Null on a quotation whose approval email never went out — sending is
   // best-effort and only logs on failure, so this is how the miss is noticed.
   approvalEmailSentAt: z.iso.datetime().nullable(),
@@ -46,6 +52,20 @@ export const quotationResponseSchema = z.object({
 
 export class QuotationResponseDto extends createZodDto(
   quotationResponseSchema,
+) {}
+
+export const quotationDecisionSchema = z.object({
+  token: z.string().min(1).describe('O token do link enviado por email'),
+  decision: z.enum(QUOTATION_DECISIONS),
+  reason: z
+    .string()
+    .max(REJECTION_REASON_MAX_LENGTH)
+    .optional()
+    .describe('Motivo da recusa. Ignorado na aprovação.'),
+});
+
+export class QuotationDecisionDto extends createZodDto(
+  quotationDecisionSchema,
 ) {}
 
 export function toQuotationResponse(
@@ -67,6 +87,8 @@ export function toQuotationResponse(
     totalInCents: quotation.totalInCents,
     issuedAt: quotation.issuedAt.toISOString(),
     approvedAt: quotation.approvedAt?.toISOString() ?? null,
+    rejectedAt: quotation.rejectedAt?.toISOString() ?? null,
+    rejectionReason: quotation.rejectionReason,
     approvalEmailSentAt: quotation.approvalEmailSentAt?.toISOString() ?? null,
     createdAt: quotation.createdAt.toISOString(),
     updatedAt: quotation.updatedAt.toISOString(),
