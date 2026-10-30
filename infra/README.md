@@ -132,7 +132,9 @@ A fundação **declara** os parâmetros de rede; a camada de rede **cria** os re
 | Item | Onde |
 |---|---|
 | `vpc_cidr`, `public_subnet_cidr`, `availability_zone` | `variables.tf` (parâmetro) |
+| `private_subnet_cidrs` | `database.tf` (parâmetro da camada de banco) |
 | VPC, subnet pública, IGW, rota padrão, NAT gateway, Security Groups | `network.tf`, `security.tf` |
+| Subnets privadas do banco, tabela de rotas e subnet group | `database.tf` |
 
 Regras de contenção já validadas por `variables.tf`:
 
