@@ -185,7 +185,7 @@ resource "aws_security_group" "db" {
   }
 }
 
-resource "aws_vpc_security_group_ingress_rule" "db_from_k3s_node" {
+resource "aws_vpc_security_group_ingress_rule" "db_from_k3s" {
   security_group_id            = aws_security_group.db.id
   referenced_security_group_id = aws_security_group.k3s.id
   ip_protocol                  = "tcp"
