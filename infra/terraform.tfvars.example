@@ -31,6 +31,10 @@ k8s_namespace = "tech-challenge-soat"
 vpc_cidr          = "10.0.0.0/16"
 public_subnet_cidr = "10.0.1.0/24"
 
+# Subnets privadas do banco (database.tf): duas, uma por AZ, dentro de vpc_cidr
+# e sem repetir public_subnet_cidr.
+private_subnet_cidrs = ["10.0.11.0/24", "10.0.12.0/24"]
+
 # availability_zone = "sa-east-1a"
 
 # --- Cálculo -------------------------------------------------------------
@@ -39,6 +43,19 @@ instance_type  = "t4g.medium"
 root_volume_size = 20
 ami_owner      = "099720109477"
 ami_name_filter = "ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-arm64-server-*"
+
+# --- Banco de dados (RDS) -----------------------------------------------
+
+db_engine_version        = "16"
+db_instance_class        = "db.t4g.micro"
+db_allocated_storage     = 20
+db_name                  = "tech_challenge"
+db_username              = "postgres"
+db_backup_retention_days = 7
+
+# Mude para false, rode apply e só então destroy (README, seção 13).
+db_deletion_protection = true
+# db_apply_immediately = true
 
 # --- Acesso à VM ---------------------------------------------------------
 
