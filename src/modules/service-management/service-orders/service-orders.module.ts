@@ -3,7 +3,7 @@ import { DatabaseModule } from '../../../shared/config/database/database.module'
 import { ConsultantModule } from '../../onboarding/consultant/consultant.module';
 import { CustomerModule } from '../../onboarding/customer/customer.module';
 import { VehicleManagementModule } from '../../onboarding/vehicles/vehicle-management.module';
-import { StockModule } from '../../stock/stock.module';
+import { InventoryModule } from '../../stock/inventory/inventory.module';
 import { ServicesModule } from '../services/services.module';
 import { CreateServiceOrderUseCase } from './application/create-service-order.usecase';
 import { DeleteServiceOrderUseCase } from './application/delete-service-order.usecase';
@@ -28,7 +28,7 @@ import { ServiceOrdersController } from './presentation/service-orders.controlle
   // VehicleManagementModule exports VEHICLE_CATALOG_QUERY, used to reject an
   // order opened for a vehicle that does not exist. ConsultantModule exports
   // only CONSULTANT_DIRECTORY_QUERY, used the same way to resolve and
-  // validate the consultant opening the order. ServicesModule and StockModule
+  // validate the consultant opening the order. ServicesModule and InventoryModule
   // check the requested services and parts against the catalogue and stock.
   imports: [
     DatabaseModule,
@@ -38,7 +38,7 @@ import { ServiceOrdersController } from './presentation/service-orders.controlle
     // requesting account is how order ownership is proved.
     CustomerModule,
     ServicesModule,
-    StockModule,
+    InventoryModule,
   ],
   controllers: [ServiceOrdersController],
   providers: [

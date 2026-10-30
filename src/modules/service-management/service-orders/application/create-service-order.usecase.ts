@@ -3,8 +3,8 @@ import { CONSULTANT_DIRECTORY_QUERY } from '../../../onboarding/consultant/publi
 import type { ConsultantDirectoryQuery } from '../../../onboarding/consultant/public/consultant-directory.query';
 import { VEHICLE_CATALOG_QUERY } from '../../../onboarding/vehicles/public/vehicle-catalog.query';
 import type { VehicleCatalogQuery } from '../../../onboarding/vehicles/public/vehicle-catalog.query';
-import { SUPPLY_CATALOG_QUERY } from '../../../stock/public/supply-catalog.query';
-import type { SupplyCatalogQuery } from '../../../stock/public/supply-catalog.query';
+import { SUPPLY_CATALOG_QUERY } from '../../../stock/inventory/public/supply-catalog.query';
+import type { SupplyCatalogQuery } from '../../../stock/inventory/public/supply-catalog.query';
 import { SERVICE_REPOSITORY } from '../../services/domain/service.repository';
 import type { ServiceRepository } from '../../services/domain/service.repository';
 import { ConsultantNotFoundForServiceOrderError } from '../domain/errors/consultant-not-found-for-service-order.error';

@@ -61,7 +61,14 @@ describe('Stock automation (e2e)', () => {
     vehicleId = (await givenOwnedVehicle(app.getHttpServer(), token)).vehicleId;
     openedById = await givenConsultant(app.getHttpServer(), token);
 
-    const stockKeeperUserId = (await givenUser(app.getHttpServer(), token)).id;
+    const stockKeeperUserId = (
+      await givenUser(
+        app.getHttpServer(),
+        token,
+        undefined,
+        UserRole.STOCK_KEEPER,
+      )
+    ).id;
     stockKeeperId = await http()
       .post('/stock-keepers')
       .send({

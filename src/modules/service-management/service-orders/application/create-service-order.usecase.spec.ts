@@ -3,7 +3,7 @@ import { InMemoryVehicleCatalogQuery } from '../../../onboarding/vehicles/__test
 import type {
   SupplyCatalogQuery,
   SupplyView,
-} from '../../../stock/public/supply-catalog.query';
+} from '../../../stock/inventory/public/supply-catalog.query';
 import { InMemoryServiceRepository } from '../../services/__test__/in-memory-service.repository';
 import { Service } from '../../services/domain/service.entity';
 import { InMemoryServiceOrderRepository } from '../__test__/in-memory-service-order.repository';
