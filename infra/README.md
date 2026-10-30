@@ -357,11 +357,11 @@ Todas retornaram exit ≠ 0 com a mensagem esperada:
 
 | Entrada inválida | Mensagem disparada |
 |---|---|
-| `k8s_namespace=INVALID_Namespace` | `k8s_namespace` deve ser um label DNS-1123 válido |
-| `vpc_cidr=nao-e-cidr` | `vpc_cidr` deve ser um CIDR IPv4 válido |
-| `public_subnet_cidr=192.168.5.0/24` | `public_subnet_cidr` deve estar contido em `vpc_cidr` |
-| `environment=producao` | `environment` deve ser development, staging ou production |
-| `allowed_account_ids=["123"]` | cada entrada deve ter exatamente 12 dígitos |
+| `k8s_namespace=INVALID_Namespace` | `k8s_namespace must be a valid DNS-1123 label` |
+| `vpc_cidr=nao-e-cidr` | `vpc_cidr must be a valid IPv4 CIDR` |
+| `public_subnet_cidr=192.168.5.0/24` | `public_subnet_cidr must be contained in vpc_cidr` |
+| `environment=producao` | `environment must be development, staging or production` |
+| `allowed_account_ids=["123"]` | `Each allowed_account_ids entry must be an AWS account ID with exactly 12 digits` |
 
 ---
 

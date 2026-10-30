@@ -1,62 +1,62 @@
 # ---------------------------------------------------------------------------
-# Contrato de saída para ferramentas externas ao Terraform.
-# Sem resource e sem data source, nenhum output pode vazar valor sensível.
+# Output contract for tools outside Terraform.
+# Without resources or data sources, no output can leak a sensitive value.
 # ---------------------------------------------------------------------------
 #
-# Estes outputs existem para o CI, para o time consumir
-# `terraform output` sem ler arquivos. Eles NÃO são o canal de comunicação
-# leem o estado direto, por `var.` e `local.`.
+# These outputs exist for CI and for the team to consume `terraform output`
+# without reading files. They are NOT the communication channel between
+# layers: layers read the state directly, through `var.` and `local.`.
 
 
 output "project_name" {
-  description = "Prefixo de nome de recurso em uso, derivado de var.project_name. Deve-se usar este valor em vez de repetir o literal."
+  description = "Resource name prefix in use, derived from var.project_name. Use this value instead of repeating the literal."
   value       = var.project_name
 }
 
 output "environment" {
-  description = "Ambiente lógico em uso. Usado como tag, não como parte do nome de recurso."
+  description = "Logical environment in use. Used as a tag, not as part of resource names."
   value       = var.environment
 }
 
 output "aws_region" {
-  description = "Região AWS em uso. Usado para montar ARNs e para decidir o endpoint da API."
+  description = "AWS region in use. Used to build ARNs and to pick the API endpoint."
   value       = var.aws_region
 }
 
 output "k8s_namespace" {
-  description = "Namespace Kubernetes reservado para a aplicação. Este output apenas declara a intenção."
+  description = "Kubernetes namespace reserved for the application. This output only declares the intent."
   value       = var.k8s_namespace
 }
 
 output "vpc_cidr" {
-  description = "CIDR da VPC reservado para a camada de rede. Declarado aqui para que não precise de um default próprio."
+  description = "VPC CIDR reserved for the network layer. Declared here so it does not need its own default."
   value       = var.vpc_cidr
 }
 
 output "public_subnet_cidr" {
-  description = "CIDR da subnet pública reservado para a camada de rede, onde fica a VM de execução."
+  description = "Public subnet CIDR reserved for the network layer, where the runtime VM lives."
   value       = var.public_subnet_cidr
 }
 
-# --- Cluster K3s -------------------------------------------------------------
+# --- K3s cluster -------------------------------------------------------------
 
 output "k3s_public_ip" {
-  description = "IP fixo (EIP) da VM do K3s."
+  description = "Static IP (EIP) of the K3s VM."
   value       = aws_eip.k3s.public_ip
 }
 
 output "api_url" {
-  description = "URL pública da aplicação, servida pelo NodePort de local.ingress_ports.app_api (security.tf). Responde só depois que os manifests de k8s/base forem aplicados."
+  description = "Public URL of the application, served by the local.ingress_ports.app_api NodePort (security.tf). Only responds after the k8s/base manifests are applied."
   value       = "http://${aws_eip.k3s.public_ip}:${local.ingress_ports.app_api}"
 }
 
 output "ssh_command" {
-  description = "Comando para entrar na VM com a chave privada correspondente a ssh_public_key."
+  description = "Command to log into the VM with the private key matching ssh_public_key."
   value       = "ssh ubuntu@${aws_eip.k3s.public_ip}"
 }
 
 output "kubeconfig_command" {
-  description = "Copia o kubeconfig do K3s para ./kubeconfig trocando o endereço interno pelo IP público. Rodar alguns minutos após o apply (o K3s instala no primeiro boot). O sed roda na VM, sem pipe, e grava num temporário: se o K3s ainda não estiver pronto o comando falha e um ./kubeconfig existente não é sobrescrito."
+  description = "Copies the K3s kubeconfig to ./kubeconfig, replacing the internal address with the public IP. Run it a few minutes after the apply (K3s installs on first boot). The sed runs on the VM, without a pipe, and writes to a temporary file: if K3s is not ready yet the command fails and an existing ./kubeconfig is not overwritten."
   value       = "ssh ubuntu@${aws_eip.k3s.public_ip} \"sudo sed 's/127.0.0.1/${aws_eip.k3s.public_ip}/' /etc/rancher/k3s/k3s.yaml\" > kubeconfig.tmp && mv kubeconfig.tmp kubeconfig"
 }
 

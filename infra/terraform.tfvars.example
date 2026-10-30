@@ -1,50 +1,50 @@
 # ---------------------------------------------------------------------------
-# Valores compartilhados de exemplo — NÃO contém segredos.
-# Copie para terraform.tfvars (ignorado pelo Git) e ajuste para sua conta.
-# Regra: nunca versionar terraform.tfvars; este .example é seguro e é versionado.
+# Example shared values — contains NO secrets.
+# Copy to terraform.tfvars (ignored by Git) and adjust for your account.
+# Rule: never commit terraform.tfvars; this .example is safe and committed.
 # ---------------------------------------------------------------------------
 #
-# Uso:
+# Usage:
 #   cp terraform.tfvars.example terraform.tfvars
 #   $EDITOR terraform.tfvars
 
 
-# --- Integração AWS -------------------------------------------------------
+# --- AWS integration -----------------------------------------------------
 
 aws_region = "us-east-1"
 
-# Guard de conta. DESCUBRA o seu com `aws sts get-caller-identity` e preencha:
+# Account guard. FIND yours with `aws sts get-caller-identity` and fill it in:
 #   allowed_account_ids = ["000000000000"]
 allowed_account_ids = []
 
-# --- Identidade e ambiente -----------------------------------------------
+# --- Identity and environment --------------------------------------------
 
 project_name = "tech-challenge-soat"
 environment  = "production"
 
-# --- Kubernetes  ---------------------------------------------------------
+# --- Kubernetes ----------------------------------------------------------
 
 k8s_namespace = "tech-challenge-soat"
 
-# --- Rede  ---------------------------------------------------------------
+# --- Network -------------------------------------------------------------
 
-vpc_cidr          = "10.0.0.0/16"
+vpc_cidr           = "10.0.0.0/16"
 public_subnet_cidr = "10.0.1.0/24"
 
-# Subnets privadas do banco (database.tf): duas, uma por AZ, dentro de vpc_cidr
-# e sem repetir public_subnet_cidr.
+# Private database subnets (database.tf): two, one per AZ, inside vpc_cidr and
+# not reusing public_subnet_cidr.
 private_subnet_cidrs = ["10.0.11.0/24", "10.0.12.0/24"]
 
 # availability_zone = "sa-east-1a"
 
-# --- Cálculo -------------------------------------------------------------
+# --- Compute -------------------------------------------------------------
 
-instance_type  = "t4g.medium"
+instance_type    = "t4g.medium"
 root_volume_size = 20
-ami_owner      = "099720109477"
-ami_name_filter = "ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-arm64-server-*"
+ami_owner        = "099720109477"
+ami_name_filter  = "ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-arm64-server-*"
 
-# --- Banco de dados (RDS) -----------------------------------------------
+# --- Database (RDS) ------------------------------------------------------
 
 db_engine_version        = "16"
 db_instance_class        = "db.t4g.micro"
@@ -53,18 +53,18 @@ db_name                  = "tech_challenge"
 db_username              = "postgres"
 db_backup_retention_days = 7
 
-# Mude para false, rode apply e só então destroy (README, seção 13).
+# Set to false, run apply and only then destroy (README, section 13).
 db_deletion_protection = true
 # db_apply_immediately = true
 
-# --- Acesso à VM ---------------------------------------------------------
+# --- VM access -----------------------------------------------------------
 
-# OBRIGATÓRIO. Conteúdo da SUA chave pública (não a privada): é a única forma
-# de entrar na VM e copiar o kubeconfig. Trocar depois recria a VM. Gere com
-# `ssh-keygen -t ed25519` se ainda não tiver.
-#   ssh_public_key = "ssh-ed25519 AAAA... voce@maquina"
+# REQUIRED. Content of YOUR public key (not the private one): it is the only
+# way into the VM to copy the kubeconfig. Changing it later recreates the VM.
+# Generate one with `ssh-keygen -t ed25519` if you do not have it yet.
+#   ssh_public_key = "ssh-ed25519 AAAA... you@machine"
 
-# --- Operação -------------------------------------------------------------
+# --- Operations ----------------------------------------------------------
 
 # k3s_version = "v1.31.5+k3s1"
-# domain       = "api.exemplo.com.br"
+# domain      = "api.example.com"
