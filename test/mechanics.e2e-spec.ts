@@ -1,5 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { httpAs, tokenFor } from './fixtures';
 import { App } from 'supertest/types';
@@ -169,7 +170,9 @@ describe('Mechanics (e2e)', () => {
     it('rejects a duplicate active CPF with 409', async () => {
       await seedMechanic();
 
-      const res = await http().post('/mechanics').send(createPayload());
+      const res = await http()
+        .post('/mechanics')
+        .send(createPayload({ userId: randomUUID() }));
 
       expect(res.status).toBe(409);
     });
@@ -203,7 +206,10 @@ describe('Mechanics (e2e)', () => {
   describe('GET /mechanics', () => {
     it('returns a paginated list', async () => {
       await seedMechanic();
-      await seedMechanic({ cpf: validCpf('529982247') });
+      await seedMechanic({
+        userId: randomUUID(),
+        cpf: validCpf('529982247'),
+      });
 
       const res = await http().get('/mechanics?page=1&limit=10');
 
@@ -219,6 +225,7 @@ describe('Mechanics (e2e)', () => {
     it('filters by name, specialty, and availability', async () => {
       await seedMechanic();
       const electrical = await seedMechanic({
+        userId: randomUUID(),
         cpf: validCpf('529982247'),
         specialties: ['electrical'],
       });

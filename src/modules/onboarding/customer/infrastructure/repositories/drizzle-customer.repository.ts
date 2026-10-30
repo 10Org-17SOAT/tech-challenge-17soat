@@ -1,18 +1,33 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, count, eq, ilike, isNull } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  count,
+  eq,
+  ilike,
+  isNotNull,
+  isNull,
+  sql,
+} from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../../../../../shared/config/database/database.constants';
 import type { DrizzleDatabase } from '../../../../../shared/config/database/drizzle.provider';
+import { UserRole } from '../../../../auth/roles/role.enum';
+import { users } from '../../../../auth/infrastructure/persistence/schema';
 import { Customer } from '../../domain/customer.entity';
 import {
   type CustomerRepository,
   type FindAllParams,
   type PaginatedResult,
 } from '../../domain/repository/customer.repository';
-import { DuplicateDocumentException } from '../../domain/exceptions/customer.exceptions';
-import { customersTable } from '../persistence/customer.schema';
+import {
+  DuplicateDocumentException,
+  DuplicateEmailException,
+} from '../../domain/exceptions/customer.exceptions';
 import { CustomerMapper } from '../mappers/customer.mapper';
 
 const PG_UNIQUE_VIOLATION = '23505';
+const DOCUMENT_UNIQUE_INDEX = 'users_document_active_unique';
+const EMAIL_UNIQUE_INDEX = 'users_email_active_unique';
 
 @Injectable()
 export class DrizzleCustomerRepository implements CustomerRepository {
@@ -25,13 +40,34 @@ export class DrizzleCustomerRepository implements CustomerRepository {
     const row = CustomerMapper.toPersistence(customer);
 
     try {
-      await this.db
-        .insert(customersTable)
-        .values(row)
-        .onConflictDoUpdate({ target: customersTable.id, set: row });
+      const [updated] = await this.db
+        .update(users)
+        .set({
+          name: row.name,
+          email: row.email,
+          document: row.document,
+          phone: row.phone,
+          attributes: row.attributes,
+          updated_at: row.updated_at,
+          deleted_at: row.deleted_at,
+        })
+        .where(
+          and(
+            eq(users.user_id, row.user_id),
+            eq(users.role_id, UserRole.CUSTOMER),
+          ),
+        )
+        .returning({ id: users.user_id });
+      if (!updated) {
+        throw new Error('Customer user does not exist or has another role.');
+      }
     } catch (error) {
-      if (isUniqueViolation(error)) {
+      const constraint = uniqueViolationConstraint(error);
+      if (constraint === DOCUMENT_UNIQUE_INDEX) {
         throw new DuplicateDocumentException(row.document, { cause: error });
+      }
+      if (constraint === EMAIL_UNIQUE_INDEX) {
+        throw new DuplicateEmailException(row.email, { cause: error });
       }
       throw error;
     }
@@ -42,8 +78,15 @@ export class DrizzleCustomerRepository implements CustomerRepository {
   async findById(id: string): Promise<Customer | null> {
     const rows = await this.db
       .select()
-      .from(customersTable)
-      .where(and(eq(customersTable.id, id), isNull(customersTable.deletedAt)))
+      .from(users)
+      .where(
+        and(
+          eq(users.user_id, id),
+          eq(users.role_id, UserRole.CUSTOMER),
+          isNull(users.deleted_at),
+          isNotNull(users.document),
+        ),
+      )
       .limit(1);
 
     return rows[0] ? CustomerMapper.toDomain(rows[0]) : null;
@@ -52,11 +95,12 @@ export class DrizzleCustomerRepository implements CustomerRepository {
   async findByDocument(document: string): Promise<Customer | null> {
     const rows = await this.db
       .select()
-      .from(customersTable)
+      .from(users)
       .where(
         and(
-          eq(customersTable.document, document),
-          isNull(customersTable.deletedAt),
+          eq(users.document, document),
+          eq(users.role_id, UserRole.CUSTOMER),
+          isNull(users.deleted_at),
         ),
       )
       .limit(1);
@@ -66,19 +110,31 @@ export class DrizzleCustomerRepository implements CustomerRepository {
 
   async findAll(params: FindAllParams): Promise<PaginatedResult<Customer>> {
     const { page, limit, filters } = params;
-    const conditions = [isNull(customersTable.deletedAt)];
+    const conditions = [
+      eq(users.role_id, UserRole.CUSTOMER),
+      isNull(users.deleted_at),
+      // Skips users created with this role whose profile was not filled yet.
+      isNotNull(users.document),
+    ];
 
     if (filters?.personType) {
-      conditions.push(eq(customersTable.personType, filters.personType));
+      conditions.push(
+        sql`${users.attributes}->>'personType' = ${filters.personType}`,
+      );
     }
     if (filters?.name) {
-      conditions.push(ilike(customersTable.name, `%${filters.name}%`));
+      conditions.push(
+        ilike(
+          sql`coalesce(${users.attributes}->>'tradeName', ${users.attributes}->>'corporateName', ${users.name})`,
+          `%${filters.name}%`,
+        ),
+      );
     }
     if (filters?.document) {
-      conditions.push(eq(customersTable.document, filters.document));
+      conditions.push(eq(users.document, filters.document));
     }
     if (filters?.email) {
-      conditions.push(eq(customersTable.email, filters.email));
+      conditions.push(eq(users.email, filters.email));
     }
 
     const where = and(...conditions);
@@ -86,12 +142,12 @@ export class DrizzleCustomerRepository implements CustomerRepository {
     const [rows, countRows] = await Promise.all([
       this.db
         .select()
-        .from(customersTable)
+        .from(users)
         .where(where)
-        .orderBy(asc(customersTable.createdAt), asc(customersTable.id))
+        .orderBy(asc(users.created_at), asc(users.user_id))
         .limit(limit)
         .offset((page - 1) * limit),
-      this.db.select({ total: count() }).from(customersTable).where(where),
+      this.db.select({ total: count() }).from(users).where(where),
     ]);
 
     const total = countRows[0]?.total ?? 0;
@@ -107,18 +163,31 @@ export class DrizzleCustomerRepository implements CustomerRepository {
 
   async delete(id: string): Promise<void> {
     await this.db
-      .update(customersTable)
-      .set({ deletedAt: new Date(), updatedAt: new Date() })
-      .where(and(eq(customersTable.id, id), isNull(customersTable.deletedAt)));
+      .update(users)
+      .set({ deleted_at: new Date(), updated_at: new Date() })
+      .where(
+        and(
+          eq(users.user_id, id),
+          eq(users.role_id, UserRole.CUSTOMER),
+          isNull(users.deleted_at),
+        ),
+      );
   }
 }
 
-function isUniqueViolation(error: unknown): boolean {
+function uniqueViolationConstraint(error: unknown): string | undefined {
   if (typeof error !== 'object' || error === null) {
-    return false;
+    return undefined;
   }
-  const candidate = error as { code?: unknown; cause?: unknown };
-  return (
-    candidate.code === PG_UNIQUE_VIOLATION || isUniqueViolation(candidate.cause)
-  );
+  const candidate = error as {
+    code?: unknown;
+    constraint?: unknown;
+    cause?: unknown;
+  };
+  if (candidate.code === PG_UNIQUE_VIOLATION) {
+    return typeof candidate.constraint === 'string'
+      ? candidate.constraint
+      : undefined;
+  }
+  return uniqueViolationConstraint(candidate.cause);
 }

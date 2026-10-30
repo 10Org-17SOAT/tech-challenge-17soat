@@ -1,50 +1,49 @@
 # ---------------------------------------------------------------------------
-# Terraform — higiene de artefatos locais.
+# Terraform — local artifact hygiene.
 #
-# Este arquivo existe para que a fundação de infra jamais vaza estado, plugin
-# ou valor real para o Git. O estado do Terraform guarda segredos em
-# PLAINTEXT mesmo quando um output é marcado como `sensitive`, portanto ele
-# nunca é versionado.
+# This file exists so the infra foundation never leaks state, plugins or real
+# values into Git. The Terraform state stores secrets in PLAINTEXT even when an
+# output is marked `sensitive`, so it is never committed.
 #
-# O que NÃO entra aqui, e por quê:
-#   - *.tf              → é a infraestrutura, versionada de propósito
-#   - .terraform.lock.hcl → trava as versões resolvidas dos providers
-#   - terraform.tfvars.example → contrato de valores, seguro e versionado
+# What does NOT go here, and why:
+#   - *.tf              → the infrastructure itself, committed on purpose
+#   - .terraform.lock.hcl → pins the resolved provider versions
+#   - terraform.tfvars.example → value contract, safe and committed
 # ---------------------------------------------------------------------------
 
-# Diretório de plugins e módulos baixados por `terraform init`.
+# Plugins and modules downloaded by `terraform init`.
 .terraform/
 .terraform.tfstate.lock.info
 
-# Estado local. `.backup` e cópias são igualmente perigosos.
+# Local state. `.backup` files and copies are just as dangerous.
 *.tfstate
 *.tfstate.*
 *.tfstate.backup
 
-# Logs de crash do provider (credenciais podem aparecer no stack trace).
+# Provider crash logs (credentials may show up in the stack trace).
 crash.log
 crash.*.log
 
-# Valores reais da conta: podem conter identificadores de conta e região.
+# Real account values: may contain account identifiers and region.
 *.auto.tfvars
 terraform.tfvars
 *.auto.tfvars.json
 terraform.tfvars.json
 
-# Overrides locais quebram o estado justamente porque não são versionados.
+# Local overrides break the state precisely because they are not committed.
 override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
 
-# Configuração de CLI/credencial local e backend preparado à mão.
+# Local CLI/credential config and hand-made backend config.
 .terraformrc
 terraform.rc
 backend.hcl
 
-# Planos salvos podem conter valores de output em texto legível.
+# Saved plans may contain output values in readable text.
 *.tfplan
 *.tfplan.*
 
-# Kubeconfig copiado da VM: ignorado no .gitignore da raiz, que vale para o
-# repositório inteiro.
+# Kubeconfig copied from the VM: ignored in the root .gitignore, which covers
+# the whole repository.

@@ -15,6 +15,7 @@ export function createDrizzleConnection(
     user: configService.get('DB_USER', { infer: true }),
     password: configService.get('DB_PASSWORD', { infer: true }),
     database: configService.get('DB_NAME', { infer: true }),
+    ssl: configService.get('DB_SSL', { infer: true }),
   });
 
   return drizzle(pool, { schema });

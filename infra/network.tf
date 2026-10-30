@@ -7,9 +7,9 @@ resource "aws_vpc" "main" {
   }
 }
 
-# Nem toda AZ oferece todo tipo de instância (em us-east-1, use1-az3 não tem
-# t4g). Se a AZ da subnet não tiver o tipo, a VM falha com Unsupported e só
-# recriando a subnet para sair disso.
+# Not every AZ offers every instance type (in us-east-1, use1-az3 has no t4g).
+# If the subnet's AZ lacks the type, the VM fails with Unsupported and the only
+# way out is recreating the subnet.
 data "aws_ec2_instance_type_offerings" "k3s" {
   location_type = "availability-zone"
 
@@ -19,20 +19,20 @@ data "aws_ec2_instance_type_offerings" "k3s" {
   }
 }
 
-# AZs comuns da região: sem isso Local Zones habilitadas na conta entrariam
-# como candidatas.
+# Regular AZs of the region: without this, Local Zones enabled on the account
+# would become candidates.
 data "aws_availability_zones" "available" {
   state = "available"
 }
 
 locals {
-  # Ordenadas para a escolha ser a mesma a cada plan.
+  # Sorted so the choice is the same on every plan.
   instance_type_azs = sort(setintersection(
     data.aws_ec2_instance_type_offerings.k3s.locations,
     data.aws_availability_zones.available.names,
   ))
-  # Ternário em vez de coalesce: coalesce falha com tudo null, e aí o erro
-  # sairia genérico em vez da mensagem da precondition da subnet.
+  # Ternary instead of coalesce: coalesce fails when everything is null, and
+  # the error would be generic instead of the subnet precondition message.
   availability_zone = var.availability_zone != null ? var.availability_zone : try(local.instance_type_azs[0], null)
 }
 
@@ -40,18 +40,19 @@ resource "aws_subnet" "public" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = var.public_subnet_cidr
   availability_zone = local.availability_zone
-  # Sem isso a EC2 nasce só com IP privado e fica inalcançável de fora.
+  # Without this the EC2 instance only gets a private IP and is unreachable
+  # from outside.
   map_public_ip_on_launch = true
 
   lifecycle {
     precondition {
       condition     = contains(local.instance_type_azs, coalesce(local.availability_zone, "-"))
-      error_message = "Nenhuma AZ disponível oferece ${var.instance_type}, ou a availability_zone informada não oferece. AZs com o tipo: ${join(", ", local.instance_type_azs)}."
+      error_message = "No available AZ offers ${var.instance_type}, or the given availability_zone does not. AZs with the type: ${join(", ", local.instance_type_azs)}."
     }
 
-    # Uma AZ que passe a oferecer o tipo pode mudar a escolha automática; sem
-    # isto a subnet (e a VM junto) seria recriada. Para trocar de AZ de
-    # propósito: terraform apply -replace=aws_subnet.public
+    # An AZ that starts offering the type may change the automatic choice;
+    # without this the subnet (and the VM with it) would be recreated. To move
+    # AZs on purpose: terraform apply -replace=aws_subnet.public
     ignore_changes = [availability_zone]
   }
 
@@ -68,7 +69,8 @@ resource "aws_internet_gateway" "main" {
   }
 }
 
-# Rota padrão pela internet gateway: é o que torna a subnet pública.
+# Default route through the internet gateway: this is what makes the subnet
+# public.
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
 

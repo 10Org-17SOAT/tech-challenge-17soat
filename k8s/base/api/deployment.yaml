@@ -5,7 +5,9 @@ metadata:
   labels:
     app: api
 spec:
-  replicas: 1
+  # No `replicas`: the HPA in hpa.yaml owns the count. Declaring it here would
+  # reset the Deployment to that number on every `kubectl apply`, fighting the
+  # autoscaler until it scales back up.
   selector:
     matchLabels:
       app: api
@@ -31,3 +33,27 @@ spec:
                 name: app-config
             - secretRef:
                 name: app-secrets
+          # The HPA thresholds are percentages of these requests, so they are
+          # sized from measurements, not guessed. Idle the API uses ~2m CPU and
+          # 55-120Mi; under the login load test each pod takes a full core (Node
+          # runs JS on one thread). 250m puts the 70% target at 175m, above
+          # light traffic, and 5 replicas still fit the 2 vCPU node.
+          #
+          # No CPU limit on purpose: it would only throttle a busy pod while the
+          # node has idle cores. Memory is limited because running out of it is
+          # what can take the node down.
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+          # A pod the HPA adds only joins the Service once Nest is listening;
+          # before that the entrypoint is still waiting for the database and
+          # running migrations, and requests sent to it would be refused.
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            periodSeconds: 5
+            failureThreshold: 3

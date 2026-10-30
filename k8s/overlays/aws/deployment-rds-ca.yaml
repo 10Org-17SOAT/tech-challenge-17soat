@@ -1,0 +1,31 @@
+# Trusts the Amazon RDS CA, which is not in Node's store. `pg` then verifies
+# the server certificate and hostname with plain `ssl: true` (DB_SSL).
+#
+# The bundle comes from a ConfigMap rather than the image, so the image stays
+# the same in every environment and a CA rotation needs no rebuild:
+#   curl -fsSLo global-bundle.pem \
+#     https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
+#   kubectl create configmap rds-ca --from-file=global-bundle.pem
+#
+# Not optional: without the CA every connection would fail verification, so a
+# missing ConfigMap should stop the pod at scheduling with a clear event.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  template:
+    spec:
+      containers:
+        - name: api
+          env:
+            - name: NODE_EXTRA_CA_CERTS
+              value: /etc/ssl/rds/global-bundle.pem
+          volumeMounts:
+            - name: rds-ca
+              mountPath: /etc/ssl/rds
+              readOnly: true
+      volumes:
+        - name: rds-ca
+          configMap:
+            name: rds-ca

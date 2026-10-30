@@ -11,6 +11,7 @@ import { Response } from 'express';
 import {
   AllocatedMechanicException,
   DuplicateCpfException,
+  DuplicateEmailException,
   InvalidCpfException,
   InvalidEmailException,
   InvalidMechanicException,
@@ -28,6 +29,7 @@ import {
   MechanicNotFoundException,
   NoAvailableMechanicException,
   DuplicateCpfException,
+  DuplicateEmailException,
   AllocatedMechanicException,
   MechanicNotAllocatedException,
   MechanicIdentityMismatchException,
@@ -60,6 +62,7 @@ export class MechanicErrorsFilter implements ExceptionFilter {
     }
     if (
       exception instanceof DuplicateCpfException ||
+      exception instanceof DuplicateEmailException ||
       exception instanceof AllocatedMechanicException ||
       exception instanceof MechanicNotAllocatedException ||
       exception instanceof WrongServiceOrderException

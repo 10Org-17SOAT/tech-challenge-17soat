@@ -74,7 +74,6 @@ describe('Mechanic', () => {
     });
   });
 
-
   describe('updateProfile', () => {
     it('updates only the provided fields', () => {
       const mechanic = makeMechanic();
@@ -297,11 +296,11 @@ describe('Mechanic', () => {
       const a = makeMechanic();
       const b = makeMechanic();
 
-      expect(a.equals(b)).toBe(false);
+      expect(a.equals(b)).toBe(true);
 
       const restored = Mechanic.restore({
         id: a.getId(),
-        userId: null,
+        userId: a.getUserId(),
         name: a.getName(),
         cpf: a.getCpf(),
         email: a.getEmail(),

@@ -3,6 +3,7 @@ export enum UserRole {
   STOCK_KEEPER = 2,
   MECHANIC = 3,
   CUSTOMER = 4,
+  CONSULTANT = 5,
 }
 
 export const USER_ROLE_LABELS: Record<UserRole, string> = {
@@ -10,6 +11,7 @@ export const USER_ROLE_LABELS: Record<UserRole, string> = {
   [UserRole.STOCK_KEEPER]: 'stock_keeper',
   [UserRole.MECHANIC]: 'mechanic',
   [UserRole.CUSTOMER]: 'customer',
+  [UserRole.CONSULTANT]: 'consultant',
 };
 
 export function getRoleLabel(roleId: number): string {
