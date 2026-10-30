@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../../../shared/config/database/database.module';
-import { StockModule } from '../../stock/stock.module';
+import { InventoryModule } from '../../stock/inventory/inventory.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { ServiceOrdersModule } from '../service-orders/service-orders.module';
 import { ServicesModule } from '../services/services.module';
@@ -21,13 +21,13 @@ import { QuotationsController } from './presentation/quotations.controller';
 import { ServiceOrderQuotationController } from './presentation/service-order-quotation.controller';
 
 @Module({
-  // StockModule exports only SUPPLY_CATALOG_QUERY — its repositories and use
+  // InventoryModule exports only SUPPLY_CATALOG_QUERY — its repositories and use
   // cases stay private, and only StockPartCatalog ever touches that contract.
   imports: [
     DatabaseModule,
     ServiceOrdersModule,
     ServicesModule,
-    StockModule,
+    InventoryModule,
     // For EMAIL_SENDER and ORDER_RECIPIENT_QUERY: who the customer is and how
     // to reach them belong to notifications, which also emails status changes.
     NotificationsModule,

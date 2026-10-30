@@ -57,7 +57,9 @@ describe('CreateCustomerUseCase', () => {
 
   describe('PF customer', () => {
     it('creates a PF customer and returns response DTO', async () => {
-      repository.save.mockImplementation((customer: Customer) => customer);
+      repository.save.mockImplementation((customer: Customer) =>
+        Promise.resolve(customer),
+      );
 
       const result = await useCase.execute(validPFInput);
 
@@ -78,7 +80,9 @@ describe('CreateCustomerUseCase', () => {
 
   describe('PJ customer', () => {
     it('creates a PJ customer and returns response DTO', async () => {
-      repository.save.mockImplementation((customer: Customer) => customer);
+      repository.save.mockImplementation((customer: Customer) =>
+        Promise.resolve(customer),
+      );
 
       const result = await useCase.execute(validPJInput);
 

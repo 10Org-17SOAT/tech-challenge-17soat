@@ -83,3 +83,13 @@ export class DuplicateCpfException extends MechanicException {
     }
   }
 }
+
+export class DuplicateEmailException extends MechanicException {
+  constructor(email: string, options?: { cause?: unknown }) {
+    super(`Mechanic email "${email}" is already in use.`);
+    this.name = 'DuplicateEmailException';
+    if (options?.cause !== undefined) {
+      this.cause = options.cause;
+    }
+  }
+}

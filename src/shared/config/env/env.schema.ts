@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { dbSslSchema } from '../database/db-ssl';
 
 const emptyAsUndefined = <T extends z.ZodTypeAny>(schema: T) =>
   z.preprocess((value) => (value === '' ? undefined : value), schema);
@@ -15,6 +16,7 @@ export const envSchema = z
     DB_USER: z.string().min(1).default('postgres'),
     DB_PASSWORD: z.string().min(1).default('postgres'),
     DB_NAME: z.string().min(1).default('tech_challenge'),
+    DB_SSL: dbSslSchema,
 
     JWT_SECRET: z.string().min(32),
     JWT_EXPIRES_IN: z.string().min(1).default('1h'),
