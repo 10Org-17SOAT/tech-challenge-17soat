@@ -1,4 +1,5 @@
 import type { DomainEventPublisher } from '../../../../../shared/domain/events/domain-event-publisher';
+import type { RequestedItems } from '../../domain/requested-items';
 import type { ServiceItem } from '../../domain/service-item';
 import type { ServiceOrder } from '../../domain/service-order.entity';
 import type {
@@ -45,6 +46,17 @@ export class EventPublishingServiceOrderRepository implements ServiceOrderReposi
 
   replaceItems(serviceOrderId: string, items: ServiceItem[]): Promise<void> {
     return this.delegate.replaceItems(serviceOrderId, items);
+  }
+
+  findRequestedItems(serviceOrderId: string): Promise<RequestedItems> {
+    return this.delegate.findRequestedItems(serviceOrderId);
+  }
+
+  saveRequestedItems(
+    serviceOrderId: string,
+    items: RequestedItems,
+  ): Promise<void> {
+    return this.delegate.saveRequestedItems(serviceOrderId, items);
   }
 
   averageExecutionTime(

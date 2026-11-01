@@ -11,8 +11,8 @@ const howStartedValues = anamnesisHowStartedEnum.enumValues;
 const frequencyValues = anamnesisFrequencyEnum.enumValues;
 const severityValues = anamnesisSeverityEnum.enumValues;
 
+// The order comes from the route; the vehicle is the order's.
 export const createAnamnesisSchema = z.object({
-  vehicleId: z.uuid(),
   consultantId: z.uuid(),
   mainComplaint: z.string().trim().min(1).max(500),
   problemDescription: z.string().trim().min(1).max(4000),

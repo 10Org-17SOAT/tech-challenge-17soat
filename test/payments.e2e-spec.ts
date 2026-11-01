@@ -11,6 +11,7 @@ import {
   CLEANUP_TABLES,
   givenConsultant,
   givenOwnedVehicle,
+  givenServiceOrder,
   httpAs,
   tokenFor,
 } from './fixtures';
@@ -99,16 +100,12 @@ describe('Payments (e2e)', () => {
   async function givenApprovedOrder(
     laborPriceInCents = 15000,
   ): Promise<{ orderId: string; totalInCents: number }> {
-    const created = await http()
-      .post('/service-order/anamnesis')
-      .send({
-        vehicleId,
-        consultantId: openedById,
-        mainComplaint: 'Barulho na suspensão',
-        problemDescription: 'Estalo ao passar em lombadas',
-      })
-      .expect(201);
-    const orderId = (created.body as { serviceOrderId: string }).serviceOrderId;
+    const orderId = await givenServiceOrder(
+      app.getHttpServer(),
+      token,
+      vehicleId,
+      openedById,
+    );
 
     await http().post(`/service-orders/${orderId}/diagnosis/start`).expect(200);
     const serviceId = await givenService(laborPriceInCents);
@@ -194,23 +191,14 @@ describe('Payments (e2e)', () => {
     });
 
     it('returns 404 for an order that has not been quoted yet', async () => {
-      const created = await http()
-        .post('/service-order/anamnesis')
-        .send({
-          vehicleId,
-          consultantId: openedById,
-          mainComplaint: 'Barulho na suspensão',
-          problemDescription: 'Estalo ao passar em lombadas',
-        })
-        .expect(201);
+      const serviceOrderId = await givenServiceOrder(
+        app.getHttpServer(),
+        token,
+        vehicleId,
+        openedById,
+      );
 
-      await http()
-        .post('/payments')
-        .send({
-          serviceOrderId: (created.body as { serviceOrderId: string })
-            .serviceOrderId,
-        })
-        .expect(404);
+      await http().post('/payments').send({ serviceOrderId }).expect(404);
     });
 
     it('rejects an order that is quoted and approved but not finished yet', async () => {

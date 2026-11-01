@@ -7,6 +7,7 @@ import {
   CLEANUP_TABLES,
   givenConsultant,
   givenOwnedVehicle,
+  givenServiceOrder,
   httpAs,
   tokenFor,
 } from './fixtures';
@@ -120,16 +121,12 @@ describe('Quotations (e2e)', () => {
   }
 
   async function givenOrderInDiagnosis(): Promise<string> {
-    const res = await http()
-      .post('/service-order/anamnesis')
-      .send({
-        vehicleId,
-        consultantId: openedById,
-        mainComplaint: 'Barulho na suspensão',
-        problemDescription: 'Estalo ao passar em lombadas',
-      })
-      .expect(201);
-    const id = (res.body as { serviceOrderId: string }).serviceOrderId;
+    const id = await givenServiceOrder(
+      app.getHttpServer(),
+      token,
+      vehicleId,
+      openedById,
+    );
     await http().post(`/service-orders/${id}/diagnosis/start`).expect(200);
     return id;
   }
@@ -199,20 +196,15 @@ describe('Quotations (e2e)', () => {
 
     it('rejects a diagnosis on an order that is not in diagnosis', async () => {
       const serviceId = await givenService(9990);
-      const created = await http()
-        .post('/service-order/anamnesis')
-        .send({
-          vehicleId,
-          consultantId: openedById,
-          mainComplaint: 'Barulho na suspensão',
-          problemDescription: 'Estalo ao passar em lombadas',
-        })
-        .expect(201);
+      const orderId = await givenServiceOrder(
+        app.getHttpServer(),
+        token,
+        vehicleId,
+        openedById,
+      );
 
       await http()
-        .post(
-          `/service-orders/${(created.body as { serviceOrderId: string }).serviceOrderId}/diagnosis`,
-        )
+        .post(`/service-orders/${orderId}/diagnosis`)
         .send({
           findings: 'Pastilhas gastas',
           serviceItems: [{ serviceId, quantity: 1 }],

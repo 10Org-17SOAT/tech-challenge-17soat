@@ -18,6 +18,7 @@ import {
   CLEANUP_TABLES,
   givenConsultant,
   givenOwnedVehicle,
+  givenServiceOrder,
   httpAs,
   tokenFor,
 } from './fixtures';
@@ -119,17 +120,10 @@ describe('Status change notifications (e2e)', () => {
     return (res.body as { status: string }).status;
   }
 
-  async function openOrder(): Promise<string> {
-    const res = await http()
-      .post('/service-order/anamnesis')
-      .send({
-        vehicleId,
-        consultantId: openedById,
-        mainComplaint: 'Barulho na suspensão',
-        problemDescription: 'Estalo ao passar em lombadas',
-      })
-      .expect(201);
-    return (res.body as { serviceOrderId: string }).serviceOrderId;
+  // Reception opens the order and attaches the anamnesis, which the
+  // diagnosis requires.
+  function openOrder(): Promise<string> {
+    return givenServiceOrder(app.getHttpServer(), token, vehicleId, openedById);
   }
 
   /** received → delivered, through the same routes and events production uses. */

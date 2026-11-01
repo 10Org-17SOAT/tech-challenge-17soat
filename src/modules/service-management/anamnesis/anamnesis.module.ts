@@ -8,9 +8,12 @@ import { ANAMNESIS_REPOSITORY } from './domain/anamnesis.repository';
 import { DrizzleAnamnesisRepository } from './infrastructure/persistence/drizzle-anamnesis.repository';
 import { AnamnesisController } from './presentation/anamnesis.controller';
 import { ServiceOrdersModule } from '../service-orders/service-orders.module';
+import { ConsultantModule } from '../../onboarding/consultant/consultant.module';
 
 @Module({
-  imports: [DatabaseModule, ServiceOrdersModule],
+  // ConsultantModule exports only CONSULTANT_DIRECTORY_QUERY, used to reject
+  // an anamnesis taken by a consultant who is not registered.
+  imports: [DatabaseModule, ServiceOrdersModule, ConsultantModule],
   controllers: [AnamnesisController],
   providers: [
     {

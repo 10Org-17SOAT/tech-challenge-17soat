@@ -43,18 +43,30 @@ export class AnamnesisController {
     private readonly deleteAnamnesis: DeleteAnamnesisUseCase,
   ) {}
 
-  @Post('service-order/anamnesis')
+  @Post('service-orders/:serviceOrderId/anamnesis')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
-    summary: 'Cria a anamnese e abre a OS em received com a anamnese atrelada',
+    summary: 'Registra a anamnese de uma OS em received',
+    description:
+      'A OS é aberta antes, por POST /service-orders. Cada OS tem uma única ' +
+      'anamnese.',
   })
   @ApiResponse({ status: 201, type: AnamnesisResponseDto })
   @ApiResponse({ status: 400, description: 'Payload inválido' })
-  @ApiResponse({ status: 422, description: 'Veículo não encontrado' })
+  @ApiResponse({ status: 404, description: 'OS não encontrada' })
+  @ApiResponse({
+    status: 409,
+    description: 'OS fora de received ou anamnese já registrada',
+  })
+  @ApiResponse({ status: 422, description: 'Consultor não encontrado' })
   async create(
+    @Param() params: ServiceOrderIdParamDto,
     @Body() body: CreateAnamnesisDto,
   ): Promise<AnamnesisResponseDto> {
-    const { anamnesis, vehicleId } = await this.createAnamnesis.execute(body);
+    const { anamnesis, vehicleId } = await this.createAnamnesis.execute({
+      ...body,
+      serviceOrderId: params.serviceOrderId,
+    });
     return toAnamnesisResponse(anamnesis, vehicleId);
   }
 
