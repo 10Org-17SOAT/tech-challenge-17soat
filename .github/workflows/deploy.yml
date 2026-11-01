@@ -1,0 +1,189 @@
+name: CD - Deploy K8s
+
+# Deploys an already built image to the K3s cluster on AWS by applying the
+# k8s/overlays/aws manifests. Building and pushing the image is not done here:
+# the image workflow calls this one once the push succeeds, e.g.
+#
+#   deploy:
+#     needs: image
+#     uses: ./.github/workflows/deploy.yml
+#     with:
+#       image: ghcr.io/10org-17soat/tech-challenge-17soat:${{ github.sha }}
+#     secrets: inherit
+#
+# It can also be run by hand from the Actions tab, to redeploy or roll back to
+# any tag already in the registry.
+on:
+  workflow_call:
+    inputs:
+      image:
+        description: Full image reference with a tag or digest, e.g. ghcr.io/org/repo:<sha>
+        required: true
+        type: string
+
+  workflow_dispatch:
+    inputs:
+      image:
+        description: Full image reference with a tag or digest, e.g. ghcr.io/org/repo:<sha>
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Apply manifests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # Holds KUBE_CONFIG and the DB_* variables, and is where protection rules
+    # (required reviewers, allowed branches) go.
+    environment: production
+
+    # Two applies racing each other would leave the cluster on whichever
+    # finishes last, so deploys queue instead. A running deploy is never
+    # cancelled halfway through a rollout.
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+
+    env:
+      IMAGE: ${{ inputs.image }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      # Within one minor version of the cluster: K3s follows the stable channel
+      # until k3s_version is pinned (infra/README.md, C-09).
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v5
+        with:
+          version: v1.36.5
+
+      # The kubeconfig written by the command in `terraform output
+      # kubeconfig_command`: it already points at the public IP, which the K3s certificate covers
+      # through --tls-san.
+      - name: Write kubeconfig
+        env:
+          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+        run: |
+          if [ -z "$KUBE_CONFIG" ]; then
+            echo "::error::Secret KUBE_CONFIG is not set in the production environment."
+            exit 1
+          fi
+          export KUBECONFIG="$RUNNER_TEMP/kubeconfig"
+          install -m 600 /dev/null "$KUBECONFIG"
+          printf '%s\n' "$KUBE_CONFIG" > "$KUBECONFIG"
+          echo "KUBECONFIG=$KUBECONFIG" >> "$GITHUB_ENV"
+          kubectl version
+          kubectl get nodes
+
+      # The aws overlay reads the RDS endpoint from db.env, which
+      # `terraform apply` writes on the operator's machine and Git ignores. The
+      # values are not secret, so the pipeline rebuilds the file from
+      # environment variables.
+      - name: Write database endpoint
+        env:
+          DB_HOST: ${{ vars.DB_HOST }}
+          DB_PORT: ${{ vars.DB_PORT || '5432' }}
+          DB_NAME: ${{ vars.DB_NAME || 'tech_challenge' }}
+        run: |
+          if [ -z "$DB_HOST" ]; then
+            echo "::error::Variable DB_HOST is not set in the production environment (terraform output -raw db_host)."
+            exit 1
+          fi
+          printf 'DB_HOST=%s\nDB_PORT=%s\nDB_NAME=%s\n' "$DB_HOST" "$DB_PORT" "$DB_NAME" \
+            > k8s/overlays/aws/db.env
+
+      # The Secret carries the database password, the JWT secret and the first
+      # admin, so it is created once by the operator (infra/README.md, section
+      # 13) and never by the pipeline: regenerating JWT_SECRET on every deploy
+      # would log everybody out. Without it the pods would only fail later, with
+      # CreateContainerConfigError, so stop here with a clear message instead.
+      - name: Check application Secret
+        run: |
+          if ! kubectl get secret app-secrets > /dev/null; then
+            echo "::error::Secret app-secrets does not exist in the cluster. Create it as described in infra/README.md, section 13."
+            exit 1
+          fi
+
+      # Refreshed on every deploy so a CA rotation by AWS needs nothing more
+      # than a new run. Applying a rendered object keeps it idempotent.
+      - name: Apply RDS CA bundle
+        run: |
+          curl -fsSLo "$RUNNER_TEMP/global-bundle.pem" \
+            https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
+          kubectl create configmap rds-ca \
+            --from-file=global-bundle.pem="$RUNNER_TEMP/global-bundle.pem" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      # The committed overlay keeps the base image name, so it still renders the
+      # same thing for whoever runs `kubectl apply -k` by hand. The image to
+      # deploy is set by a throwaway overlay on top of it, which lives inside
+      # the checkout because kustomize refuses absolute resource paths.
+      - name: Render manifests
+        run: |
+          case "$IMAGE" in
+            *@*)
+              name="${IMAGE%@*}"
+              pin="    digest: ${IMAGE#*@}"
+              ;;
+            *)
+              # Only a colon after the last slash is a tag; one before it is a
+              # registry port (localhost:5000/api).
+              case "${IMAGE##*/}" in
+                *:*) ;;
+                *)
+                  echo "::error::Image '$IMAGE' has no tag or digest. Deploy an immutable tag, e.g. the commit SHA."
+                  exit 1
+                  ;;
+              esac
+              name="${IMAGE%:*}"
+              pin="    newTag: ${IMAGE##*:}"
+              ;;
+          esac
+
+          overlay=k8s/overlays/.deploy
+          mkdir -p "$overlay"
+          cat > "$overlay/kustomization.yaml" <<EOF
+          apiVersion: kustomize.config.k8s.io/v1beta1
+          kind: Kustomization
+          resources:
+            - ../aws
+          images:
+            - name: tech-challenge-api
+              newName: $name
+          $pin
+          EOF
+
+          kubectl kustomize "$overlay" > "$RUNNER_TEMP/manifests.yaml"
+          grep -n 'image:' "$RUNNER_TEMP/manifests.yaml"
+
+      # `kubectl diff` exits 1 when there are differences, which is the normal
+      # case here; only a higher code means it actually failed.
+      - name: Show changes
+        run: |
+          kubectl diff -f "$RUNNER_TEMP/manifests.yaml" || [ $? -eq 1 ]
+
+      - name: Apply manifests
+        run: |
+          kubectl apply -f "$RUNNER_TEMP/manifests.yaml"
+          kubectl annotate deployment/api --overwrite \
+            kubernetes.io/change-cause="$IMAGE (run ${{ github.run_id }}, ${{ github.sha }})"
+
+      # The readiness probe only passes once migrations ran and Nest is
+      # listening, so a finished rollout means the new version is serving. A
+      # failed one leaves the previous pods in place: the rolling update never
+      # removes them before the new ones are ready.
+      - name: Wait for rollout
+        run: kubectl rollout status deployment/api --timeout=5m
+
+      - name: Describe failure
+        if: failure()
+        run: |
+          kubectl get pods -l app=api -o wide || true
+          kubectl describe deployment/api || true
+          kubectl get events --sort-by=.lastTimestamp | tail -n 30 || true
+          kubectl logs -l app=api --all-containers --tail=100 --prefix || true
