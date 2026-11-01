@@ -11,3 +11,4 @@ resources:
   - configmap.yaml
   - api/deployment.yaml
   - api/service.yaml
+  - api/hpa.yaml

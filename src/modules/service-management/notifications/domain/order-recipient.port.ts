@@ -1,5 +1,6 @@
 /**
- * Who receives a quotation, in this module's own words.
+ * Who hears about a service order — its quotation, its status changes — in
+ * this module's own words.
  *
  * The chain that produces it — order → vehicle → owner — is a modelling
  * decision, and it lives in the adapter under `infrastructure/`, not here.
@@ -7,7 +8,7 @@
  * finding the customer, so moving the customer onto the order later would not
  * reach past that one file.
  */
-export interface QuotationRecipient {
+export interface OrderRecipient {
   customerId: string;
   name: string;
   email: string;
@@ -19,12 +20,10 @@ export interface QuotationRecipient {
   };
 }
 
-export interface QuotationRecipientQuery {
+export interface OrderRecipientQuery {
   /** `null` when any link in the chain is missing — the caller decides what
    *  that means. */
-  findForServiceOrder(
-    serviceOrderId: string,
-  ): Promise<QuotationRecipient | null>;
+  findForServiceOrder(serviceOrderId: string): Promise<OrderRecipient | null>;
 }
 
-export const QUOTATION_RECIPIENT_QUERY = Symbol('QUOTATION_RECIPIENT_QUERY');
+export const ORDER_RECIPIENT_QUERY = Symbol('ORDER_RECIPIENT_QUERY');

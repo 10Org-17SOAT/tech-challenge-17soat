@@ -10,33 +10,39 @@ import { ServiceOrderNotFoundError } from '../../service-orders/domain/errors/se
 import { ApprovalTokenExpiredError } from '../domain/errors/approval-token-expired.error';
 import { ApprovalTokenNotIssuedError } from '../domain/errors/approval-token-not-issued.error';
 import { InvalidApprovalTokenError } from '../domain/errors/invalid-approval-token.error';
+import { InvalidQuotationError } from '../domain/errors/invalid-quotation.error';
 import { QuotationAlreadyApprovedError } from '../domain/errors/quotation-already-approved.error';
+import { QuotationAlreadyRejectedError } from '../domain/errors/quotation-already-rejected.error';
 import { QuotationNotFoundError } from '../domain/errors/quotation-not-found.error';
 import {
-  renderApprovalAlreadyDone,
-  renderApprovalExpired,
-  renderApprovalInvalid,
-  renderApprovalUnavailable,
-} from './approval-result.template';
+  renderAlreadyApproved,
+  renderAlreadyRejected,
+  renderDecisionExpired,
+  renderDecisionLinkInvalid,
+  renderDecisionRefused,
+  renderDecisionUnavailable,
+} from './decision-page.template';
 
 /**
- * The HTML counterpart of QuotationErrorsFilter, for the one route a customer
- * opens in a browser. Same domain errors, same status codes — a different body,
- * because a JSON error page is unreadable to the person it is addressed to.
+ * The HTML counterpart of QuotationErrorsFilter, for the routes a customer
+ * opens in a browser. Same domain errors — a different body, because a JSON
+ * error page is unreadable to the person it is addressed to.
  *
  * The status codes still mean what they mean: 404 unknown link, 410 expired,
- * 409 nothing left to approve.
+ * 409 nothing left to decide, 400 a form that does not hold up.
  */
 @Catch(
   InvalidApprovalTokenError,
   ApprovalTokenExpiredError,
   ApprovalTokenNotIssuedError,
   QuotationAlreadyApprovedError,
+  QuotationAlreadyRejectedError,
   QuotationNotFoundError,
+  InvalidQuotationError,
   ServiceOrderNotFoundError,
   InvalidServiceOrderTransitionError,
 )
-export class ApprovalLinkErrorsFilter implements ExceptionFilter {
+export class DecisionPageErrorsFilter implements ExceptionFilter {
   catch(error: Error, host: ArgumentsHost) {
     const response = host.switchToHttp().getResponse<Response>();
     const { status, html } = this.render(error);
@@ -50,25 +56,28 @@ export class ApprovalLinkErrorsFilter implements ExceptionFilter {
     if (error instanceof ApprovalTokenExpiredError) {
       return {
         status: HttpStatus.GONE,
-        html: renderApprovalExpired(error.expiredAt),
+        html: renderDecisionExpired(error.expiredAt),
       };
     }
+    // Only reached by the opposite answer: repeating the same one is answered
+    // with its result page, not an error.
     if (error instanceof QuotationAlreadyApprovedError) {
-      // Not a failure from the customer's side: they clicked twice, or the
-      // attendant had already registered the approval by phone.
-      return {
-        status: HttpStatus.CONFLICT,
-        html: renderApprovalAlreadyDone(null),
-      };
+      return { status: HttpStatus.CONFLICT, html: renderAlreadyApproved() };
+    }
+    if (error instanceof QuotationAlreadyRejectedError) {
+      return { status: HttpStatus.CONFLICT, html: renderAlreadyRejected() };
     }
     if (error instanceof InvalidServiceOrderTransitionError) {
       return {
         status: HttpStatus.CONFLICT,
-        html: renderApprovalUnavailable(),
+        html: renderDecisionUnavailable(),
       };
+    }
+    if (error instanceof InvalidQuotationError) {
+      return { status: HttpStatus.BAD_REQUEST, html: renderDecisionRefused() };
     }
     // Unknown token, a quotation that was never emailed, a vanished order: all
     // answer the same way. A wrong link learns nothing about what exists.
-    return { status: HttpStatus.NOT_FOUND, html: renderApprovalInvalid() };
+    return { status: HttpStatus.NOT_FOUND, html: renderDecisionLinkInvalid() };
   }
 }

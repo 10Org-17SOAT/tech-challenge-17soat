@@ -1,6 +1,6 @@
 {
-  "id": "542d5fc5-b8b3-44a1-8c9b-e764b1c9d576",
-  "prevId": "823529ea-fae7-434d-9344-582f5e9dbc36",
+  "id": "e13e2202-9d99-425a-aeba-b0ef5b6f18cc",
+  "prevId": "eae1f18c-9c30-44fd-a80c-4e1867af95d6",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -755,135 +755,6 @@
       },
       "isRLSEnabled": false
     },
-    "public.service_order_requested_parts": {
-      "name": "service_order_requested_parts",
-      "schema": "",
-      "columns": {
-        "service_order_id": {
-          "name": "service_order_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "supply_id": {
-          "name": "supply_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "quantity": {
-          "name": "quantity",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "requested_parts_service_order_id_fk": {
-          "name": "requested_parts_service_order_id_fk",
-          "tableFrom": "service_order_requested_parts",
-          "tableTo": "service_orders",
-          "columnsFrom": [
-            "service_order_id"
-          ],
-          "columnsTo": [
-            "service_order_id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "requested_parts_pk": {
-          "name": "requested_parts_pk",
-          "columns": [
-            "service_order_id",
-            "supply_id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "requested_parts_quantity_positive": {
-          "name": "requested_parts_quantity_positive",
-          "value": "\"service_order_requested_parts\".\"quantity\" > 0"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.service_order_requested_services": {
-      "name": "service_order_requested_services",
-      "schema": "",
-      "columns": {
-        "service_order_id": {
-          "name": "service_order_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "service_id": {
-          "name": "service_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "quantity": {
-          "name": "quantity",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "requested_services_service_order_id_fk": {
-          "name": "requested_services_service_order_id_fk",
-          "tableFrom": "service_order_requested_services",
-          "tableTo": "service_orders",
-          "columnsFrom": [
-            "service_order_id"
-          ],
-          "columnsTo": [
-            "service_order_id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "requested_services_service_id_fk": {
-          "name": "requested_services_service_id_fk",
-          "tableFrom": "service_order_requested_services",
-          "tableTo": "services",
-          "columnsFrom": [
-            "service_id"
-          ],
-          "columnsTo": [
-            "service_id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "requested_services_pk": {
-          "name": "requested_services_pk",
-          "columns": [
-            "service_order_id",
-            "service_id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "requested_services_quantity_positive": {
-          "name": "requested_services_quantity_positive",
-          "value": "\"service_order_requested_services\".\"quantity\" > 0"
-        }
-      },
-      "isRLSEnabled": false
-    },
     "public.service_items": {
       "name": "service_items",
       "schema": "",
@@ -1080,6 +951,34 @@
             }
           ],
           "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "service_orders_listing_idx": {
+          "name": "service_orders_listing_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "service_order_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"service_orders\".\"deleted_at\" is null",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -1490,6 +1389,18 @@
           "primaryKey": false,
           "notNull": false
         },
+        "rejected_at": {
+          "name": "rejected_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rejection_reason": {
+          "name": "rejection_reason",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -1533,6 +1444,7 @@
             }
           ],
           "isUnique": true,
+          "where": "\"quotations\".\"rejected_at\" IS NULL",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -1716,7 +1628,8 @@
       "schema": "public",
       "values": [
         "issued",
-        "approved"
+        "approved",
+        "rejected"
       ]
     }
   },

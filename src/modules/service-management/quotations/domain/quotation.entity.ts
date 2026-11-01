@@ -9,6 +9,7 @@ import { ApprovalTokenNotIssuedError } from './errors/approval-token-not-issued.
 import { InvalidApprovalTokenError } from './errors/invalid-approval-token.error';
 import { InvalidQuotationError } from './errors/invalid-quotation.error';
 import { QuotationAlreadyApprovedError } from './errors/quotation-already-approved.error';
+import { QuotationAlreadyRejectedError } from './errors/quotation-already-rejected.error';
 
 /**
  * How long the customer has to click the link in the email. A business rule of
@@ -17,9 +18,16 @@ import { QuotationAlreadyApprovedError } from './errors/quotation-already-approv
  */
 export const APPROVAL_TOKEN_TTL_DAYS = 7;
 
-export const QUOTATION_STATUSES = ['issued', 'approved'] as const;
+export const QUOTATION_STATUSES = ['issued', 'approved', 'rejected'] as const;
 
 export type QuotationStatus = (typeof QUOTATION_STATUSES)[number];
+
+/** What the customer can answer. Each one lands the quotation in that status. */
+export const QUOTATION_DECISIONS = ['approved', 'rejected'] as const;
+
+export type QuotationDecision = (typeof QUOTATION_DECISIONS)[number];
+
+export const REJECTION_REASON_MAX_LENGTH = 500;
 
 // A quotation line is either labour (a catalogue service) or a part (a stock
 // supply pulled in by that service's bill of materials).
@@ -141,6 +149,8 @@ export interface QuotationProps {
   items: QuotationItem[];
   issuedAt: Date;
   approvedAt: Date | null;
+  rejectedAt: Date | null;
+  rejectionReason: string | null;
   createdAt: Date;
   updatedAt: Date;
   // Only the digest is ever stored. The raw token exists once, returned by
@@ -173,6 +183,8 @@ export class Quotation {
       items: props.items.map((item) => QuotationItem.create(item)),
       issuedAt: now,
       approvedAt: null,
+      rejectedAt: null,
+      rejectionReason: null,
       createdAt: now,
       updatedAt: now,
       // A quotation is issued before anyone decides to email it. The link is
@@ -188,13 +200,61 @@ export class Quotation {
   }
 
   approve(): void {
-    if (this.props.status === 'approved') {
-      throw new QuotationAlreadyApprovedError(this.props.id);
-    }
+    this.assertUndecided();
     const now = new Date();
     this.props.status = 'approved';
     this.props.approvedAt = now;
     this.props.updatedAt = now;
+  }
+
+  /**
+   * The customer turning the price down. Terminal for this quotation: the
+   * order goes back to diagnosis and a new quotation is issued, so a rejected
+   * one is never revived — it stays as the record of what was refused.
+   */
+  reject(reason?: string | null): void {
+    this.assertUndecided();
+    // Validated before anything changes, so a refused reason leaves the
+    // quotation still open to an answer.
+    const rejectionReason = Quotation.normalizeRejectionReason(reason ?? null);
+    const now = new Date();
+    this.props.status = 'rejected';
+    this.props.rejectedAt = now;
+    this.props.rejectionReason = rejectionReason;
+    this.props.updatedAt = now;
+  }
+
+  /** Whether the customer already gave this exact answer. */
+  isDecidedAs(decision: QuotationDecision): boolean {
+    return decision === 'approved'
+      ? this.props.status === 'approved'
+      : this.props.status === 'rejected';
+  }
+
+  // A decision is final either way: approving twice, rejecting twice, or
+  // changing one's mind all refuse here, so `approve()` and `reject()` share
+  // one answer to "can this quotation still be decided".
+  private assertUndecided(): void {
+    if (this.props.status === 'approved') {
+      throw new QuotationAlreadyApprovedError(this.props.id);
+    }
+    if (this.props.status === 'rejected') {
+      throw new QuotationAlreadyRejectedError(this.props.id);
+    }
+  }
+
+  private static normalizeRejectionReason(
+    reason: string | null,
+  ): string | null {
+    if (reason === null) return null;
+    const trimmed = reason.trim();
+    if (trimmed.length === 0) return null;
+    if (trimmed.length > REJECTION_REASON_MAX_LENGTH) {
+      throw new InvalidQuotationError(
+        `Rejection reason must be at most ${REJECTION_REASON_MAX_LENGTH} characters`,
+      );
+    }
+    return trimmed;
   }
 
   static hashApprovalToken(rawToken: string): string {
@@ -219,10 +279,11 @@ export class Quotation {
   }
 
   /**
-   * The customer accepting from the email. Every reason to refuse lives here,
-   * beside `approve()`'s own — one place answers "is this approval valid".
+   * Checks the token from the email against this quotation. Every reason to
+   * refuse a link lives here, so the page that shows the quotation and the
+   * endpoint that records the answer refuse the same links the same way.
    */
-  approveWithToken(rawToken: string): void {
+  verifyApprovalToken(rawToken: string): void {
     if (!this.props.approvalTokenHash || !this.props.approvalTokenExpiresAt) {
       throw new ApprovalTokenNotIssuedError(this.props.id);
     }
@@ -236,13 +297,9 @@ export class Quotation {
       throw new InvalidApprovalTokenError();
     }
 
-    // Expiry is checked before `approve()` so an expired link on an unapproved
-    // quotation reports the expiry, not a generic refusal.
     if (this.props.approvalTokenExpiresAt.getTime() <= Date.now()) {
       throw new ApprovalTokenExpiredError(this.props.approvalTokenExpiresAt);
     }
-
-    this.approve();
   }
 
   markApprovalEmailSent(): void {
@@ -296,6 +353,14 @@ export class Quotation {
 
   get approvedAt(): Date | null {
     return this.props.approvedAt;
+  }
+
+  get rejectedAt(): Date | null {
+    return this.props.rejectedAt;
+  }
+
+  get rejectionReason(): string | null {
+    return this.props.rejectionReason;
   }
 
   get createdAt(): Date {

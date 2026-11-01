@@ -1,0 +1,39 @@
+# Scales the api Deployment on CPU and memory. Utilization is measured against
+# the container's `requests` in deployment.yaml, so the two files have to move
+# together: without requests the HPA has nothing to divide by and reports
+# <unknown>.
+#
+# The numbers come from the metrics-server, which K3s ships enabled (EC2) and
+# the local overlay installs (OrbStack and similar clusters do not bring one).
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api
+  labels:
+    app: api
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api
+  # Two replicas keep the API up while one pod restarts or is rescheduled.
+  minReplicas: 2
+  # Bounded by the single node: 5 × the CPU request still fits next to
+  # Postgres and the system pods.
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    # Node does not hand freed heap back to the OS right away, so memory alone
+    # scales up more readily than it scales down. The threshold sits well above
+    # the idle footprint for that reason.
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80

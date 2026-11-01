@@ -1,7 +1,11 @@
+// Plain string helpers with no layer of their own: templates use them to draw
+// emails and pages, and the file mail driver uses them to draw its envelope
+// header. Nothing here knows what a quotation or a service order is.
+
 /**
- * Escapes text before it goes into an email or a page. Quotation line names are
- * copied from the service and supply catalogues, which accept free text, so
- * they are untrusted by the time they reach a template.
+ * Escapes text before it goes into an email or a page. Customer names, vehicle
+ * data and catalogue names are all free text, so they are untrusted by the
+ * time they reach a template.
  */
 export function escapeHtml(value: string): string {
   return value

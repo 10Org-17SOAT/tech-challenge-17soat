@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { dbSslSchema } from '../database/db-ssl';
 
 const emptyAsUndefined = <T extends z.ZodTypeAny>(schema: T) =>
   z.preprocess((value) => (value === '' ? undefined : value), schema);
@@ -15,6 +16,7 @@ export const envSchema = z
     DB_USER: z.string().min(1).default('postgres'),
     DB_PASSWORD: z.string().min(1).default('postgres'),
     DB_NAME: z.string().min(1).default('tech_challenge'),
+    DB_SSL: dbSslSchema,
 
     JWT_SECRET: z.string().min(32),
     JWT_EXPIRES_IN: z.string().min(1).default('1h'),
@@ -35,7 +37,10 @@ export const envSchema = z
 
     // `log` writes the message to the Nest logger and sends nothing. It is the
     // default so that a fresh clone and `npm run test:e2e` never reach a provider.
-    MAIL_DRIVER: z.enum(['log', 'brevo']).default('log'),
+    // `file` writes each message to MAIL_DIRECTORY as a page that opens in a
+    // browser: a demo or a template check without an account or a quota.
+    MAIL_DRIVER: z.enum(['log', 'file', 'brevo']).default('log'),
+    MAIL_DIRECTORY: z.string().min(1).default('var/mail'),
     MAIL_FROM: z.email().default('oficina@example.com'),
     MAIL_FROM_NAME: z.string().min(1).default('Oficina'),
     BREVO_API_KEY: z.string().min(1).optional(),

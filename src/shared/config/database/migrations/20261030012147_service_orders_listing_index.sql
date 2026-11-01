@@ -1,0 +1,1 @@
+CREATE INDEX "service_orders_listing_idx" ON "service_orders" USING btree ("status","created_at","service_order_id") WHERE "service_orders"."deleted_at" is null;

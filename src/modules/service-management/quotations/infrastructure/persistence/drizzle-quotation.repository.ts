@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../../../../../shared/config/database/database.constants';
 import type { DrizzleDatabase } from '../../../../../shared/config/database/drizzle.provider';
 import { Quotation, QuotationItem } from '../../domain/quotation.entity';
@@ -56,12 +56,16 @@ export class DrizzleQuotationRepository implements QuotationRepository {
       .select()
       .from(quotations)
       .where(eq(quotations.serviceOrderId, serviceOrderId))
+      // The latest one: after a rejection the order is quoted again, and the
+      // new quotation is the one that counts. Until it exists, the rejected
+      // one is the honest answer.
+      .orderBy(desc(quotations.issuedAt))
       .limit(1);
     return rows[0] ? this.withItems(rows[0]) : null;
   }
 
   // Lines are immutable once issued, so a save either inserts the whole
-  // quotation or only touches the columns approval changes.
+  // quotation or only touches the columns a decision changes.
   async save(quotation: Quotation): Promise<void> {
     const row: QuotationRow = {
       id: quotation.id,
@@ -69,6 +73,8 @@ export class DrizzleQuotationRepository implements QuotationRepository {
       status: quotation.status,
       issuedAt: quotation.issuedAt,
       approvedAt: quotation.approvedAt,
+      rejectedAt: quotation.rejectedAt,
+      rejectionReason: quotation.rejectionReason,
       createdAt: quotation.createdAt,
       updatedAt: quotation.updatedAt,
       approvalTokenHash: quotation.approvalTokenHash,
@@ -84,6 +90,8 @@ export class DrizzleQuotationRepository implements QuotationRepository {
         set: {
           status: row.status,
           approvedAt: row.approvedAt,
+          rejectedAt: row.rejectedAt,
+          rejectionReason: row.rejectionReason,
           updatedAt: row.updatedAt,
           approvalTokenHash: row.approvalTokenHash,
           approvalTokenExpiresAt: row.approvalTokenExpiresAt,

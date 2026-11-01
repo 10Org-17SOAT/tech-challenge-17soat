@@ -1,21 +1,21 @@
 # ---------------------------------------------------------------------------
-# Security group da VM do K3s.
+# Security group of the K3s VM.
 #
-# As três portas de entrada ficam abertas para 0.0.0.0/0 por decisão
-# deliberada: cada operador (inclusive avaliadores) roda o próprio apply, e
-# exigir o IP de quem acessa quebraria toda vez que o IP residencial mudasse.
-# O risco é aceito porque nenhuma porta dá acesso sem credencial:
-#   - 22    → a AMI Ubuntu aceita só chave SSH, login por senha vem desligado;
-#   - 6443  → a API do K3s exige o certificado de cliente do kubeconfig;
-#   - 30080 → é a API pública da aplicação, feita para ser acessada.
-# Qualquer outra porta do K3s (ex.: 10250 do kubelet) continua fechada.
+# The three ingress ports are open to 0.0.0.0/0 on purpose: every operator
+# (evaluators included) runs their own apply, and requiring the caller's IP
+# would break every time a home IP changed.
+# The risk is accepted because no port grants access without a credential:
+#   - 22    → the Ubuntu AMI only accepts SSH keys, password login is off;
+#   - 6443  → the K3s API requires the kubeconfig client certificate;
+#   - 30080 → the public application API, meant to be reached.
+# Every other K3s port (e.g. kubelet's 10250) stays closed.
 # ---------------------------------------------------------------------------
 
 locals {
   ingress_ports = {
-    ssh     = 22    # acesso administrativo à VM
-    k3s_api = 6443  # kubectl → API server do K3s
-    app_api = 30080 # NodePort do Service `api` (k8s/base/api/service.yaml)
+    ssh     = 22    # administrative access to the VM
+    k3s_api = 6443  # kubectl → K3s API server
+    app_api = 30080 # NodePort of the `api` Service (k8s/base/api/service.yaml)
   }
 }
 
@@ -44,7 +44,7 @@ resource "aws_vpc_security_group_ingress_rule" "k3s" {
   }
 }
 
-# A VM precisa de saída livre para baixar o K3s e as imagens de container.
+# The VM needs unrestricted egress to download K3s and container images.
 resource "aws_vpc_security_group_egress_rule" "all" {
   security_group_id = aws_security_group.k3s.id
   cidr_ipv4         = local.anywhere_cidr
