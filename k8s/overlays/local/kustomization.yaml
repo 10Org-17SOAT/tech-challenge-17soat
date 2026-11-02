@@ -10,7 +10,7 @@ resources:
   - postgres/service.yaml
   - postgres/statefulset.yaml
   # The HPA in the base needs the metrics-server, which K3s ships but local
-  # clusters such as OrbStack do not. Pinned to a release so the overlay renders
+  # clusters such as kind do not. Pinned to a release so the overlay renders
   # the same thing every time. The aws overlay must not include it: K3s already
   # runs one.
   - https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.9.0/components.yaml

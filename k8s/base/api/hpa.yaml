@@ -4,7 +4,7 @@
 # <unknown>.
 #
 # The numbers come from the metrics-server, which K3s ships enabled (EC2) and
-# the local overlay installs (OrbStack and similar clusters do not bring one).
+# the local overlay installs (kind and similar local clusters do not bring one).
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
