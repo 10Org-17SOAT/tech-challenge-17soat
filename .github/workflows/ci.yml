@@ -57,6 +57,59 @@ jobs:
       - name: Build application
         run: npm run build
 
+  infra:
+    name: Infra checks
+    if: github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      # Same version as the deploy pipeline (deploy.yml, tf-outputs).
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: "1.16.4"
+          terraform_wrapper: false
+
+      - name: terraform fmt
+        run: terraform -chdir=infra fmt -check -recursive
+
+      # No backend and no credentials: validate only needs the providers. A
+      # plan on pull requests is deliberately absent; the deploy pipeline plans
+      # against the real state, from main only.
+      - name: terraform validate
+        run: |
+          for dir in infra infra/bootstrap; do
+            terraform -chdir="$dir" init -backend=false -input=false
+            terraform -chdir="$dir" validate
+          done
+
+      # The guard must keep refusing deletes and replaces (deploy.yml, infra).
+      - name: Plan guard
+        run: |
+          guard=.github/scripts/terraform-plan-guard.sh
+          data=.github/scripts/testdata
+          "$guard" "$data/plan-safe.json"
+          "$guard" "$data/plan-empty.json"
+          for plan in plan-replace plan-delete; do
+            if "$guard" "$data/$plan.json"; then
+              echo "::error::The guard accepted $plan.json."
+              exit 1
+            fi
+          done
+
+      # Both AWS overlays must render; db.env is a stand-in for what Terraform
+      # writes, since there is no database here.
+      - name: Render kustomize overlays
+        run: |
+          printf 'DB_HOST=db.example\nDB_PORT=5432\nDB_NAME=tech_challenge\n' \
+            > k8s/components/aws-runtime/db.env
+          for overlay in aws aws-migrate; do
+            .github/scripts/render-overlay.sh "k8s/overlays/$overlay" \
+              registry.example/tech-challenge-api:ci "$RUNNER_TEMP/$overlay.yaml"
+          done
+
   test:
     name: Unit + E2E + Sonar
     needs: build
