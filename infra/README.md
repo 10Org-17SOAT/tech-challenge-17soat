@@ -256,7 +256,7 @@ do primeiro `apply` que provisione recursos.
 | ~~**C-04**~~ | ~~`aws_region` e `allowed_account_ids` não foram definidos.~~ | **Resolvido (#129):** `production.tfvars` fixa `us-east-2` e a conta do projeto. | — |
 | **C-05** | A AMI é ARM64, mas não há definição de build da imagem ARM. | Emulação por `qemu`, ou `exec format error`. | Definir antes de provisionar a VM. |
 | **C-07** | Sem `domain` (D-03 não traz ACME aqui), a API fica em `IP:porta`. | Sem TLS nem hostname estável. | `domain = null` é o default; a estratégia de exposição é decisão da camada de cluster. |
-| ~~**C-08**~~ | ~~Backup do Postgres in-cluster não está definido.~~ | **Resolvido (#120):** o banco é RDS, fora da VM, com 7 dias de backup automático (`db_backup_retention_days`) e snapshot final no destroy. | — |
+| ~~**C-08**~~ | ~~Backup do Postgres in-cluster não está definido.~~ | **Resolvido (#120):** o banco é RDS, fora da VM, com 1 dia de backup automático (máximo do free plan) (`db_backup_retention_days`) e snapshot final no destroy. | — |
 | ~~**C-09**~~ | ~~Versão do K3s não fixada (`k3s_version = null`).~~ | **Resolvido (#129):** `production.tfvars` fixa `v1.36.5+k3s1`, a mesma minor do `kubectl` da pipeline. | — |
 | **C-10** | `MAIL_FROM` (`oficina@example.com`) é placeholder no ConfigMap e no compose. | E-mail real sairia de endereço inexistente. | Ajustar via Secret/ConfigMap. |
 
@@ -512,7 +512,7 @@ Um *explicit deny* de SCP vale mesmo para um usuário com `AdministratorAccess`.
 | `p-2rzg8ea8` | Nega `iam:*OpenIDConnectProvider*` em qualquer região | Sem OIDC: o CI usa um usuário IAM com access key. |
 
 Verificado na conta: `CreateUser`, `AttachUserPolicy`, `CreateAccessKey`, e a
-checagem de permissão de EC2 (`t4g.medium`), VPC, EIP, key pair, security group
+checagem de permissão de EC2 (`t4g.small`), VPC, EIP, key pair, security group
 e RDS (`postgres`, `db.t4g.micro`, `gp3`) passam.
 
 O que se perde em relação ao OIDC:
@@ -529,6 +529,8 @@ irreversíveis e valem para todos os projetos dele) e então editar a SCP. Numa
 conta AWS comum, sem essas SCPs, volte ao OIDC.
 
 Outros limites da conta: a SCP do free tier só libera uma lista de serviços; o
+free plan só aceita tipos de EC2 elegíveis (por isso `t4g.small`) e no máximo
+1 dia de backup no RDS; o
 *spend limit* do projeto passa a negar `ec2:RunInstances`,
 `rds:CreateDBInstance` e outros perto do limite de gasto; e a conta fecha
 depois de 6 meses ou quando os créditos acabam.

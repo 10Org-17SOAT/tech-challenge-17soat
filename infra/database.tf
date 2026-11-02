@@ -109,8 +109,8 @@ variable "db_username" {
 
 variable "db_backup_retention_days" {
   type        = number
-  description = "Days of automated backups. Resolves C-08; backup storage is free up to the database size."
-  default     = 7
+  description = "Days of automated backups. Resolves C-08; backup storage is free up to the database size. 1 is the maximum the AWS free plan accepts (FreeTierRestrictionError)."
+  default     = 1
 
   validation {
     condition     = var.db_backup_retention_days >= 1 && var.db_backup_retention_days <= 35
