@@ -16,7 +16,7 @@ configuração e a política de segredos que o resto da infraestrutura reutiliza
 | D-04 | `environment` é apenas tag; `project_name` é o prefixo de nome | Ambientes diferentes são stacks diferentes. Stack = prefixo próprio, não ambiente no nome do recurso. |
 | D-05 | Sem Secret Manager, sem Parameter Store | Segredo nasce e morre com o cluster (decisão D-03). |
 | D-06 | Backend S3 **configurado** (revisado na #147; antes: apenas documentado) | `backend.tf` com configuração parcial: bucket e região vêm de `-backend-config`. O bucket é criado pela stack de bootstrap. Ver seções 7 e 14. |
-| D-07 | Estrutura plana, um root module, um `versions.tf` | Um único lugar para os limites de versão. Ver seções 3 e 4. **Exceção (#147):** `bootstrap/` é um segundo root module, com state local, que cria só o bucket do state e a role OIDC do CI — o que este root não consegue criar para si mesmo. Ver seção 14. |
+| D-07 | Estrutura plana, um root module, um `versions.tf` | Um único lugar para os limites de versão. Ver seções 3 e 4. **Exceção (#147):** `bootstrap/` é um segundo root module, com state local, que cria só o bucket do state e o usuário IAM do CI — o que este root não consegue criar para si mesmo. Ver seção 14. |
 | D-08 | Credencial pela cadeia padrão do provider AWS | Nenhuma credencial em código, em `.tf` ou em `.tfvars`. |
 | D-09 | `public_subnet_cidr` deve estar contido em `vpc_cidr`, validado | Com os defaults, o único valor aceito é `10.0.1.0/24`. Mudar um exige mudar o outro. |
 | D-10 | AMI Ubuntu 24.04 LTS ARM64, owner fixo `099720109477` | Imagem de sistema, reconstruível, e sem risco de o filtro resolver para AMI de terceiro. A instância ignora mudanças de `ami` (`lifecycle.ignore_changes`): AMI nova não recria a VM sozinha. Para atualizar a imagem de propósito: `terraform apply -replace=aws_instance.k3s`. |
@@ -65,7 +65,7 @@ configuração e a política de segredos que o resto da infraestrutura reutiliza
 |---|---|
 | Versão e provider (com `allowed_account_ids` obrigatório) | `bootstrap/versions.tf` |
 | Variáveis (`account_id` sem default) | `bootstrap/variables.tf` |
-| Bucket do state, provider OIDC do GitHub, role do CI | `bootstrap/main.tf` |
+| Bucket do state, usuário IAM do CI | `bootstrap/main.tf` |
 | Valores para o GitHub e para o `backend.hcl` | `bootstrap/outputs.tf` |
 
 As camadas são aplicadas em ordem: **fundação → rede e computação → cluster e
@@ -430,50 +430,54 @@ então `destroy`. Um snapshot final (`<prefixo>-db-final-<sufixo>`) é mantido.
 
 ---
 
-## 14. Bootstrap (backend S3 e role OIDC do CI)
+## 14. Bootstrap (backend S3 e usuário IAM do CI)
 
 `bootstrap/` (#147) cria o que este root não consegue criar para si mesmo:
 
 | Recurso | Por que não está no root principal |
 |---|---|
 | Bucket S3 do state | O `init` precisa dele antes de ler qualquer `.tf`; não pode morar no state que guarda. |
-| Provider OIDC do GitHub + role `github-actions-<project_name>` | A pipeline precisa da role para rodar o `apply` que a criaria. |
+| Usuário IAM `github-actions-<project_name>` | A pipeline precisa da credencial para rodar o `apply` que a criaria. |
 
-A role só pode ser assumida por jobs no environment **`production`** deste
-repositório (`sub = repo:10Org-17SOAT/tech-challenge-17soat:environment:production`).
-O environment só aceita a branch `main`. A role tem `PowerUserAccess`: tudo,
-exceto IAM e Organizations. Nenhuma chave da AWS fica no GitHub: o job troca o
-token OIDC por credenciais temporárias (1h).
+O usuário tem `PowerUserAccess`: tudo, exceto IAM e Organizations. Uma chave
+vazada não consegue criar usuários, chaves ou roles. A access key fica como
+**secret** do environment **`production`**, que só aceita a branch `main`.
 
-### Restrições da conta (SCPs)
+### Por que access key e não OIDC (exceção)
 
-A conta do projeto é membro de uma AWS Organization, e duas SCPs dela afetam o
-bootstrap:
+O plano original era OIDC do GitHub + role, sem nenhuma chave da AWS no GitHub.
+A conta do projeto não permite: ela é um **projeto do AWS Settings**
+(settings.aws.com), criado dentro de uma organização gerenciada pela AWS, que
+aplica SCPs próprias
+([docs](https://docs.aws.amazon.com/accounts/latest/reference/scps-and-rcps-for-projects.html)).
+Um *explicit deny* de SCP vale mesmo para um usuário com `AdministratorAccess`.
 
 | SCP | Efeito | Consequência |
 |---|---|---|
-| `p-012d3bs2` | Nega S3 fora das regiões permitidas (`us-east-1` negada, `us-east-2` liberada) | `aws_region` usa `us-east-2` por padrão, nas duas stacks. |
-| `p-2rzg8ea8` | Nega `iam:*OpenIDConnectProvider*` em qualquer região | O provider OIDC e a role do CI **ainda não foram criados**. |
+| `p-012d3bs2` (região) | Só libera a região do projeto (`us-east-2`); em `us-east-1`, só ações globais | `aws_region` usa `us-east-2` por padrão, nas duas stacks. |
+| `p-2rzg8ea8` | Nega `iam:*OpenIDConnectProvider*` em qualquer região | Sem OIDC: o CI usa um usuário IAM com access key. |
 
-**Estado atual:** só o bucket do state foi aplicado. Até a SCP do OIDC ser
-liberada pela conta gerenciadora da organização, aplique só os recursos do
-bucket (um `apply` sem `-target` falha no OIDC):
+Verificado na conta: `CreateUser`, `AttachUserPolicy`, `CreateAccessKey`, e a
+checagem de permissão de EC2 (`t4g.medium`), VPC, EIP, key pair, security group
+e RDS (`postgres`, `db.t4g.micro`, `gp3`) passam.
 
-```bash
-terraform apply \
-  -target=aws_s3_bucket.tfstate \
-  -target=aws_s3_bucket_versioning.tfstate \
-  -target=aws_s3_bucket_lifecycle_configuration.tfstate \
-  -target=aws_s3_bucket_server_side_encryption_configuration.tfstate \
-  -target=aws_s3_bucket_public_access_block.tfstate \
-  -target=aws_s3_bucket_ownership_controls.tfstate \
-  -target=aws_s3_bucket_policy.tfstate
-```
+O que se perde em relação ao OIDC:
 
-Sem a role, `ci_role_arn` não aparece no `terraform output`, e `AWS_ROLE_ARN`
-fica sem valor no GitHub. `state_bucket`, `aws_region` e `backend_hcl` já
-funcionam; se algum output vier desatualizado depois de um `apply` com
-`-target`, rode `terraform apply -refresh-only`.
+| | OIDC + role | Usuário IAM + access key |
+|---|---|---|
+| Duração da credencial | 1h, gerada a cada job | Permanente, até ser revogada |
+| Se vazar | Expira sozinha | Vale até alguém desativar a chave |
+| Restrição a `main` | Trust policy da AWS **e** environment do GitHub | **Só** o environment do GitHub |
+
+Para liberar o OIDC, o dono do projeto precisaria fazer upgrade para o plano
+pago e ativar os *advanced features* no settings.aws.com (os dois passos são
+irreversíveis e valem para todos os projetos dele) e então editar a SCP. Numa
+conta AWS comum, sem essas SCPs, volte ao OIDC.
+
+Outros limites da conta: a SCP do free tier só libera uma lista de serviços; o
+*spend limit* do projeto passa a negar `ec2:RunInstances`,
+`rds:CreateDBInstance` e outros perto do limite de gasto; e a conta fecha
+depois de 6 meses ou quando os créditos acabam.
 
 ### Executar (uma vez, por um admin da conta)
 
@@ -489,17 +493,36 @@ terraform apply
 terraform output
 ```
 
+### Criar a access key do CI
+
+Fora do Terraform: `aws_iam_access_key` gravaria o secret em plaintext no
+state. A chave vai direto da CLI para o GitHub, sem passar por arquivo:
+
+```bash
+REPO=10Org-17SOAT/tech-challenge-17soat
+USER_NAME=$(terraform output -raw ci_user_name)
+KEY=$(aws iam create-access-key --user-name "$USER_NAME" --output json)
+gh secret set AWS_ACCESS_KEY_ID     --env production --repo "$REPO" --body "$(jq -r .AccessKey.AccessKeyId <<<"$KEY")"
+gh secret set AWS_SECRET_ACCESS_KEY --env production --repo "$REPO" --body "$(jq -r .AccessKey.SecretAccessKey <<<"$KEY")"
+unset KEY
+```
+
+**Rotação** (a cada entrega, ou na hora se houver suspeita de vazamento): crie a
+chave nova e atualize os secrets como acima; depois desative e apague a antiga
+(`aws iam list-access-keys` → `update-access-key --status Inactive` →
+`delete-access-key`). O IAM permite no máximo duas chaves por usuário.
+
 ### Configurar o GitHub
 
 Em *Settings → Environments → `production`* (admin do repositório):
 
 1. **Deployment branches:** *Selected branches* → só `main`. Sem isso, um
-   `workflow_dispatch` de outra branch entra no environment e assume a role.
-2. **Variables** (não secrets — nenhum é credencial):
+   `workflow_dispatch` de outra branch entra no environment e recebe a chave.
+2. **Secrets:** `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` (seção anterior).
+3. **Variables** (não secrets — nenhum é credencial):
 
 | Variable | Valor |
 |---|---|
-| `AWS_ROLE_ARN` | `terraform output -raw ci_role_arn` |
 | `TF_STATE_BUCKET` | `terraform output -raw state_bucket` |
 | `AWS_REGION` | `terraform output -raw aws_region` |
 
@@ -511,10 +534,13 @@ gh api -X PUT "repos/$REPO/environments/production" --input - <<'JSON'
 {"deployment_branch_policy": {"protected_branches": false, "custom_branch_policies": true}}
 JSON
 gh api -X POST "repos/$REPO/environments/production/deployment-branch-policies" -f name=main
-gh variable set AWS_ROLE_ARN    --env production --repo "$REPO" --body "$(terraform output -raw ci_role_arn)"
 gh variable set TF_STATE_BUCKET --env production --repo "$REPO" --body "$(terraform output -raw state_bucket)"
 gh variable set AWS_REGION      --env production --repo "$REPO" --body "$(terraform output -raw aws_region)"
 ```
+
+No workflow, o job declara `environment: production` e usa
+`aws-actions/configure-aws-credentials` com `aws-access-key-id` e
+`aws-secret-access-key` vindos desses secrets.
 
 ### State do bootstrap
 
@@ -524,9 +550,9 @@ perdido, recupere com `terraform import`:
 
 ```bash
 terraform import aws_s3_bucket.tfstate <state_bucket>
-terraform import aws_iam_openid_connect_provider.github \
-  arn:aws:iam::<account_id>:oidc-provider/token.actions.githubusercontent.com
-terraform import aws_iam_role.ci github-actions-<project_name>
+terraform import aws_iam_user.ci github-actions-<project_name>
+terraform import aws_iam_user_policy_attachment.ci_power_user \
+  github-actions-<project_name>/arn:aws:iam::aws:policy/PowerUserAccess
 # ...e os recursos auxiliares do bucket (versioning, encryption, etc.)
 # pelo mesmo nome do bucket.
 ```
