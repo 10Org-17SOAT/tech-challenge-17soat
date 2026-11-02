@@ -2,7 +2,7 @@ name: CD - Docker Image
 
 # Continuous Delivery: every commit that passes the quality gate on develop or
 # main is built into the production image and published to Docker Hub, ready
-# to deploy. Deploying it is a separate step (see the `deploy` note at the end).
+# to deploy. Commits on main are then deployed (`deploy` job at the end).
 #
 # Triggered by the CI run finishing rather than by the push itself, so an image
 # is only ever published for a commit whose tests passed. GitHub only reads
@@ -18,10 +18,12 @@ on:
   workflow_dispatch:
 
 # A newer commit on the same branch supersedes an older one still building, so
-# a slow run can never move the branch tag back to an older commit.
+# a slow run can never move the branch tag back to an older commit. Except on
+# main: cancelling there could stop the nested deploy halfway through a
+# terraform apply or a migration, so main runs queue instead.
 concurrency:
   group: cd-${{ github.event.workflow_run.head_branch || github.ref_name }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ (github.event.workflow_run.head_branch || github.ref_name) != 'main' }}
 
 permissions:
   contents: read
@@ -122,12 +124,20 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-  # Deploy (continuous deployment) chains here once the reusable deploy
-  # workflow from #145 lands:
-  #
-  # deploy:
-  #   needs: image
-  #   uses: ./.github/workflows/deploy.yml
-  #   with:
-  #     image: ${{ needs.image.outputs.image }}
-  #   secrets: inherit
+  # Continuous deployment: main only. Under workflow_run, github.ref is always
+  # the default branch, so the `production` environment's branch rule cannot
+  # tell a develop run from a main one; this condition does. A dispatch is
+  # deployed only when started from main.
+  deploy:
+    name: Deploy
+    needs: image
+    if: >-
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.head_branch == 'main') ||
+      (github.event_name == 'workflow_dispatch' && github.ref_name == 'main')
+    uses: ./.github/workflows/deploy.yml
+    with:
+      image: ${{ needs.image.outputs.image }}
+      # The commit CI tested and the image was built from.
+      ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+    secrets: inherit
