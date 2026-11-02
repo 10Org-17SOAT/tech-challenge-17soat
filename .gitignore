@@ -59,6 +59,9 @@ chaos-reports/
 # o comando grava no diretório atual.
 kubeconfig
 kubeconfig.tmp
+# The pattern above also matches this directory: the composite action is code,
+# not a credential.
+!.github/actions/kubeconfig/
 
 # Emails written by MAIL_DRIVER=file
 var/mail/
