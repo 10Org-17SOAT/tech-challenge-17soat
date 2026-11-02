@@ -19,8 +19,8 @@
 
 variable "aws_region" {
   type        = string
-  description = "AWS region where the infrastructure is created. Region is a cost and latency choice, not boilerplate: us-east-1 is the default only because it was the review default, not because it is the best choice for this project."
-  default     = "us-east-1"
+  description = "AWS region where the infrastructure is created. us-east-2 because the organization the account belongs to denies S3 bucket creation in us-east-1 through an SCP (found in #147)."
+  default     = "us-east-2"
 
   validation {
     condition     = can(regex("^[a-z]{2}-[a-z]+-[0-9]$", var.aws_region))

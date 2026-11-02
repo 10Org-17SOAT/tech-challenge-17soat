@@ -11,7 +11,7 @@
 
 # --- AWS integration -----------------------------------------------------
 
-aws_region = "us-east-1"
+aws_region = "us-east-2"
 
 # Account guard. FIND yours with `aws sts get-caller-identity` and fill it in:
 #   allowed_account_ids = ["000000000000"]
