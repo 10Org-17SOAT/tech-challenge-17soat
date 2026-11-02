@@ -1,0 +1,48 @@
+# Applies the database schema once, before the new API version rolls out, so a
+# migration that fails stops the deploy while the previous pods keep serving.
+#
+# The entrypoint of the image also migrates on every boot, guarded by an
+# advisory lock (scripts/migrate.ts): with this Job done first, that run finds
+# everything applied and is a no-op. Overriding `command` skips the entrypoint
+# entirely, so the Job only migrates; it never seeds nor starts Nest.
+#
+# A Job's pod template is immutable, so the pipeline deletes the previous Job
+# before applying this one instead of patching it.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-migrate
+  labels:
+    app: db-migrate
+spec:
+  # A failed migration is not retried blindly: it stops the deploy for a human
+  # to read the logs. Postgres rolls back the failed migration's transaction.
+  backoffLimit: 0
+  # Hard ceiling, in case the database hangs instead of failing.
+  activeDeadlineSeconds: 300
+  # Long enough to read the logs after a run; the next deploy replaces it anyway.
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: db-migrate
+    spec:
+      restartPolicy: Never
+      containers:
+        # Same name as the API container, so the shared rds-ca patch fits both.
+        - name: api
+          # Rewritten by the pipeline to the image of the commit being deployed.
+          image: tech-challenge-api:local
+          imagePullPolicy: IfNotPresent
+          command: ["node", "dist-scripts/scripts/migrate.js"]
+          envFrom:
+            - configMapRef:
+                name: app-config
+            - secretRef:
+                name: app-secrets
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 256Mi

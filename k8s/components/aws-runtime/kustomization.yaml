@@ -1,0 +1,50 @@
+# What every workload on AWS needs to reach RDS, shared by the API
+# (overlays/aws) and the migration Job (overlays/aws-migrate) so the two can
+# never drift apart:
+#
+#   - app-config points at RDS (db.env), with TLS on and NODE_ENV=production;
+#   - the demo seed flag is dropped;
+#   - the Amazon RDS CA is mounted and trusted.
+#
+# db.env (DB_HOST, DB_PORT, DB_NAME) is written next to this file by
+# `terraform apply` (infra/database.tf) locally, and by the tf-outputs action
+# (.github/actions/tf-outputs) in the pipeline. Rendering fails without it, on
+# purpose: there is nothing to connect to before the database exists.
+#
+# There is no Secret here: `app-secrets` is created with kubectl from the
+# Terraform outputs and the environment secrets, so real credentials never sit
+# in a file kustomize can overwrite (infra/README.md, section 13).
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+configMapGenerator:
+  - name: app-config
+    behavior: merge
+    envs:
+      - db.env
+    literals:
+      # RDS refuses plain connections (rds.force_ssl=1 in the parameter group).
+      - DB_SSL=true
+      # A deployed environment, not a demo: the seed refuses to run here and
+      # its users have passwords committed to the repository. The first admin
+      # comes from BOOTSTRAP_ADMIN_* in the Secret instead.
+      - NODE_ENV=production
+    options:
+      # Keep the name `app-config` that the workloads reference.
+      disableNameSuffixHash: true
+
+patches:
+  - path: configmap-no-seed.yaml
+    target:
+      kind: ConfigMap
+      name: app-config
+  # One patch, every workload that talks to RDS. A target that is absent from
+  # an overlay (no Job in aws, no Deployment in aws-migrate) is skipped.
+  - path: rds-ca.yaml
+    target:
+      kind: Deployment
+      name: api
+  - path: rds-ca.yaml
+    target:
+      kind: Job
+      name: db-migrate
