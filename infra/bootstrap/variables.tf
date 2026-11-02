@@ -21,7 +21,7 @@ variable "aws_region" {
 
 variable "project_name" {
   type        = string
-  description = "Same value as project_name in the main stack. Names the state bucket and the CI role."
+  description = "Same value as project_name in the main stack. Names the state bucket and the CI user."
   default     = "tech-challenge-soat"
 
   validation {
@@ -32,7 +32,7 @@ variable "project_name" {
 
 variable "github_repository" {
   type        = string
-  description = "GitHub repository, as owner/name, whose workflows may assume the CI role."
+  description = "GitHub repository, as owner/name, whose workflows use the CI user. Recorded as a tag on the user."
   default     = "10Org-17SOAT/tech-challenge-17soat"
 
   validation {
@@ -43,7 +43,7 @@ variable "github_repository" {
 
 variable "github_environment" {
   type        = string
-  description = "GitHub Environment a job must run in to assume the CI role. Its deployment branches are restricted to main in the repository settings."
+  description = "GitHub Environment that holds the CI access key as secrets. Its deployment branches are restricted to main in the repository settings. Recorded as a tag on the user."
   default     = "production"
 
   validation {

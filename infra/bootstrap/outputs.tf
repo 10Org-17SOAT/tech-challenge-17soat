@@ -1,5 +1,6 @@
 # Values to copy into the `production` GitHub Environment (variables, not
-# secrets: none of them is a credential) and into infra/backend.hcl.
+# secrets: none of them is a credential) and into infra/backend.hcl. The CI
+# access key is created by hand; see README section 14.
 
 output "state_bucket" {
   description = "Bucket of the main stack's state. GitHub variable TF_STATE_BUCKET and `bucket` in infra/backend.hcl."
@@ -11,9 +12,9 @@ output "aws_region" {
   value       = var.aws_region
 }
 
-output "ci_role_arn" {
-  description = "Role the pipeline assumes through OIDC. GitHub variable AWS_ROLE_ARN."
-  value       = aws_iam_role.ci.arn
+output "ci_user_name" {
+  description = "IAM user whose access key goes into the `production` Environment secrets AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY."
+  value       = aws_iam_user.ci.name
 }
 
 output "backend_hcl" {
