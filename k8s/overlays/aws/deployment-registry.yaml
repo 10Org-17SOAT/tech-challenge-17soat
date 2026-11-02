@@ -1,0 +1,18 @@
+# The base runs `tech-challenge-api:local` with `imagePullPolicy: Never`, which
+# only works when the image was built on the node itself. Here the image comes
+# from a registry: the deploy workflow (.github/workflows/deploy.yml) rewrites
+# the name and tag, and this lets the node pull it.
+#
+# IfNotPresent rather than Always: every deploy uses an immutable tag (the
+# commit SHA), so a cached image is always the right one and a pod the HPA adds
+# starts without a round trip to the registry.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  template:
+    spec:
+      containers:
+        - name: api
+          imagePullPolicy: IfNotPresent
