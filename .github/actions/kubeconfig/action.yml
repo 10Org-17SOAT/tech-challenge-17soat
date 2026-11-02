@@ -1,0 +1,82 @@
+name: Kubeconfig
+description: >-
+  Installs kubectl, fetches the K3s kubeconfig from the VM over SSH and points
+  KUBECONFIG at it for the rest of the job. Retries for ~10 minutes while K3s
+  is still installing on a fresh VM.
+
+# Same command as the kubeconfig_command output of infra/, so the pipeline and
+# an operator get the same file. The kubeconfig is an admin credential: it is
+# written to RUNNER_TEMP (thrown away with the runner) and is never an output.
+
+inputs:
+  host:
+    description: Public IP of the K3s VM (k3s-public-ip of the tf-outputs action).
+    required: true
+  ssh-private-key:
+    description: Private half of ssh_public_key in production.tfvars (SSH_PRIVATE_KEY secret).
+    required: true
+  kubectl-version:
+    description: Keep it within one minor of k3s_version in production.tfvars.
+    required: false
+    default: "v1.36.5"
+
+runs:
+  using: composite
+  steps:
+    - name: Install kubectl
+      shell: bash
+      env:
+        KUBECTL_VERSION: ${{ inputs.kubectl-version }}
+      run: |
+        curl -fsSLo "$RUNNER_TEMP/kubectl" "https://dl.k8s.io/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl"
+        curl -fsSLo "$RUNNER_TEMP/kubectl.sha256" "https://dl.k8s.io/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl.sha256"
+        echo "$(cat "$RUNNER_TEMP/kubectl.sha256")  $RUNNER_TEMP/kubectl" | sha256sum --check
+        sudo install -m 0755 "$RUNNER_TEMP/kubectl" /usr/local/bin/kubectl
+        kubectl version --client
+
+    - name: Fetch kubeconfig
+      shell: bash
+      env:
+        HOST: ${{ inputs.host }}
+        SSH_PRIVATE_KEY: ${{ inputs.ssh-private-key }}
+      run: |
+        if [ -z "$HOST" ] || [ -z "$SSH_PRIVATE_KEY" ]; then
+          echo "::error::host and ssh-private-key are required (SSH_PRIVATE_KEY secret of the production environment)."
+          exit 1
+        fi
+
+        key="$RUNNER_TEMP/k3s_ssh_key"
+        kubeconfig="$RUNNER_TEMP/kubeconfig"
+        printf '%s\n' "$SSH_PRIVATE_KEY" > "$key"
+        chmod 600 "$key"
+
+        # The VM is recreated with a new host key, so there is nothing to pin:
+        # accept-new trusts the first key seen in this job only.
+        ssh_opts=(-i "$key" -o StrictHostKeyChecking=accept-new
+                  -o UserKnownHostsFile="$RUNNER_TEMP/known_hosts" -o ConnectTimeout=10 -o BatchMode=yes)
+
+        # On a fresh VM, SSH and then k3s.yaml only show up once cloud-init and
+        # the K3s install are done. The temporary file keeps a failed attempt
+        # from leaving a half-written kubeconfig behind.
+        for attempt in $(seq 1 40); do
+          if ssh "${ssh_opts[@]}" "ubuntu@$HOST" "sudo sed 's/127.0.0.1/$HOST/' /etc/rancher/k3s/k3s.yaml" > "$kubeconfig.tmp" \
+            && [ -s "$kubeconfig.tmp" ]; then
+            mv "$kubeconfig.tmp" "$kubeconfig"
+            chmod 600 "$kubeconfig"
+            rm -f "$key"
+            echo "KUBECONFIG=$kubeconfig" >> "$GITHUB_ENV"
+            break
+          fi
+          echo "K3s not reachable yet (attempt $attempt/40); retrying in 15s."
+          sleep 15
+        done
+        rm -f "$key" "$kubeconfig.tmp"
+
+        if [ ! -f "$kubeconfig" ]; then
+          echo "::error::Could not fetch the kubeconfig from $HOST in 10 minutes."
+          exit 1
+        fi
+
+    - name: Wait for the node
+      shell: bash
+      run: kubectl wait --for=condition=Ready node --all --timeout=5m
