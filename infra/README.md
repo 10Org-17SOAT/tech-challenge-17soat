@@ -37,6 +37,7 @@ configuração e a política de segredos que o resto da infraestrutura reutiliza
 | Variáveis compartilhadas | `variables.tf` | Fechado |
 | Outputs de contrato | `outputs.tf` | Fechado; camadas seguintes acrescentam os seus |
 | Exemplo de valores | `terraform.tfvars.example` | — |
+| Valores de produção (versionados, sem segredo) | `production.tfvars` | Fechado (#129) |
 | Higiene de artefatos | `.gitignore` | — |
 | Backend remoto (S3, configuração parcial) | `backend.tf` | Fechado (#147) |
 | Estratégia e contratos | `README.md` | — |
@@ -101,7 +102,7 @@ um provider que a fundação não usa, ela **acrescenta uma linha** ao bloco
 | Rede e computação | `hashicorp/helm` | Instalar/consultar charts, se o caminho escolhido não for o script de instalação |
 | Rede e computação | `hashicorp/time` | Se algum recurso exigir espera explícita entre operações |
 | Banco de dados | `hashicorp/random` | **Em uso** (#120): senha mestre do RDS e sufixo estável do snapshot final. |
-| Banco de dados | `hashicorp/local` | **Em uso** (#120): grava `k8s/overlays/aws/db.env` (sem segredo). |
+| Banco de dados | `hashicorp/local` | **Em uso** (#120): grava `k8s/components/aws-runtime/db.env` (sem segredo). Só para quem roda localmente; no CI, a action `tf-outputs` regrava o arquivo a partir do state. |
 | Cluster e dados | `hashicorp/kubernetes` | **Condicionada à leitura de C-03**: só entra se os objetos do cluster forem gerenciados por Terraform. Se a opção escolhida for `kubectl`, o provider não é necessário. |
 
 Regras da exceção:
@@ -216,7 +217,7 @@ Regras e o motivo de cada uma:
 | Next.js | **NestJS** (`src/main.ts`, `nest-cli.json`) | Nenhum — Terraform é agnóstico. O provisionamento da aplicação segue o NestJS. |
 | API em porta `6443` | `k8s/base/api/service.yaml` é **NodePort 30080** | Ver C-01 na seção 9. |
 | Banco gerenciado (RDS) | AWS: RDS em `database.tf`; local: `k8s/overlays/local/postgres/statefulset.yaml` | D-02 revisado: RDS na AWS, StatefulSet só no overlay local. |
-| `APP_BASE_URL` derivado do host | `k8s/base/configmap.yaml` fixa `http://localhost:30080` | Reescrito via k8s ConfigMap. |
+| `APP_BASE_URL` derivado do host | `k8s/base/config/configmap.yaml` fixa `http://localhost:30080` | Reescrito via k8s ConfigMap. |
 | `MONGO_URI` | **Inexistente.** `docs/adr/0004` escolheu PostgreSQL + Drizzle | Nenhuma variável `mongo_*`. |
 | Build x86_64 | `ami_name_filter` padrão é ARM64 (`gp3`) | D-10: build precisa ser ARM64 para não emular. Ver C-05. |
 | Compose como "infraestrutura" | Compose é **ambiente de desenvolvimento**, não deploy | Deploy provisionado via manifests versionados. |
@@ -225,7 +226,7 @@ Valores reais confirmados no repositório:
 
 | Dado | Valor | Origem |
 |---|---|---|
-| Nome do banco | `tech_challenge` | `docker-compose.yml`, `k8s/base/configmap.yaml` |
+| Nome do banco | `tech_challenge` | `docker-compose.yml`, `k8s/base/config/configmap.yaml` |
 | Usuário do banco | `postgres` | `docker-compose.yml`, `k8s/overlays/local/postgres/statefulset.yaml` |
 | Nome do Secret | `app-secrets` | `k8s/overlays/local/secret.yaml` |
 | Imagem do banco | `postgres:16-alpine` | `k8s/overlays/local/postgres/statefulset.yaml` |
@@ -252,11 +253,11 @@ do primeiro `apply` que provisione recursos.
 
 | ID | Questão | Impacto | Recomendação |
 |---|---|---|---|
-| **C-04** | `aws_region` e `allowed_account_ids` não foram definidos. | Vão para a conta real com os defaults. | Definir antes do primeiro apply. A fundação funciona sem eles: o guard fica desativado. |
+| ~~**C-04**~~ | ~~`aws_region` e `allowed_account_ids` não foram definidos.~~ | **Resolvido (#129):** `production.tfvars` fixa `us-east-2` e a conta do projeto. | — |
 | **C-05** | A AMI é ARM64, mas não há definição de build da imagem ARM. | Emulação por `qemu`, ou `exec format error`. | Definir antes de provisionar a VM. |
 | **C-07** | Sem `domain` (D-03 não traz ACME aqui), a API fica em `IP:porta`. | Sem TLS nem hostname estável. | `domain = null` é o default; a estratégia de exposição é decisão da camada de cluster. |
 | ~~**C-08**~~ | ~~Backup do Postgres in-cluster não está definido.~~ | **Resolvido (#120):** o banco é RDS, fora da VM, com 7 dias de backup automático (`db_backup_retention_days`) e snapshot final no destroy. | — |
-| **C-09** | Versão do K3s não fixada (`k3s_version = null`). | Implantação não reprodutível. | Fixar antes do primeiro apply. |
+| ~~**C-09**~~ | ~~Versão do K3s não fixada (`k3s_version = null`).~~ | **Resolvido (#129):** `production.tfvars` fixa `v1.36.5+k3s1`, a mesma minor do `kubectl` da pipeline. | — |
 | **C-10** | `MAIL_FROM` (`oficina@example.com`) é placeholder no ConfigMap e no compose. | E-mail real sairia de endereço inexistente. | Ajustar via Secret/ConfigMap. |
 
 ### Hygiene do repositório
@@ -388,37 +389,90 @@ Provisionado por `database.tf` (#120). Pré-requisitos do primeiro `apply`: a
 camada de rede (#119) aplicada e o **backend S3 cifrado** ativo — a senha mestre
 é gerada pelo Terraform e fica no estado (exceção em D-03).
 
-### Subir o ambiente AWS
+### Deploy pela pipeline (#129)
+
+Todo commit em `main` que passa no CI vira imagem (`cd.yml`) e é implantado
+pelo `deploy.yml`, em três jobs no environment `production`. Um job que falha
+impede o seguinte:
+
+```
+cd.yml (imagem) ──► infra ──► db-migrate ──► deploy
+```
+
+| Job | O que faz |
+|---|---|
+| `infra` | `terraform plan -var-file=production.tfvars` → **guarda** → `apply`. O resumo do plano vai para o job summary. A guarda (`.github/scripts/terraform-plan-guard.sh`) **falha se o plano tiver qualquer `delete` ou `replace`**: destruir ou recriar (RDS, VM, EIP) é sempre manual (seção 11). |
+| `db-migrate` | Lê o state (action `tf-outputs`: `db.env` e IP da VM), busca o kubeconfig por SSH (action `kubeconfig`, com retry de ~10 min enquanto o K3s sobe), aplica o ConfigMap `rds-ca` e o Secret `app-secrets`, roda o Job `db-migrate` (`k8s/overlays/aws-migrate`) com a imagem do commit e espera ele completar. Se falhar, mostra os logs e o deploy para, com a versão anterior no ar. |
+| `deploy` | Rollout da API (`k8s/overlays/aws`) com a imagem do commit e espera o `rollout status`. |
+
+O state remoto é a única fonte dos endereços: nada é copiado à mão para
+variáveis do GitHub. O Secret `app-secrets` é reaplicado em todo deploy, com
+`DB_USER`/`DB_PASSWORD` lidos do state dentro do próprio step (nunca como
+output de job). Migrations precisam ser compatíveis com a versão anterior do
+código ([ADR-0006](../docs/adr/0006-migrations-compativeis-com-a-versao-anterior.md)).
+
+### Secrets e variables do environment `production`
+
+| Tipo | Nome | Origem |
+|---|---|---|
+| Secret | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | Usuário IAM do CI (seção 14) |
+| Secret | `SSH_PRIVATE_KEY` | Metade privada da chave em `ssh_public_key` do `production.tfvars`, dedicada ao ambiente |
+| Secret | `JWT_SECRET` | Fixo, gerado uma vez (`openssl rand -base64 48`). Trocar desloga todo mundo. |
+| Secret | `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD` | Primeiro admin (senha com 12+ caracteres) |
+| Variable | `TF_STATE_BUCKET`, `AWS_REGION` | `terraform -chdir=infra/bootstrap output` |
+
+O `deploy.yml` também pode ser disparado à mão (Actions → *CD - Deploy K8s*, a
+partir de `main`) para reimplantar ou voltar para uma imagem que já está no
+registry.
+
+### Subir o ambiente à mão
+
+Exceção consciente (seção 11), por exemplo para depurar sem a pipeline. Use o
+mesmo `production.tfvars` e as mesmas etapas, na mesma ordem:
 
 ```bash
-# 1. Provisionar. Grava k8s/overlays/aws/db.env (DB_HOST, DB_PORT, DB_NAME).
-terraform -chdir=infra apply
+# 1. Provisionar. Grava k8s/components/aws-runtime/db.env (DB_HOST, DB_PORT, DB_NAME).
+terraform -chdir=infra init -backend-config=backend.hcl
+terraform -chdir=infra apply -var-file=production.tfvars
 
-# 2. CA da AWS: o RDS só aceita TLS e a CA dele não está no trust store do Node.
+# 2. Kubeconfig (a VM instala o K3s no primeiro boot; pode levar alguns minutos).
+eval "$(terraform -chdir=infra output -raw kubeconfig_command)"
+export KUBECONFIG=$PWD/kubeconfig
+
+# 3. CA da AWS: o RDS só aceita TLS e a CA dele não está no trust store do Node.
 curl -fsSLo global-bundle.pem \
   https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
-kubectl create configmap rds-ca --from-file=global-bundle.pem
+kubectl create configmap rds-ca --from-file=global-bundle.pem \
+  --dry-run=client -o yaml | kubectl apply -f -
 
-# 3. Secret com as credenciais reais. Nunca em arquivo versionado.
+# 4. Secret com as credenciais reais. Nunca em arquivo versionado. Use o mesmo
+#    JWT_SECRET do environment, ou os tokens emitidos pela pipeline deixam de valer.
 kubectl create secret generic app-secrets \
   --from-literal=DB_USER="$(terraform -chdir=infra output -raw db_username)" \
   --from-literal=DB_PASSWORD="$(terraform -chdir=infra output -raw db_password)" \
-  --from-literal=JWT_SECRET="$(openssl rand -base64 48)" \
+  --from-literal=JWT_SECRET='<mesmo valor do secret JWT_SECRET>' \
   --from-literal=BOOTSTRAP_ADMIN_EMAIL='<email do admin>' \
-  --from-literal=BOOTSTRAP_ADMIN_PASSWORD='<senha do admin, 12+ caracteres>'
+  --from-literal=BOOTSTRAP_ADMIN_PASSWORD='<senha do admin, 12+ caracteres>' \
+  --dry-run=client -o yaml | kubectl apply -f -
 
-# 4. Aplicação.
-kubectl apply -k k8s/overlays/aws
+# 5. Migration e aplicação, com a imagem do commit.
+IMAGE=<DOCKERHUB_IMAGE>:<sha>
+.github/scripts/render-overlay.sh k8s/overlays/aws-migrate "$IMAGE" migrate.yaml
+kubectl delete job db-migrate --ignore-not-found && kubectl apply -f migrate.yaml
+kubectl wait --for=condition=complete job/db-migrate --timeout=5m
+.github/scripts/render-overlay.sh k8s/overlays/aws "$IMAGE" manifests.yaml
+kubectl apply -f manifests.yaml && kubectl rollout status deployment/api
 ```
 
-O overlay `aws` liga `DB_SSL=true`, monta a CA em `NODE_EXTRA_CA_CERTS`, usa
-`NODE_ENV=production` e **não** roda o seed: os usuários do seed têm senha
-versionada no repositório. O primeiro admin vem de `BOOTSTRAP_ADMIN_*`.
+Os dois overlays usam o component `k8s/components/aws-runtime`, que liga
+`DB_SSL=true`, monta a CA em `NODE_EXTRA_CA_CERTS`, usa `NODE_ENV=production` e
+**não** roda o seed: os usuários do seed têm senha versionada no repositório. O
+primeiro admin vem de `BOOTSTRAP_ADMIN_*`.
 
 ### Destruir
 
 `db_deletion_protection` é `true` por padrão. Para um `terraform destroy`:
-defina `db_deletion_protection = false` no `terraform.tfvars`, rode `apply` e só
+defina `db_deletion_protection = false` no `production.tfvars`, rode `apply` e só
 então `destroy`. Um snapshot final (`<prefixo>-db-final-<sufixo>`) é mantido.
 
 ### Pendências fora da camada de banco
@@ -426,7 +480,7 @@ então `destroy`. Um snapshot final (`<prefixo>-db-final-<sufixo>`) é mantido.
 | Item | Hoje | Dono |
 |---|---|---|
 | `APP_BASE_URL` | O base fixa `http://localhost:30080` | Camada de cluster (#119): depende do IP/domínio da EC2 |
-| Imagem da API | `tech-challenge-api:local` com `imagePullPolicy: Never` | Camada de cluster (#119): ECR |
+| ~~Imagem da API~~ | **Resolvido (#145/#146):** imagem do Docker Hub, trocada pela pipeline (`render-overlay.sh`) | — |
 
 ---
 
