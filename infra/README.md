@@ -496,12 +496,16 @@ terraform output
 ### Criar a access key do CI
 
 Fora do Terraform: `aws_iam_access_key` gravaria o secret em plaintext no
-state. A chave vai direto da CLI para o GitHub, sem passar por arquivo:
+state. A chave vai direto da CLI para o GitHub, sem passar por arquivo.
+
+Pré-requisito: o environment `production` já existe (seção seguinte, passo 1);
+sem ele, `gh secret set --env` falha. Rode da raiz do repositório:
 
 ```bash
 REPO=10Org-17SOAT/tech-challenge-17soat
-USER_NAME=$(terraform output -raw ci_user_name)
-KEY=$(aws iam create-access-key --user-name "$USER_NAME" --output json)
+USER_NAME=$(terraform -chdir=infra/bootstrap output -raw ci_user_name)
+[ -n "$USER_NAME" ] || { echo "ci_user_name vazio: rode o bootstrap antes"; return 1 2>/dev/null || exit 1; }
+KEY=$(aws iam create-access-key --user-name "$USER_NAME" --output json) || return 1 2>/dev/null || exit 1
 gh secret set AWS_ACCESS_KEY_ID     --env production --repo "$REPO" --body "$(jq -r .AccessKey.AccessKeyId <<<"$KEY")"
 gh secret set AWS_SECRET_ACCESS_KEY --env production --repo "$REPO" --body "$(jq -r .AccessKey.SecretAccessKey <<<"$KEY")"
 unset KEY
