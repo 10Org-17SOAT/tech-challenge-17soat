@@ -28,13 +28,20 @@ environment  = "production"
 
 # --- Compute -------------------------------------------------------------
 
-instance_type = "t4g.medium"
+# The account is on the AWS free plan: RunInstances only accepts free-tier
+# eligible types. t4g.small is the largest ARM one (2 vCPU, 2 GiB).
+instance_type = "t4g.small"
 
 # Pinned so a recreated VM runs the same cluster. Keep the kubectl version in
 # .github/actions/kubeconfig within one minor of it. Changing it recreates the
 # VM (user_data_replace_on_change), which the pipeline refuses to do: apply it
 # by hand.
 k3s_version = "v1.36.5+k3s1"
+
+# --- Database (RDS) ------------------------------------------------------
+
+# The free plan rejects CreateDBInstance with a longer backup retention.
+db_backup_retention_days = 1
 
 # --- VM access -----------------------------------------------------------
 

@@ -39,7 +39,7 @@ private_subnet_cidrs = ["10.0.11.0/24", "10.0.12.0/24"]
 
 # --- Compute -------------------------------------------------------------
 
-instance_type    = "t4g.medium"
+instance_type    = "t4g.small"
 root_volume_size = 20
 ami_owner        = "099720109477"
 ami_name_filter  = "ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-arm64-server-*"
@@ -51,7 +51,7 @@ db_instance_class        = "db.t4g.micro"
 db_allocated_storage     = 20
 db_name                  = "tech_challenge"
 db_username              = "postgres"
-db_backup_retention_days = 7
+db_backup_retention_days = 1
 
 # Set to false, run apply and only then destroy (README, section 13).
 db_deletion_protection = true

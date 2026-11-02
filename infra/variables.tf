@@ -165,8 +165,8 @@ locals {
 
 variable "instance_type" {
   type        = string
-  description = "VM instance type. t4g is ARM (Graviton), so the build environment must also be ARM for the image not to run under emulation."
-  default     = "t4g.medium"
+  description = "VM instance type. t4g is ARM (Graviton), so the build environment must also be ARM for the image not to run under emulation. t4g.small is the largest ARM type the AWS free plan accepts."
+  default     = "t4g.small"
 
   validation {
     condition     = length(var.instance_type) > 0
