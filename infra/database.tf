@@ -11,8 +11,8 @@
 # "Banco de dados" section.
 #
 # Nothing here talks to the cluster: the password reaches the Secret through
-# `kubectl`, and the endpoint through k8s/overlays/aws/db.env. That keeps this
-# layer clear of open item C-01 (Terraform reaching the K3s API).
+# `kubectl`, and the endpoint through k8s/components/aws-runtime/db.env. That
+# keeps this layer clear of open item C-01 (Terraform reaching the K3s API).
 # ---------------------------------------------------------------------------
 
 # --- Variables ----------------------------------------------------------------
@@ -275,11 +275,14 @@ resource "aws_db_instance" "main" {
 
 # --- Cluster integration ----------------------------------------------------------
 
-# Non-secret values only. The k8s/overlays/aws overlay merges this file into
-# app-config; without it `kubectl apply -k` fails, which keeps the AWS overlay
-# from being deployed before the database exists. Ignored by Git.
+# Non-secret values only. The k8s/components/aws-runtime component merges this
+# file into app-config for both AWS overlays (aws, aws-migrate); without it
+# `kubectl apply -k` fails, which keeps them from being deployed before the
+# database exists. Ignored by Git. The pipeline does not rely on this file: the
+# runner disk is thrown away, so the tf-outputs action rewrites it from the
+# remote state (.github/actions/tf-outputs).
 resource "local_file" "db_env" {
-  filename        = "${path.module}/../k8s/overlays/aws/db.env"
+  filename        = "${path.module}/../k8s/components/aws-runtime/db.env"
   file_permission = "0644"
   content         = <<-EOT
     DB_HOST=${aws_db_instance.main.address}

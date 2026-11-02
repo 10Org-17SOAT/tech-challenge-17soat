@@ -1,0 +1,18 @@
+# AWS: only the migration Job and the configuration it reads. Applied by the
+# db-migrate job of the pipeline (.github/workflows/deploy.yml) before the API
+# rollout, with the image of the commit being deployed:
+#
+#   kubectl delete job db-migrate --ignore-not-found
+#   kubectl apply -k k8s/overlays/aws-migrate
+#   kubectl wait --for=condition=complete job/db-migrate --timeout=5m
+#
+# The API Deployment, Service and HPA are deliberately absent, so applying this
+# overlay never touches the running pods.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base/config
+  - job.yaml
+
+components:
+  - ../../components/aws-runtime

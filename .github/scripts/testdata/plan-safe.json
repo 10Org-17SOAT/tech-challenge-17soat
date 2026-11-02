@@ -1,0 +1,9 @@
+{
+  "format_version": "1.2",
+  "resource_changes": [
+    {"address": "aws_vpc.main", "change": {"actions": ["no-op"]}},
+    {"address": "aws_db_instance.main", "change": {"actions": ["update"]}},
+    {"address": "local_file.db_env", "change": {"actions": ["create"]}},
+    {"address": "data.aws_ami.ubuntu", "change": {"actions": ["read"]}}
+  ]
+}

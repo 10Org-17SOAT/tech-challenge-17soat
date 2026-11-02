@@ -1,44 +1,21 @@
-# AWS: the base pointed at the RDS instance provisioned by infra/database.tf.
-#
-# There is no database and no Secret here. The database is RDS, and the
-# `app-secrets` Secret is created with kubectl from the Terraform outputs, so
-# real credentials never sit in a file kustomize can overwrite. See the
-# "Banco de dados" section of infra/README.md for the full sequence.
+# AWS: the API from the base, pointed at the RDS instance provisioned by
+# infra/database.tf through the aws-runtime component.
 #
 #   kubectl apply -k k8s/overlays/aws
 #
 # The pipeline (.github/workflows/deploy.yml) applies this same overlay, with
-# the image swapped for the one pushed to the registry.
+# the image swapped for the one pushed to the registry, after the db-migrate
+# job has applied the schema (overlays/aws-migrate).
 #
-# Fails until `terraform apply` has written db.env, on purpose: there is
-# nothing to connect to before that.
+# Fails until db.env exists in components/aws-runtime, on purpose: there is
+# nothing to connect to before the database exists.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - ../../base
 
-configMapGenerator:
-  - name: app-config
-    behavior: merge
-    # DB_HOST, DB_PORT and DB_NAME of the RDS instance.
-    envs:
-      - db.env
-    literals:
-      # RDS refuses plain connections (rds.force_ssl=1 in the parameter group).
-      - DB_SSL=true
-      # A deployed environment, not a demo: the seed refuses to run here and
-      # its users have passwords committed to the repository. The first admin
-      # comes from BOOTSTRAP_ADMIN_* in the Secret instead.
-      - NODE_ENV=production
-
-generatorOptions:
-  # Keep the name `app-config` that the Deployment references.
-  disableNameSuffixHash: true
+components:
+  - ../../components/aws-runtime
 
 patches:
-  - path: configmap-no-seed.yaml
-    target:
-      kind: ConfigMap
-      name: app-config
-  - path: deployment-rds-ca.yaml
   - path: deployment-registry.yaml

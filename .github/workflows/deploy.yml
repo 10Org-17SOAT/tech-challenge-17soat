@@ -1,9 +1,15 @@
 name: CD - Deploy K8s
 
-# Deploys an already built image to the K3s cluster on AWS by applying the
-# k8s/overlays/aws manifests. Building and pushing the image is not done here:
-# the image workflow (cd.yml) calls this one once the push to Docker Hub
-# succeeds, e.g.
+# Deploys a commit to AWS, in three jobs that each stop the next on failure:
+#
+#   infra ──► db-migrate ──► deploy
+#
+#   infra       terraform plan → guard (no delete/replace) → apply of infra/
+#   db-migrate  rds-ca + app-secrets, then the migration Job of the new image
+#   deploy      the API rollout (k8s/overlays/aws)
+#
+# Building and pushing the image is not done here: the image workflow (cd.yml)
+# calls this one once the push to Docker Hub succeeds:
 #
 #   deploy:
 #     needs: image
@@ -13,8 +19,14 @@ name: CD - Deploy K8s
 #       ref: ${{ github.event.workflow_run.head_sha }}
 #     secrets: inherit
 #
-# It can also be run by hand from the Actions tab, to redeploy or roll back to
-# any tag already in the registry.
+# It can also be run by hand from the Actions tab (from main), to redeploy or
+# roll back to any tag already in the registry.
+#
+# Every job runs in the `production` environment, which only admits main and
+# holds what the jobs need (infra/README.md, section 13):
+#   secrets    AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, SSH_PRIVATE_KEY,
+#              JWT_SECRET, BOOTSTRAP_ADMIN_EMAIL, BOOTSTRAP_ADMIN_PASSWORD
+#   variables  TF_STATE_BUCKET, AWS_REGION
 on:
   workflow_call:
     inputs:
@@ -24,9 +36,10 @@ on:
         type: string
       # Under workflow_run, github.sha is the tip of the default branch, not
       # the commit CI tested and the image was built from. The caller passes
-      # that commit so the manifests match the image. Empty = the triggering ref.
+      # that commit so Terraform and the manifests match the image. Empty = the
+      # triggering ref.
       ref:
-        description: Commit to check out for the manifests; defaults to the triggering ref.
+        description: Commit to check out for Terraform and the manifests; defaults to the triggering ref.
         required: false
         type: string
         default: ""
@@ -38,7 +51,7 @@ on:
         required: true
         type: string
       ref:
-        description: Commit to check out for the manifests; empty = the selected branch.
+        description: Commit to check out for Terraform and the manifests; empty = the selected branch.
         required: false
         type: string
         default: ""
@@ -46,24 +59,83 @@ on:
 permissions:
   contents: read
 
-jobs:
-  deploy:
-    name: Apply manifests
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+# The whole chain is one unit: two deploys racing would interleave applies and
+# migrations, so they queue instead. A running deploy is never cancelled
+# halfway through an apply or a rollout.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
 
-    # Only main may deploy here (deployment branch policy), so neither a
-    # dispatch from another branch nor a PR gets the credentials. Holds the AWS
-    # access key of the CI user (infra/README.md, section 14) and, for now,
-    # KUBE_CONFIG and the DB_* variables.
+jobs:
+  infra:
+    name: Terraform apply
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
     environment: production
 
-    # Two applies racing each other would leave the cluster on whichever
-    # finishes last, so deploys queue instead. A running deploy is never
-    # cancelled halfway through a rollout.
-    concurrency:
-      group: deploy-production
-      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: infra
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      # Same version as tf-outputs; the wrapper is off so `show -json` writes
+      # clean JSON.
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: "1.16.4"
+          terraform_wrapper: false
+
+      - name: terraform init
+        env:
+          STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+        run: |
+          terraform init -input=false \
+            -backend-config="bucket=$STATE_BUCKET" \
+            -backend-config="region=$AWS_REGION"
+
+      - name: terraform plan
+        run: |
+          terraform plan -input=false -lock-timeout=5m \
+            -var-file=production.tfvars -out=plan.tfplan
+          terraform show -json plan.tfplan > plan.json
+
+      - name: Publish plan summary
+        if: always()
+        run: |
+          [ -f plan.tfplan ] || exit 0
+          {
+            echo "### Terraform plan"
+            echo '```'
+            terraform show -no-color plan.tfplan | grep -E '^ *# |^Plan:|^No changes' || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Destroying or recreating anything (RDS, VM, EIP) is always done by hand.
+      - name: Refuse deletes and replaces
+        run: ../.github/scripts/terraform-plan-guard.sh plan.json
+
+      - name: terraform apply
+        run: terraform apply -input=false -lock-timeout=5m plan.tfplan
+
+  db-migrate:
+    name: Database migration
+    needs: infra
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
 
     env:
       IMAGE: ${{ inputs.image }}
@@ -74,59 +146,25 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
 
-      # Within one minor version of the cluster: K3s follows the stable channel
-      # until k3s_version is pinned (infra/README.md, C-09).
-      - name: Set up kubectl
-        uses: azure/setup-kubectl@v5
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
         with:
-          version: v1.36.5
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
 
-      # The kubeconfig written by the command in `terraform output
-      # kubeconfig_command`: it already points at the public IP, which the K3s certificate covers
-      # through --tls-san.
-      - name: Write kubeconfig
-        env:
-          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
-        run: |
-          if [ -z "$KUBE_CONFIG" ]; then
-            echo "::error::Secret KUBE_CONFIG is not set in the production environment."
-            exit 1
-          fi
-          export KUBECONFIG="$RUNNER_TEMP/kubeconfig"
-          install -m 600 /dev/null "$KUBECONFIG"
-          printf '%s\n' "$KUBE_CONFIG" > "$KUBECONFIG"
-          echo "KUBECONFIG=$KUBECONFIG" >> "$GITHUB_ENV"
-          kubectl version
-          kubectl get nodes
+      - name: Terraform outputs
+        id: tf
+        uses: ./.github/actions/tf-outputs
+        with:
+          state-bucket: ${{ vars.TF_STATE_BUCKET }}
+          aws-region: ${{ vars.AWS_REGION }}
 
-      # The aws overlay reads the RDS endpoint from db.env, which
-      # `terraform apply` writes on the operator's machine and Git ignores. The
-      # values are not secret, so the pipeline rebuilds the file from
-      # environment variables.
-      - name: Write database endpoint
-        env:
-          DB_HOST: ${{ vars.DB_HOST }}
-          DB_PORT: ${{ vars.DB_PORT || '5432' }}
-          DB_NAME: ${{ vars.DB_NAME || 'tech_challenge' }}
-        run: |
-          if [ -z "$DB_HOST" ]; then
-            echo "::error::Variable DB_HOST is not set in the production environment (terraform output -raw db_host)."
-            exit 1
-          fi
-          printf 'DB_HOST=%s\nDB_PORT=%s\nDB_NAME=%s\n' "$DB_HOST" "$DB_PORT" "$DB_NAME" \
-            > k8s/overlays/aws/db.env
-
-      # The Secret carries the database password, the JWT secret and the first
-      # admin, so it is created once by the operator (infra/README.md, section
-      # 13) and never by the pipeline: regenerating JWT_SECRET on every deploy
-      # would log everybody out. Without it the pods would only fail later, with
-      # CreateContainerConfigError, so stop here with a clear message instead.
-      - name: Check application Secret
-        run: |
-          if ! kubectl get secret app-secrets > /dev/null; then
-            echo "::error::Secret app-secrets does not exist in the cluster. Create it as described in infra/README.md, section 13."
-            exit 1
-          fi
+      - name: Kubeconfig
+        uses: ./.github/actions/kubeconfig
+        with:
+          host: ${{ steps.tf.outputs.k3s-public-ip }}
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
       # Refreshed on every deploy so a CA rotation by AWS needs nothing more
       # than a new run. Applying a rendered object keeps it idempotent.
@@ -138,47 +176,109 @@ jobs:
             --from-file=global-bundle.pem="$RUNNER_TEMP/global-bundle.pem" \
             --dry-run=client -o yaml | kubectl apply -f -
 
-      # The committed overlay keeps the base image name, so it still renders the
-      # same thing for whoever runs `kubectl apply -k` by hand. The image to
-      # deploy is set by a throwaway overlay on top of it, which lives inside
-      # the checkout because kustomize refuses absolute resource paths.
-      - name: Render manifests
+      # The database credentials come from the state in this very step and are
+      # never a job output (those are stored in plain text). JWT_SECRET is a
+      # fixed environment secret: regenerating it would log everybody out.
+      - name: Apply application Secret
+        working-directory: infra
+        env:
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          BOOTSTRAP_ADMIN_EMAIL: ${{ secrets.BOOTSTRAP_ADMIN_EMAIL }}
+          BOOTSTRAP_ADMIN_PASSWORD: ${{ secrets.BOOTSTRAP_ADMIN_PASSWORD }}
         run: |
-          case "$IMAGE" in
-            *@*)
-              name="${IMAGE%@*}"
-              pin="    digest: ${IMAGE#*@}"
-              ;;
-            *)
-              # Only a colon after the last slash is a tag; one before it is a
-              # registry port (localhost:5000/api).
-              case "${IMAGE##*/}" in
-                *:*) ;;
-                *)
-                  echo "::error::Image '$IMAGE' has no tag or digest. Deploy an immutable tag, e.g. the commit SHA."
-                  exit 1
-                  ;;
-              esac
-              name="${IMAGE%:*}"
-              pin="    newTag: ${IMAGE##*:}"
-              ;;
-          esac
+          for name in JWT_SECRET BOOTSTRAP_ADMIN_EMAIL BOOTSTRAP_ADMIN_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Secret $name is not set in the production environment (infra/README.md, section 13)."
+              exit 1
+            fi
+          done
 
-          overlay=k8s/overlays/.deploy
-          mkdir -p "$overlay"
-          cat > "$overlay/kustomization.yaml" <<EOF
-          apiVersion: kustomize.config.k8s.io/v1beta1
-          kind: Kustomization
-          resources:
-            - ../aws
-          images:
-            - name: tech-challenge-api
-              newName: $name
-          $pin
-          EOF
+          db_user=$(terraform output -raw db_username)
+          db_password=$(terraform output -raw db_password)
+          echo "::add-mask::$db_password"
 
-          kubectl kustomize "$overlay" > "$RUNNER_TEMP/manifests.yaml"
-          grep -n 'image:' "$RUNNER_TEMP/manifests.yaml"
+          kubectl create secret generic app-secrets \
+            --from-literal=DB_USER="$db_user" \
+            --from-literal=DB_PASSWORD="$db_password" \
+            --from-literal=JWT_SECRET="$JWT_SECRET" \
+            --from-literal=BOOTSTRAP_ADMIN_EMAIL="$BOOTSTRAP_ADMIN_EMAIL" \
+            --from-literal=BOOTSTRAP_ADMIN_PASSWORD="$BOOTSTRAP_ADMIN_PASSWORD" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Render migration Job
+        run: .github/scripts/render-overlay.sh k8s/overlays/aws-migrate "$IMAGE" "$RUNNER_TEMP/migrate.yaml"
+
+      # A Job's pod template is immutable, so the previous run's Job is
+      # replaced rather than patched.
+      - name: Run migration Job
+        run: |
+          kubectl delete job db-migrate --ignore-not-found --wait=true
+          kubectl apply -f "$RUNNER_TEMP/migrate.yaml"
+
+          # Waits for either outcome: `kubectl wait` alone would sit until the
+          # timeout on a failed Job. The Job's own deadline is 300s.
+          for _ in $(seq 1 72); do
+            succeeded=$(kubectl get job db-migrate -o jsonpath='{.status.succeeded}')
+            failed=$(kubectl get job db-migrate -o jsonpath='{.status.failed}')
+            if [ "${succeeded:-0}" -ge 1 ]; then
+              kubectl logs job/db-migrate --all-containers
+              exit 0
+            fi
+            if [ "${failed:-0}" -ge 1 ]; then
+              echo "::error::The migration Job failed; the API was not rolled out."
+              exit 1
+            fi
+            sleep 5
+          done
+          echo "::error::The migration Job did not finish in 6 minutes."
+          exit 1
+
+      - name: Describe failure
+        if: failure()
+        run: |
+          kubectl describe job db-migrate || true
+          kubectl get pods -l app=db-migrate -o wide || true
+          kubectl logs -l app=db-migrate --all-containers --tail=200 --prefix || true
+          kubectl get events --sort-by=.lastTimestamp | tail -n 30 || true
+
+  deploy:
+    name: Apply manifests
+    needs: db-migrate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+
+    env:
+      IMAGE: ${{ inputs.image }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Terraform outputs
+        id: tf
+        uses: ./.github/actions/tf-outputs
+        with:
+          state-bucket: ${{ vars.TF_STATE_BUCKET }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Kubeconfig
+        uses: ./.github/actions/kubeconfig
+        with:
+          host: ${{ steps.tf.outputs.k3s-public-ip }}
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Render manifests
+        run: .github/scripts/render-overlay.sh k8s/overlays/aws "$IMAGE" "$RUNNER_TEMP/manifests.yaml"
 
       # `kubectl diff` exits 1 when there are differences, which is the normal
       # case here; only a higher code means it actually failed.
@@ -187,15 +287,18 @@ jobs:
           kubectl diff -f "$RUNNER_TEMP/manifests.yaml" || [ $? -eq 1 ]
 
       - name: Apply manifests
+        env:
+          COMMIT: ${{ inputs.ref || github.sha }}
         run: |
           kubectl apply -f "$RUNNER_TEMP/manifests.yaml"
           kubectl annotate deployment/api --overwrite \
-            kubernetes.io/change-cause="$IMAGE (run ${{ github.run_id }}, ${{ github.sha }})"
+            kubernetes.io/change-cause="$IMAGE (run $GITHUB_RUN_ID, $COMMIT)"
 
-      # The readiness probe only passes once migrations ran and Nest is
-      # listening, so a finished rollout means the new version is serving. A
-      # failed one leaves the previous pods in place: the rolling update never
-      # removes them before the new ones are ready.
+      # The readiness probe only passes once Nest is listening (the entrypoint's
+      # own migration run is a no-op after db-migrate), so a finished rollout
+      # means the new version is serving. A failed one leaves the previous pods
+      # in place: the rolling update never removes them before the new ones are
+      # ready.
       - name: Wait for rollout
         run: kubectl rollout status deployment/api --timeout=5m
 
