@@ -1,0 +1,9 @@
+# Copy to terraform.tfvars (Git-ignored) and fill in. Only account_id is
+# required; the rest shows the defaults.
+
+account_id = "123456789012"
+
+# aws_region         = "us-east-2"
+# project_name       = "tech-challenge-soat"
+# github_repository  = "10Org-17SOAT/tech-challenge-17soat"
+# github_environment = "production"

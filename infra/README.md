@@ -15,8 +15,8 @@ configuração e a política de segredos que o resto da infraestrutura reutiliza
 | D-03 | Segredos em k8s Secret | Nenhuma variável `sensitive` no Terraform e nenhum segredo em arquivo versionado. O estado do Terraform guarda valores em **plaintext** mesmo quando o output é sensível. **Exceção (#120):** segredo *gerado* pelo Terraform (`random_password` da senha do RDS) é permitido, exposto só como output `sensitive`, e exige o backend S3 cifrado (seção 7) antes do primeiro `apply`. |
 | D-04 | `environment` é apenas tag; `project_name` é o prefixo de nome | Ambientes diferentes são stacks diferentes. Stack = prefixo próprio, não ambiente no nome do recurso. |
 | D-05 | Sem Secret Manager, sem Parameter Store | Segredo nasce e morre com o cluster (decisão D-03). |
-| D-06 | Backend S3 apenas documentado, não configurado | `terraform init` usa backend local implícito. Ver seção 7. |
-| D-07 | Estrutura plana, um root module, um `versions.tf` | Um único lugar para os limites de versão. Ver seções 3 e 4. |
+| D-06 | Backend S3 **configurado** (revisado na #147; antes: apenas documentado) | `backend.tf` com configuração parcial: bucket e região vêm de `-backend-config`. O bucket é criado pela stack de bootstrap. Ver seções 7 e 14. |
+| D-07 | Estrutura plana, um root module, um `versions.tf` | Um único lugar para os limites de versão. Ver seções 3 e 4. **Exceção (#147):** `bootstrap/` é um segundo root module, com state local, que cria só o bucket do state e o usuário IAM do CI — o que este root não consegue criar para si mesmo. Ver seção 14. |
 | D-08 | Credencial pela cadeia padrão do provider AWS | Nenhuma credencial em código, em `.tf` ou em `.tfvars`. |
 | D-09 | `public_subnet_cidr` deve estar contido em `vpc_cidr`, validado | Com os defaults, o único valor aceito é `10.0.1.0/24`. Mudar um exige mudar o outro. |
 | D-10 | AMI Ubuntu 24.04 LTS ARM64, owner fixo `099720109477` | Imagem de sistema, reconstruível, e sem risco de o filtro resolver para AMI de terceiro. A instância ignora mudanças de `ami` (`lifecycle.ignore_changes`): AMI nova não recria a VM sozinha. Para atualizar a imagem de propósito: `terraform apply -replace=aws_instance.k3s`. |
@@ -38,6 +38,7 @@ configuração e a política de segredos que o resto da infraestrutura reutiliza
 | Outputs de contrato | `outputs.tf` | Fechado; camadas seguintes acrescentam os seus |
 | Exemplo de valores | `terraform.tfvars.example` | — |
 | Higiene de artefatos | `.gitignore` | — |
+| Backend remoto (S3, configuração parcial) | `backend.tf` | Fechado (#147) |
 | Estratégia e contratos | `README.md` | — |
 
 ### Camada de rede e computação
@@ -58,6 +59,15 @@ configuração e a política de segredos que o resto da infraestrutura reutiliza
 | Segredos da aplicação | `secrets.tf` |
 | Banco de dados (RDS, subnets privadas, SG, parameter group) | `database.tf` |
 
+### Bootstrap — `bootstrap/` (root separado, #147)
+
+| Componente | Arquivo |
+|---|---|
+| Versão e provider (com `allowed_account_ids` obrigatório) | `bootstrap/versions.tf` |
+| Variáveis (`account_id` sem default) | `bootstrap/variables.tf` |
+| Bucket do state, usuário IAM do CI | `bootstrap/main.tf` |
+| Valores para o GitHub e para o `backend.hcl` | `bootstrap/outputs.tf` |
+
 As camadas são aplicadas em ordem: **fundação → rede e computação → cluster e
 dados**. Ver a pendência **C-02** na seção 9 para o porquê de não ser um passo
 único.
@@ -73,8 +83,9 @@ outro propósito:
 versions.tf   providers.tf   locals.tf    variables.tf   outputs.tf
 network.tf    security.tf    iam.tf       ecr.tf         ec2.tf
 user-data.sh  kubernetes.tf  secrets.tf   database.tf    .gitignore
-README.md     .terraform.lock.hcl
+README.md     .terraform.lock.hcl          backend.tf     backend.hcl
 terraform.tfvars
+bootstrap/
 ```
 
 ---
@@ -156,42 +167,45 @@ exatamente dois nomes: `aws_vpc.main` e `aws_security_group.k3s`.
 
 ## 7. Contrato de backend S3
 
-**Estado local implícito.** Não existe `backend.tf` e não existe bloco `backend`.
-`terraform init` usa backend local.
-
-⚠️ **Ative o backend remoto ANTES do primeiro `terraform apply` que crie recursos.**
-
-Configuração a ser criada no momento da primeira aplicação real:
+**Backend remoto ativo (#147).** `backend.tf` declara o backend `s3` com
+configuração **parcial**: `key`, `encrypt` e `use_lockfile` estão versionados;
+`bucket` e `region` são passados no `init`, porque dependem da conta. O bucket
+é criado pela stack de bootstrap (seção 14).
 
 ```hcl
 terraform {
   backend "s3" {
-    bucket         = "<bucket-de-estado>"
-    key            = "tech-challenge-soat/terraform.tfstate"
-    region         = "<regiao-do-bucket>"
-    encrypt        = true
-    use_lockfile   = true
+    key          = "tech-challenge-soat/terraform.tfstate"
+    encrypt      = true
+    use_lockfile = true
   }
 }
+```
+
+Como inicializar:
+
+```bash
+# Local: backend.hcl fica no .gitignore deste diretório.
+terraform -chdir=bootstrap output -raw backend_hcl > backend.hcl
+terraform init -backend-config=backend.hcl
+
+# CI: valores vindos das variables do environment `production`.
+terraform init -backend-config="bucket=$TF_STATE_BUCKET" -backend-config="region=$AWS_REGION"
+
+# fmt/validate, sem credencial e sem tocar no state:
+terraform init -backend=false
 ```
 
 Regras e o motivo de cada uma:
 
 | Regra | Motivo |
 |---|---|
-| `encrypt = true` | O estado guarda valores de recurso em plaintext. |
+| `encrypt = true` | O estado guarda valores de recurso em plaintext (inclusive a senha do RDS, exceção da D-03). |
 | `use_lockfile = true` | Locking via DynamoDB está **deprecado**; o lock passa a ser um objeto S3. |
 | `key` inclui o nome do projeto | Dois ambientes não podem compartilhar o mesmo objeto. |
-| Bucket **fora** da VPC | O `init` roda antes de existir VPC, e o bucket não deve depender do que provisiona. |
-| `dynamodb_table` **ausente** | Depreciado. |
-
-Fluxo de migração do estado local para o S3:
-
-```bash
-terraform init -migrate-state -backend-config=backend.hcl
-```
-
-`backend.hcl` fica no `.gitignore` deste diretório.
+| Bucket **fora** da VPC e fora deste root | O `init` roda antes de existir VPC, e o bucket não pode morar no state que ele guarda. |
+| `bucket`/`region` fora do código | Nenhum valor específico de conta versionado. |
+| Bucket versionado, cifrado, sem acesso público, só TLS | Ver `bootstrap/main.tf`. Versões antigas expiram em 90 dias. |
 
 ---
 
@@ -289,12 +303,15 @@ O estado é compartilhado; o `apply` não é.
 | `terraform fmt`, `validate`, `plan` | **Sim** | Não escreve estado. |
 | `terraform apply` | **Não** | Duas aplicações simultâneas correm para state lock e uma falha. |
 
-Regra operacional: **um único operador executa `apply`.**
+Regra operacional: **o operador do `apply` é a pipeline** (job `infra` do
+`deploy.yml`, #129), rodando no environment `production` a partir de `main`. O
+lock (`use_lockfile`) impede dois `apply` simultâneos — inclusive um local
+contra o do CI.
 
-⚠️ **Com backend local, o estado fica na máquina de quem aplicou.** Se duas
-pessoas aplicarem em máquinas diferentes, o estado se divide e cada uma recria
-os recursos da outra. Por isso o backend S3 (seção 7) deve ser ativado **antes**
-do primeiro apply que provisione recursos — não depois.
+`apply` local continua possível (credencial admin + `backend.hcl`), mas é
+exceção consciente: para destruir/recriar recursos, que a pipeline recusa, ou
+para corrigir algo que travou o CI. Use sempre o mesmo `production.tfvars` do
+CI, ou um `apply` desfaz o outro.
 
 ---
 
@@ -410,3 +427,143 @@ então `destroy`. Um snapshot final (`<prefixo>-db-final-<sufixo>`) é mantido.
 |---|---|---|
 | `APP_BASE_URL` | O base fixa `http://localhost:30080` | Camada de cluster (#119): depende do IP/domínio da EC2 |
 | Imagem da API | `tech-challenge-api:local` com `imagePullPolicy: Never` | Camada de cluster (#119): ECR |
+
+---
+
+## 14. Bootstrap (backend S3 e usuário IAM do CI)
+
+`bootstrap/` (#147) cria o que este root não consegue criar para si mesmo:
+
+| Recurso | Por que não está no root principal |
+|---|---|
+| Bucket S3 do state | O `init` precisa dele antes de ler qualquer `.tf`; não pode morar no state que guarda. |
+| Usuário IAM `github-actions-<project_name>` | A pipeline precisa da credencial para rodar o `apply` que a criaria. |
+
+O usuário tem `PowerUserAccess`: tudo, exceto IAM e Organizations. Uma chave
+vazada não consegue criar usuários, chaves ou roles. A access key fica como
+**secret** do environment **`production`**, que só aceita a branch `main`.
+
+### Por que access key e não OIDC (exceção)
+
+O plano original era OIDC do GitHub + role, sem nenhuma chave da AWS no GitHub.
+A conta do projeto não permite: ela é um **projeto do AWS Settings**
+(settings.aws.com), criado dentro de uma organização gerenciada pela AWS, que
+aplica SCPs próprias
+([docs](https://docs.aws.amazon.com/accounts/latest/reference/scps-and-rcps-for-projects.html)).
+Um *explicit deny* de SCP vale mesmo para um usuário com `AdministratorAccess`.
+
+| SCP | Efeito | Consequência |
+|---|---|---|
+| `p-012d3bs2` (região) | Só libera a região do projeto (`us-east-2`); em `us-east-1`, só ações globais | `aws_region` usa `us-east-2` por padrão, nas duas stacks. |
+| `p-2rzg8ea8` | Nega `iam:*OpenIDConnectProvider*` em qualquer região | Sem OIDC: o CI usa um usuário IAM com access key. |
+
+Verificado na conta: `CreateUser`, `AttachUserPolicy`, `CreateAccessKey`, e a
+checagem de permissão de EC2 (`t4g.medium`), VPC, EIP, key pair, security group
+e RDS (`postgres`, `db.t4g.micro`, `gp3`) passam.
+
+O que se perde em relação ao OIDC:
+
+| | OIDC + role | Usuário IAM + access key |
+|---|---|---|
+| Duração da credencial | 1h, gerada a cada job | Permanente, até ser revogada |
+| Se vazar | Expira sozinha | Vale até alguém desativar a chave |
+| Restrição a `main` | Trust policy da AWS **e** environment do GitHub | **Só** o environment do GitHub |
+
+Para liberar o OIDC, o dono do projeto precisaria fazer upgrade para o plano
+pago e ativar os *advanced features* no settings.aws.com (os dois passos são
+irreversíveis e valem para todos os projetos dele) e então editar a SCP. Numa
+conta AWS comum, sem essas SCPs, volte ao OIDC.
+
+Outros limites da conta: a SCP do free tier só libera uma lista de serviços; o
+*spend limit* do projeto passa a negar `ec2:RunInstances`,
+`rds:CreateDBInstance` e outros perto do limite de gasto; e a conta fecha
+depois de 6 meses ou quando os créditos acabam.
+
+### Executar (uma vez, por um admin da conta)
+
+```bash
+export AWS_PROFILE=<perfil admin da conta do projeto>
+aws sts get-caller-identity                     # confira o Account
+
+cd infra/bootstrap
+cp terraform.tfvars.example terraform.tfvars    # preencha account_id
+terraform init
+terraform plan                                  # só criações
+terraform apply
+terraform output
+```
+
+### Criar a access key do CI
+
+Fora do Terraform: `aws_iam_access_key` gravaria o secret em plaintext no
+state. A chave vai direto da CLI para o GitHub, sem passar por arquivo.
+
+Pré-requisito: o environment `production` já existe (seção seguinte, passo 1);
+sem ele, `gh secret set --env` falha. Rode da raiz do repositório:
+
+```bash
+REPO=10Org-17SOAT/tech-challenge-17soat
+USER_NAME=$(terraform -chdir=infra/bootstrap output -raw ci_user_name)
+[ -n "$USER_NAME" ] || { echo "ci_user_name vazio: rode o bootstrap antes"; return 1 2>/dev/null || exit 1; }
+KEY=$(aws iam create-access-key --user-name "$USER_NAME" --output json) || return 1 2>/dev/null || exit 1
+gh secret set AWS_ACCESS_KEY_ID     --env production --repo "$REPO" --body "$(jq -r .AccessKey.AccessKeyId <<<"$KEY")"
+gh secret set AWS_SECRET_ACCESS_KEY --env production --repo "$REPO" --body "$(jq -r .AccessKey.SecretAccessKey <<<"$KEY")"
+unset KEY
+```
+
+**Rotação** (a cada entrega, ou na hora se houver suspeita de vazamento): crie a
+chave nova e atualize os secrets como acima; depois desative e apague a antiga
+(`aws iam list-access-keys` → `update-access-key --status Inactive` →
+`delete-access-key`). O IAM permite no máximo duas chaves por usuário.
+
+### Configurar o GitHub
+
+Em *Settings → Environments → `production`* (admin do repositório):
+
+1. **Deployment branches:** *Selected branches* → só `main`. Sem isso, um
+   `workflow_dispatch` de outra branch entra no environment e recebe a chave.
+2. **Secrets:** `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` (seção anterior).
+3. **Variables** (não secrets — nenhum é credencial):
+
+| Variable | Valor |
+|---|---|
+| `TF_STATE_BUCKET` | `terraform output -raw state_bucket` |
+| `AWS_REGION` | `terraform output -raw aws_region` |
+
+O mesmo pelo `gh`:
+
+```bash
+REPO=10Org-17SOAT/tech-challenge-17soat
+gh api -X PUT "repos/$REPO/environments/production" --input - <<'JSON'
+{"deployment_branch_policy": {"protected_branches": false, "custom_branch_policies": true}}
+JSON
+gh api -X POST "repos/$REPO/environments/production/deployment-branch-policies" -f name=main
+gh variable set TF_STATE_BUCKET --env production --repo "$REPO" --body "$(terraform output -raw state_bucket)"
+gh variable set AWS_REGION      --env production --repo "$REPO" --body "$(terraform output -raw aws_region)"
+```
+
+No workflow, o job declara `environment: production` e usa
+`aws-actions/configure-aws-credentials` com `aws-access-key-id` e
+`aws-secret-access-key` vindos desses secrets.
+
+### State do bootstrap
+
+Fica em `infra/bootstrap/terraform.tfstate`, **só na máquina de quem aplicou**,
+ignorado pelo Git. Não guarda segredo. Guarde uma cópia em lugar seguro. Se for
+perdido, recupere com `terraform import`:
+
+```bash
+terraform import aws_s3_bucket.tfstate <state_bucket>
+terraform import aws_iam_user.ci github-actions-<project_name>
+terraform import aws_iam_user_policy_attachment.ci_power_user \
+  github-actions-<project_name>/arn:aws:iam::aws:policy/PowerUserAccess
+# ...e os recursos auxiliares do bucket (versioning, encryption, etc.)
+# pelo mesmo nome do bucket.
+```
+
+### Destruir
+
+O bucket tem `prevent_destroy`: perder o bucket é perder o registro de toda a
+infraestrutura. Para remover o bootstrap de propósito, destrua antes o root
+principal, esvazie o bucket (inclusive versões antigas) e retire o
+`prevent_destroy`.
