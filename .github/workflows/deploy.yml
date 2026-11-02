@@ -2,13 +2,15 @@ name: CD - Deploy K8s
 
 # Deploys an already built image to the K3s cluster on AWS by applying the
 # k8s/overlays/aws manifests. Building and pushing the image is not done here:
-# the image workflow calls this one once the push succeeds, e.g.
+# the image workflow (cd.yml) calls this one once the push to Docker Hub
+# succeeds, e.g.
 #
 #   deploy:
 #     needs: image
 #     uses: ./.github/workflows/deploy.yml
 #     with:
-#       image: ghcr.io/10org-17soat/tech-challenge-17soat:${{ github.sha }}
+#       image: ${{ needs.image.outputs.image }}
+#       ref: ${{ github.event.workflow_run.head_sha }}
 #     secrets: inherit
 #
 # It can also be run by hand from the Actions tab, to redeploy or roll back to
@@ -17,16 +19,29 @@ on:
   workflow_call:
     inputs:
       image:
-        description: Full image reference with a tag or digest, e.g. ghcr.io/org/repo:<sha>
+        description: Full image reference with a tag or digest, e.g. <DOCKERHUB_IMAGE>:<sha>
         required: true
         type: string
+      # Under workflow_run, github.sha is the tip of the default branch, not
+      # the commit CI tested and the image was built from. The caller passes
+      # that commit so the manifests match the image. Empty = the triggering ref.
+      ref:
+        description: Commit to check out for the manifests; defaults to the triggering ref.
+        required: false
+        type: string
+        default: ""
 
   workflow_dispatch:
     inputs:
       image:
-        description: Full image reference with a tag or digest, e.g. ghcr.io/org/repo:<sha>
+        description: Full image reference with a tag or digest, e.g. <DOCKERHUB_IMAGE>:<sha>
         required: true
         type: string
+      ref:
+        description: Commit to check out for the manifests; empty = the selected branch.
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -37,8 +52,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
-    # Holds KUBE_CONFIG and the DB_* variables, and is where protection rules
-    # (required reviewers, allowed branches) go.
+    # Only main may deploy here (deployment branch policy), so neither a
+    # dispatch from another branch nor a PR gets the credentials. Holds the AWS
+    # access key of the CI user (infra/README.md, section 14) and, for now,
+    # KUBE_CONFIG and the DB_* variables.
     environment: production
 
     # Two applies racing each other would leave the cluster on whichever
@@ -54,6 +71,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
 
       # Within one minor version of the cluster: K3s follows the stable channel
       # until k3s_version is pinned (infra/README.md, C-09).
