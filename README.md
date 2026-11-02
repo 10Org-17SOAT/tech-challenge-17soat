@@ -21,7 +21,8 @@ API de gestão de ordens de serviço para uma oficina mecânica de veículos, de
   <a href="#arquitetura">Arquitetura</a> •
   <a href="#tecnologias">Tecnologias</a> •
   <a href="#diagramas">Diagramas</a> •
-  <a href="#instalacao-e-uso">Instalação e Uso</a> • <br/>
+  <a href="#instalacao-e-uso">Instalação e Uso</a> •
+  <a href="#kubernetes-local">Kubernetes local</a> • <br/>
   <a href="#notificacoes">Notificações por e-mail</a> •
   <a href="#fluxo-de-teste">Testando o ciclo de vida da OS</a> •
   <a href="#estrutura-do-projeto">Estrutura do Projeto</a> •
@@ -150,6 +151,7 @@ Publicados via `@nestjs/event-emitter` sobre a porta `DomainEventPublisher`:
 ### Infraestrutura & Qualidade
 
 - **Docker / Docker Compose**: banco de dados local
+- **Kubernetes + Kustomize**: manifests em `k8s/`, com overlay local (kind) e AWS (K3s) — ver [Kubernetes local](#kubernetes-local)
 - **Jest + Supertest**: testes unitários e end-to-end
 - **ESLint + Prettier**: padronização de código
 - **SonarCloud**: análise estática e cobertura (GitHub Actions)
@@ -565,6 +567,161 @@ curl http://localhost:3000/service-orders \
 | `MAIL_DIRECTORY` | Pasta onde o driver `file` grava os e-mails | `var/mail` |
 | `MAIL_FROM` / `MAIL_FROM_NAME` | Remetente dos e-mails | `oficina@example.com` / `Oficina` |
 | `BREVO_API_KEY` | Chave da Brevo, obrigatória quando `MAIL_DRIVER=brevo` | — |
+
+</details>
+
+<h2 id="kubernetes-local">☸️ Kubernetes local</h2>
+
+<details>
+<summary>Expandir para mais detalhes</summary>
+
+Os manifests em [`k8s/`](./k8s/) sobem a API num cluster Kubernetes com
+Kustomize: uma **base** comum (`k8s/base`) e um **overlay** por ambiente. O
+overlay `local` valida os manifests na sua máquina; o `aws` é o que a pipeline
+implanta (ver [`infra/README.md`](./infra/README.md), seção 13).
+
+### Cluster: kind
+
+O cluster local é o [kind](https://kind.sigs.k8s.io) (*Kubernetes in Docker*):
+cada nó é um container, então o único requisito é o Docker que o projeto já usa
+no Compose, em macOS, Linux ou Windows. A configuração do cluster está
+versionada em [`k8s/kind-cluster.yaml`](./k8s/kind-cluster.yaml) e publica o
+NodePort da API (`30080`) em `localhost`.
+
+### Requisitos
+
+- Docker em execução
+- [`kubectl`](https://kubernetes.io/docs/tasks/tools/)
+- [`kind`](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
+  (`brew install kind`, `choco install kind` ou o binário da página de releases)
+
+### Subindo a aplicação
+
+```bash
+# 1. Cluster de um nó, com o NodePort 30080 publicado em localhost
+kind create cluster --config k8s/kind-cluster.yaml
+kubectl get nodes                       # tech-challenge-control-plane, Ready
+
+# 2. Imagem da API, com o nome e a tag que a base espera, carregada no cluster
+#    (a base usa imagePullPolicy: Never: a imagem não vem de registry)
+docker build -t tech-challenge-api:local .
+kind load docker-image tech-challenge-api:local --name tech-challenge
+
+# 3. Todos os recursos do overlay local
+kubectl apply -k k8s/overlays/local
+
+# 4. Espere o banco e a API ficarem prontos
+kubectl rollout status statefulset/postgres
+kubectl rollout status deployment/api
+```
+
+Na primeira subida, cada pod da API espera o PostgreSQL, aplica as migrações
+(com advisory lock, então as réplicas não disputam) e roda o seed. As contas de
+demonstração são as mesmas do Docker Compose (senha `Oficina@2026`), e a
+aplicação fica em:
+
+- **Scalar:** <http://localhost:30080/reference>
+- **Swagger:** <http://localhost:30080/docs>
+
+### O que o overlay `local` cria
+
+| Recurso | Nome | Para quê |
+| --- | --- | --- |
+| Deployment | `api` | A API, com requests de CPU/memória e readiness probe em `/` |
+| Service (NodePort) | `api` | Expõe a API na porta `30080` do nó |
+| ConfigMap | `app-config` | Configuração não sensível (porta, banco, e-mail, `RUN_SEED=true`) |
+| Secret | `app-secrets` | `DB_USER`, `DB_PASSWORD` e `JWT_SECRET` de **demonstração**, versionados de propósito |
+| StatefulSet + Service | `postgres` | PostgreSQL 16 dentro do cluster, com volume persistente (`data-postgres-0`) |
+| HPA | `api` | De 2 a 5 réplicas, alvo de 70% de CPU e 80% de memória |
+| metrics-server | `kube-system` | Fornece as métricas do HPA; o kind não traz um |
+
+> Os valores do Secret local são públicos e só servem para este cluster. No
+> overlay `aws` não há Secret versionado: a pipeline cria o `app-secrets` a
+> partir do state do Terraform e dos secrets do GitHub.
+
+### Verificando
+
+```bash
+kubectl get pods                  # 2 pods api-* e postgres-0, todos Running
+kubectl get svc api               # TYPE NodePort, PORT(S) 3000:30080/TCP
+kubectl get configmap app-config  # DATA 11
+kubectl get secret app-secrets    # DATA 3
+kubectl get hpa api               # TARGETS com porcentagens, não <unknown>
+kubectl top pods                  # métricas vindas do metrics-server
+curl -s -o /dev/null -w '%{http_code}\n' http://localhost:30080/   # 200
+```
+
+Validação feita assim, num cluster kind novo:
+
+```text
+$ kubectl get pods
+NAME                   READY   STATUS    RESTARTS   AGE
+api-6859885f77-9gcwn   1/1     Running   0          21s
+api-6859885f77-hsrzx   1/1     Running   0          21s
+postgres-0             1/1     Running   0          21s
+
+$ kubectl get svc api
+NAME   TYPE       CLUSTER-IP     EXTERNAL-IP   PORT(S)          AGE
+api    NodePort   10.96.64.189   <none>        3000:30080/TCP   21s
+
+$ kubectl get hpa api
+NAME   REFERENCE        TARGETS                        MINPODS   MAXPODS   REPLICAS   AGE
+api    Deployment/api   cpu: 0%/70%, memory: 24%/80%   2         5         2          66s
+```
+
+O HPA mostra `<unknown>` no primeiro minuto, enquanto o metrics-server coleta
+as primeiras amostras. Para vê-lo escalar, gere carga com o
+[k6](https://k6.io) (o roteiro usa o admin do seed):
+
+```bash
+kubectl get hpa api --watch               # em outro terminal
+k6 run scripts/load/hpa-login.k6.js       # ~5 min; sobe para até 5 réplicas
+```
+
+Na validação, o HPA saiu de 2 para 5 réplicas cerca de 30 s depois de a CPU
+passar do alvo, e o k6 terminou sem nenhuma requisição com erro
+(`http_req_failed: 0.00%`, 25.433 requisições):
+
+```text
+TARGETS                          REPLICAS
+cpu: 1%/70%,   memory: 24%/80%   2
+cpu: 132%/70%, memory: 25%/80%   2
+cpu: 393%/70%, memory: 28%/80%   4
+cpu: 400%/70%, memory: 28%/80%   5
+```
+
+### Atualizando depois de mudar o código
+
+A tag `local` não muda, então o Kubernetes não percebe a imagem nova sozinho:
+
+```bash
+docker build -t tech-challenge-api:local .
+kind load docker-image tech-challenge-api:local --name tech-challenge
+kubectl rollout restart deployment/api
+kubectl rollout status deployment/api
+```
+
+Mudanças só nos manifests: `kubectl apply -k k8s/overlays/local` de novo.
+
+### Removendo
+
+```bash
+kind delete cluster --name tech-challenge
+```
+
+Apaga o cluster inteiro, inclusive o volume do banco. Para limpar só a
+aplicação e manter o cluster: `kubectl delete -k k8s/overlays/local` e
+`kubectl delete pvc data-postgres-0`.
+
+### Problemas comuns
+
+| Sintoma | Causa e solução |
+| --- | --- |
+| Pod `api` em `ErrImageNeverPull` | A imagem não foi carregada no cluster. Rode o `kind load docker-image` do passo 2 (de novo a cada `docker build`). |
+| `kind create cluster` falha com `port is already allocated` | A porta `30080` está em uso no host, ou já existe um cluster `tech-challenge` (`kind get clusters`). |
+| Pod `api` reiniciando, log `Database did not become reachable in 60s` | O `postgres-0` ainda não estava pronto. Ele se recupera sozinho no próximo restart; confira com `kubectl get pods`. |
+| HPA com `<unknown>` por mais de 2 minutos | `kubectl get pods -n kube-system -l k8s-app=metrics-server` e `kubectl logs` desse pod. |
+| `kubectl` falando com outro cluster | `kubectl config use-context kind-tech-challenge` |
 
 </details>
 
@@ -1400,6 +1557,7 @@ As decisões arquiteturais estão registradas em [`docs/adr/`](./docs/adr/):
 | [0003](./docs/adr/0003-clean-architecture.md) | Escolha de arquitetura |
 | [0004](./docs/adr/0004-persistencia-com-postgresql-e-drizzle.md) | Escolha de banco de dados |
 | [0005](./docs/adr/0005-validacao-com-zod-e-dtos.md) | Validação com Zod e DTOs |
+| [0006](./docs/adr/0006-migrations-compativeis-com-a-versao-anterior.md) | Migrations compatíveis com a versão anterior (expand/contract) |
 
 </details>
 
