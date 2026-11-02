@@ -1,0 +1,143 @@
+name: CD - Docker Image
+
+# Continuous Delivery: every commit that passes the quality gate on develop or
+# main is built into the production image and published to Docker Hub, ready
+# to deploy. Commits on main are then deployed (`deploy` job at the end).
+#
+# Triggered by the CI run finishing rather than by the push itself, so an image
+# is only ever published for a commit whose tests passed. GitHub only reads
+# `workflow_run` workflows from the default branch (main): this file starts
+# firing, for both branches, once it has been merged into main.
+on:
+  workflow_run:
+    workflows: ["CI - Quality Gate"]
+    types: [completed]
+    branches: [develop, main]
+
+  # Rebuilds a branch by hand, e.g. after rotating the Docker Hub token.
+  workflow_dispatch:
+
+# A newer commit on the same branch supersedes an older one still building, so
+# a slow run can never move the branch tag back to an older commit. Except on
+# main: cancelling there could stop the nested deploy halfway through a
+# terraform apply or a migration, so main runs queue instead.
+concurrency:
+  group: cd-${{ github.event.workflow_run.head_branch || github.ref_name }}
+  cancel-in-progress: ${{ (github.event.workflow_run.head_branch || github.ref_name) != 'main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  image:
+    name: Build & push image
+    # Only pushes that passed CI; pull request runs of CI are not releases.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push')
+    # Native ARM, matching the t4g (Graviton) K3s node: the arm64 image is
+    # built without emulation. amd64 goes through QEMU for running it locally
+    # on Intel machines.
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+
+    env:
+      # Repository variable, e.g. "mattosjotape/tech-challenge-17soat".
+      IMAGE_NAME: ${{ vars.DOCKERHUB_IMAGE }}
+      # On workflow_run, github.sha is main's tip, not the commit CI tested.
+      SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      BRANCH: ${{ github.event.workflow_run.head_branch || github.ref_name }}
+
+    steps:
+      - name: Check out the tested commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.SHA }}
+
+      # Tags: the full commit SHA (immutable, the one to deploy), plus a moving
+      # tag per branch: `latest` for main and `develop` for develop.
+      - name: Compute tags and labels
+        id: meta
+        run: |
+          if [ -z "$IMAGE_NAME" ]; then
+            echo "::error::Repository variable DOCKERHUB_IMAGE is not set (e.g. mattosjotape/tech-challenge-17soat)."
+            exit 1
+          fi
+          case "$BRANCH" in
+            main) channel=latest ;;
+            develop) channel=develop ;;
+            *) channel="" ;;
+          esac
+
+          {
+            echo "image=$IMAGE_NAME:$SHA"
+            echo "tags<<EOF"
+            echo "$IMAGE_NAME:$SHA"
+            if [ -n "$channel" ]; then echo "$IMAGE_NAME:$channel"; fi
+            echo "EOF"
+            echo "labels<<EOF"
+            echo "org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}"
+            echo "org.opencontainers.image.revision=$SHA"
+            echo "org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+        with:
+          platforms: amd64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      # Needs a Docker Hub personal access token with Read & Write scope.
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/arm64,linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # Layer cache kept in GitHub Actions: `npm ci` only reruns when the
+          # lockfile changes.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Summary
+        run: |
+          {
+            echo "### Image published"
+            echo
+            echo '```'
+            echo "${{ steps.meta.outputs.tags }}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # Continuous deployment: main only. Under workflow_run, github.ref is always
+  # the default branch, so the `production` environment's branch rule cannot
+  # tell a develop run from a main one; this condition does. A dispatch is
+  # deployed only when started from main.
+  deploy:
+    name: Deploy
+    needs: image
+    if: >-
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.head_branch == 'main') ||
+      (github.event_name == 'workflow_dispatch' && github.ref_name == 'main')
+    uses: ./.github/workflows/deploy.yml
+    with:
+      image: ${{ needs.image.outputs.image }}
+      # The commit CI tested and the image was built from.
+      ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+    secrets: inherit

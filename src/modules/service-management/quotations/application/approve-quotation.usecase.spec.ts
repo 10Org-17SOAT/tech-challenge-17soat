@@ -5,6 +5,8 @@ import { InMemoryServiceOrderRepository } from '../../service-orders/__test__/in
 import { QuotationAlreadyApprovedError } from '../domain/errors/quotation-already-approved.error';
 import { QuotationNotFoundError } from '../domain/errors/quotation-not-found.error';
 import { Quotation } from '../domain/quotation.entity';
+import { QuotationApproved } from '../domain/events/quotation-approved.event';
+import { RecordingDomainEventPublisher } from '../../__test__/recording-domain-event.publisher';
 import { InMemoryQuotationRepository } from '../__test__/in-memory-quotation.repository';
 import { ApproveQuotationUseCase } from './approve-quotation.usecase';
 
@@ -12,16 +14,19 @@ import { ApproveQuotationUseCase } from './approve-quotation.usecase';
 const VEHICLE_ID = '9f1d3c40-5f0e-4a1e-9a1b-6c2d7e8f0a11';
 const OPENED_BY_ID = '3a6e9f2b-1c4d-4e5a-8f6b-2d9c0e1f3a5b';
 const OPENED_BY_NAME = 'Consultant Fixture';
+const SUPPLY_ID = '77777777-7777-4777-8777-000000000001';
 
 describe('ApproveQuotationUseCase', () => {
   let quotations: InMemoryQuotationRepository;
   let orders: InMemoryServiceOrderRepository;
+  let publisher: RecordingDomainEventPublisher;
   let useCase: ApproveQuotationUseCase;
 
   beforeEach(() => {
     quotations = new InMemoryQuotationRepository();
     orders = new InMemoryServiceOrderRepository();
-    useCase = new ApproveQuotationUseCase(quotations, orders);
+    publisher = new RecordingDomainEventPublisher();
+    useCase = new ApproveQuotationUseCase(quotations, orders, publisher);
   });
 
   const givenAwaitingApproval = async (): Promise<{
@@ -136,5 +141,73 @@ describe('ApproveQuotationUseCase', () => {
     await expect(useCase.execute(quotation.id)).rejects.toThrow(
       ServiceOrderNotFoundError,
     );
+  });
+
+  describe('QuotationApproved', () => {
+    it('publishes the event with the approved part lines', async () => {
+      const order = ServiceOrder.create({
+        vehicleId: VEHICLE_ID,
+        openedById: OPENED_BY_ID,
+        openedByName: OPENED_BY_NAME,
+      });
+      order.transitionTo('in_diagnosis');
+      order.transitionTo('awaiting_approval');
+      await orders.save(order);
+      const quotation = Quotation.issue({
+        serviceOrderId: order.id,
+        items: [
+          {
+            kind: 'labor',
+            referenceId: '22222222-2222-2222-2222-222222222222',
+            nameSnapshot: 'Troca de oleo',
+            unitPriceInCents: 9990,
+            quantity: 1,
+          },
+          {
+            kind: 'part',
+            referenceId: SUPPLY_ID,
+            nameSnapshot: 'Oleo 5W30',
+            unitPriceInCents: 4500,
+            quantity: 4,
+          },
+        ],
+      });
+      await quotations.save(quotation);
+
+      await useCase.execute(quotation.id);
+
+      const published = publisher.events.filter(
+        (event): event is QuotationApproved =>
+          event instanceof QuotationApproved,
+      );
+      expect(published).toHaveLength(1);
+      expect(published[0].serviceOrderId).toBe(order.id);
+      // Labour is not stock: only the part line travels.
+      expect(published[0].parts).toEqual([
+        { supplyId: SUPPLY_ID, quantity: 4 },
+      ]);
+    });
+
+    it('publishes nothing when the approval fails', async () => {
+      await expect(
+        useCase.execute('99999999-9999-9999-9999-999999999999'),
+      ).rejects.toThrow(QuotationNotFoundError);
+
+      expect(publisher.events).toHaveLength(0);
+    });
+
+    // Stock reserves off the back of this event, so a second approval firing
+    // it again would reserve the same parts twice.
+    it('does not publish again on a refused second approval', async () => {
+      const { quotation } = await givenAwaitingApproval();
+      await useCase.execute(quotation.id);
+      publisher.events.length = 0;
+
+      await expect(useCase.execute(quotation.id)).rejects.toThrow(
+        QuotationAlreadyApprovedError,
+      );
+
+      expect(publisher.events).toHaveLength(0);
+    });
   });
 });

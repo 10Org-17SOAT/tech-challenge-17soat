@@ -7,7 +7,7 @@ import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 import { givenUser, httpAs, tokenFor } from './fixtures';
 import { DOMAIN_EVENT_PUBLISHER } from './../src/shared/domain/events/domain-event-publisher';
-import { RecordingDomainEventPublisher } from './../src/modules/stock/__test__/recording-domain-event.publisher';
+import { RecordingDomainEventPublisher } from './../src/shared/__test__/recording-domain-event.publisher';
 import { UserRole } from '../src/modules/auth/public/roles';
 
 describe('Write-offs (e2e)', () => {
@@ -43,8 +43,14 @@ describe('Write-offs (e2e)', () => {
       database: process.env.DB_NAME ?? 'tech_challenge',
     });
 
-    const stockKeeperUserId = (await givenUser(app.getHttpServer(), adminToken))
-      .id;
+    const stockKeeperUserId = (
+      await givenUser(
+        app.getHttpServer(),
+        adminToken,
+        undefined,
+        UserRole.STOCK_KEEPER,
+      )
+    ).id;
     stockKeeperId = await http()
       .post('/stock-keepers')
       .send({

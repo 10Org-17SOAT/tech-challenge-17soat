@@ -1,0 +1,49 @@
+# ---------------------------------------------------------------------------
+# Terraform — local artifact hygiene.
+#
+# This file exists so the infra foundation never leaks state, plugins or real
+# values into Git. The Terraform state stores secrets in PLAINTEXT even when an
+# output is marked `sensitive`, so it is never committed.
+#
+# What does NOT go here, and why:
+#   - *.tf              → the infrastructure itself, committed on purpose
+#   - .terraform.lock.hcl → pins the resolved provider versions
+#   - terraform.tfvars.example → value contract, safe and committed
+# ---------------------------------------------------------------------------
+
+# Plugins and modules downloaded by `terraform init`.
+.terraform/
+.terraform.tfstate.lock.info
+
+# Local state. `.backup` files and copies are just as dangerous.
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Provider crash logs (credentials may show up in the stack trace).
+crash.log
+crash.*.log
+
+# Real account values: may contain account identifiers and region.
+*.auto.tfvars
+terraform.tfvars
+*.auto.tfvars.json
+terraform.tfvars.json
+
+# Local overrides break the state precisely because they are not committed.
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Local CLI/credential config and hand-made backend config.
+.terraformrc
+terraform.rc
+backend.hcl
+
+# Saved plans may contain output values in readable text.
+*.tfplan
+*.tfplan.*
+
+# Kubeconfig copied from the VM: ignored in the root .gitignore, which covers
+# the whole repository.

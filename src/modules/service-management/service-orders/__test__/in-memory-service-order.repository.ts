@@ -1,5 +1,9 @@
+import { RequestedItems } from '../domain/requested-items';
 import { ServiceItem } from '../domain/service-item';
-import { ServiceOrder } from '../domain/service-order.entity';
+import {
+  LISTING_STATUS_PRIORITY,
+  ServiceOrder,
+} from '../domain/service-order.entity';
 import {
   ExecutionTimeFilter,
   ExecutionTimeStats,
@@ -11,6 +15,7 @@ import {
 export class InMemoryServiceOrderRepository implements ServiceOrderRepository {
   readonly orders = new Map<string, ServiceOrder>();
   readonly items = new Map<string, ServiceItem[]>();
+  readonly requestedItems = new Map<string, RequestedItems>();
 
   findById(id: string): Promise<ServiceOrder | null> {
     const order = this.orders.get(id);
@@ -24,8 +29,18 @@ export class InMemoryServiceOrderRepository implements ServiceOrderRepository {
   }: ListServiceOrdersFilter): Promise<PaginatedServiceOrders> {
     const filtered = [...this.orders.values()]
       .filter((o) => !o.deletedAt)
-      .filter((o) => (status ? o.status === status : true))
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      .filter((o) =>
+        status
+          ? o.status === status
+          : LISTING_STATUS_PRIORITY.includes(o.status),
+      )
+      .sort(
+        (a, b) =>
+          LISTING_STATUS_PRIORITY.indexOf(a.status) -
+            LISTING_STATUS_PRIORITY.indexOf(b.status) ||
+          a.createdAt.getTime() - b.createdAt.getTime() ||
+          a.id.localeCompare(b.id),
+      );
 
     return Promise.resolve({
       items: filtered.slice((page - 1) * limit, page * limit),
@@ -44,6 +59,23 @@ export class InMemoryServiceOrderRepository implements ServiceOrderRepository {
 
   replaceItems(serviceOrderId: string, items: ServiceItem[]): Promise<void> {
     this.items.set(serviceOrderId, [...items]);
+    return Promise.resolve();
+  }
+
+  findRequestedItems(serviceOrderId: string): Promise<RequestedItems> {
+    return Promise.resolve(
+      this.requestedItems.get(serviceOrderId) ?? { services: [], parts: [] },
+    );
+  }
+
+  saveRequestedItems(
+    serviceOrderId: string,
+    items: RequestedItems,
+  ): Promise<void> {
+    this.requestedItems.set(serviceOrderId, {
+      services: [...items.services],
+      parts: [...items.parts],
+    });
     return Promise.resolve();
   }
 

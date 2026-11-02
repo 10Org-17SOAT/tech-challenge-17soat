@@ -30,6 +30,7 @@ export class UpdateCustomerUseCase {
 
     const updated = Customer.restore({
       id: existing.getId(),
+      userId: existing.getUserId(),
       personType: existing.getPersonType(),
       document: existing.getDocument(),
       name: input.data.name ?? existing.getName(),

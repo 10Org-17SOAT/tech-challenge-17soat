@@ -1,10 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, isNull } from 'drizzle-orm';
+import { UserRole } from '../../../auth/roles/role.enum';
+import { users } from '../../../auth/infrastructure/persistence/schema';
 import {
   DATABASE_CONNECTION,
   type DrizzleDatabase,
 } from '../../../../shared/config/database';
-import { customersTable } from '../infrastructure/persistence/customer.schema';
+import { CustomerAttributesSchema } from '../domain/customer-attributes.schema';
 import type {
   CustomerContact,
   CustomerContactQuery,
@@ -25,35 +27,41 @@ export class DrizzleCustomerContactQuery implements CustomerContactQuery {
   async findById(id: string): Promise<CustomerContact | null> {
     const rows = await this.db
       .select({
-        id: customersTable.id,
-        name: customersTable.name,
-        tradeName: customersTable.tradeName,
-        corporateName: customersTable.corporateName,
-        email: customersTable.email,
+        id: users.user_id,
+        name: users.name,
+        email: users.email,
+        attributes: users.attributes,
       })
-      .from(customersTable)
-      .where(and(eq(customersTable.id, id), isNull(customersTable.deletedAt)))
+      .from(users)
+      .where(
+        and(
+          eq(users.user_id, id),
+          eq(users.role_id, UserRole.CUSTOMER),
+          isNull(users.deleted_at),
+        ),
+      )
       .limit(1);
 
     const row = rows[0];
     if (!row) return null;
 
+    const attributes = CustomerAttributesSchema.parse(row.attributes);
     return {
       id: row.id,
-      // A company has no `name`; it is addressed by the name it trades under.
-      name: row.name ?? row.tradeName ?? row.corporateName ?? '',
+      name: attributes.tradeName ?? attributes.corporateName ?? row.name ?? '',
       email: row.email,
     };
   }
 
   async findIdByUserId(userId: string): Promise<string | null> {
     const rows = await this.db
-      .select({ id: customersTable.id })
-      .from(customersTable)
+      .select({ id: users.user_id })
+      .from(users)
       .where(
         and(
-          eq(customersTable.userId, userId),
-          isNull(customersTable.deletedAt),
+          eq(users.user_id, userId),
+          eq(users.role_id, UserRole.CUSTOMER),
+          isNull(users.deleted_at),
         ),
       )
       .limit(1);

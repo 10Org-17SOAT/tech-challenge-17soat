@@ -1,0 +1,7 @@
+# The API's non-sensitive configuration on its own, so an overlay that runs
+# something other than the API (overlays/aws-migrate) can take the ConfigMap
+# without the Deployment, Service and HPA of the base.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - configmap.yaml

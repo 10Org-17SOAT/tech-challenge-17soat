@@ -1,6 +1,6 @@
 {
   "name": "tech-challenge",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "",
   "author": "",
   "private": true,
@@ -12,6 +12,7 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
+    "check:boundaries": "node scripts/check-boundaries.js",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -90,6 +91,14 @@
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
+    "coverageThreshold": {
+      "global": {
+        "branches": 42,
+        "functions": 68,
+        "lines": 63,
+        "statements": 63
+      }
+    },
     "testEnvironment": "node"
   }
 }

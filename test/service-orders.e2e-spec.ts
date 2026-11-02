@@ -9,11 +9,13 @@ import {
   CLEANUP_TABLES,
   givenConsultant,
   givenOwnedVehicle,
+  givenServiceOrder,
   httpAs,
   tokenFor,
 } from './fixtures';
 import { ExecutionCompleted } from './../src/modules/mechanic/domain/events/execution-completed.event';
 import { ExecutionStarted } from './../src/modules/mechanic/domain/events/execution-started.event';
+import { PaymentReceived } from './../src/modules/payment/domain/events/payment-received.event';
 import type { DomainEvent } from './../src/shared/domain/events/domain-event';
 import { UserRole } from '../src/modules/auth/public/roles';
 
@@ -134,25 +136,19 @@ describe('ServiceOrders (e2e)', () => {
     return (res.body as { vehicle_id: string }).vehicle_id;
   }
 
-  // The anamnesis is the entry point of the flow: POST /service-order/anamnesis
-  // opens the service order (received) with the anamnesis attached.
-  async function givenAnamnesis(): Promise<{
+  // Reception opens the order (POST /service-orders) and attaches the
+  // anamnesis, which the diagnosis requires.
+  async function givenOrder(): Promise<{
     serviceOrderId: string;
     vehicleId: string;
   }> {
-    const res = await http()
-      .post('/service-order/anamnesis')
-      .send({
-        vehicleId,
-        consultantId: openedById,
-        mainComplaint: 'Barulho na suspensão',
-        problemDescription: 'Estalo ao passar em lombadas',
-      })
-      .expect(201);
-    return {
-      serviceOrderId: (res.body as { serviceOrderId: string }).serviceOrderId,
-      vehicleId: (res.body as { vehicleId: string }).vehicleId,
-    };
+    const serviceOrderId = await givenServiceOrder(
+      app.getHttpServer(),
+      token,
+      vehicleId,
+      openedById,
+    );
+    return { serviceOrderId, vehicleId };
   }
   // Up to awaiting_execution the order advances through this module's own
   // endpoints — diagnosis and quotation live here, so they are direct calls.
@@ -183,14 +179,154 @@ describe('ServiceOrders (e2e)', () => {
     if (target === 'in_execution') return;
 
     await emit(new ExecutionCompleted(id));
+    if (target === 'finished') return;
+
+    await emit(new PaymentReceived(id));
   }
+
+  describe('POST /service-orders', () => {
+    interface CreatedResponse extends ServiceOrderResponse {
+      openedByName: string;
+      requestedServices: { serviceId: string; quantity: number }[];
+      requestedParts: { supplyId: string; quantity: number }[];
+    }
+
+    const createdBody = (res: request.Response) => res.body as CreatedResponse;
+
+    async function givenSupply(): Promise<string> {
+      const res = await http()
+        .post('/supplies')
+        .send({
+          name: `Peca ${Math.random().toString(36).slice(2, 10)}`,
+          priceInCents: 4500,
+        })
+        .expect(201);
+      return (res.body as { id: string }).id;
+    }
+
+    async function count(table: string): Promise<number> {
+      const { rows } = await pool.query<{ total: string }>(
+        `SELECT count(*) AS total FROM ${table}`,
+      );
+      return Number(rows[0].total);
+    }
+
+    const unknownId = '6f2c8e0a-0b0e-4f6e-9e1e-000000000000';
+
+    it('opens the order in received with the requested items', async () => {
+      const serviceId = await givenService();
+      const supplyId = await givenSupply();
+
+      const body = createdBody(
+        await http()
+          .post('/service-orders')
+          .send({
+            vehicleId,
+            openedById,
+            services: [{ serviceId, quantity: 1 }],
+            parts: [{ supplyId, quantity: 4 }],
+            notes: 'Barulho na suspensão',
+            vehicleMileageAtEntry: 45000,
+          })
+          .expect(201),
+      );
+
+      expect(body.id).toMatch(/^[0-9a-f-]{36}$/i);
+      expect(body.status).toBe('received');
+      expect(body.vehicleId).toBe(vehicleId);
+      expect(body.openedByName).toBe('Carlos Consultor');
+      expect(body.notes).toBe('Barulho na suspensão');
+      expect(body.requestedServices).toEqual([{ serviceId, quantity: 1 }]);
+      expect(body.requestedParts).toEqual([{ supplyId, quantity: 4 }]);
+
+      const order = await http().get(`/service-orders/${body.id}`).expect(200);
+      expect(orderBody(order).status).toBe('received');
+    });
+
+    it('accepts an order with nothing requested yet', async () => {
+      const body = createdBody(
+        await http()
+          .post('/service-orders')
+          .send({ vehicleId, openedById })
+          .expect(201),
+      );
+
+      expect(body.requestedServices).toEqual([]);
+      expect(body.requestedParts).toEqual([]);
+    });
+
+    it('rejects an invalid payload with 400', async () => {
+      await http().post('/service-orders').send({ openedById }).expect(400);
+      await http()
+        .post('/service-orders')
+        .send({
+          vehicleId,
+          openedById,
+          services: [{ serviceId: unknownId, quantity: 0 }],
+        })
+        .expect(400);
+      // Same service twice: a typo, not two lines.
+      const serviceId = await givenService();
+      await http()
+        .post('/service-orders')
+        .send({
+          vehicleId,
+          openedById,
+          services: [
+            { serviceId, quantity: 1 },
+            { serviceId, quantity: 2 },
+          ],
+        })
+        .expect(400);
+    });
+
+    it.each([
+      ['consultant', () => ({ openedById: unknownId })],
+      ['vehicle', () => ({ vehicleId: unknownId })],
+      [
+        'service',
+        () => ({ services: [{ serviceId: unknownId, quantity: 1 }] }),
+      ],
+      ['part', () => ({ parts: [{ supplyId: unknownId, quantity: 1 }] })],
+    ])('rejects an unknown %s with 422', async (_, override) => {
+      await http()
+        .post('/service-orders')
+        .send({
+          vehicleId,
+          openedById,
+          ...override(),
+        })
+        .expect(422);
+
+      expect(await count('service_orders')).toBe(0);
+    });
+
+    // The service is valid; the unknown part is what fails, and the order
+    // must not be left behind without its requested items.
+    it('persists nothing when a later validation fails', async () => {
+      const serviceId = await givenService();
+
+      await http()
+        .post('/service-orders')
+        .send({
+          vehicleId,
+          openedById,
+          services: [{ serviceId, quantity: 1 }],
+          parts: [{ supplyId: unknownId, quantity: 1 }],
+        })
+        .expect(422);
+
+      expect(await count('service_orders')).toBe(0);
+      expect(await count('service_order_requested_services')).toBe(0);
+    });
+  });
 
   describe('GET /service-orders', () => {
     it('paginates and filters by status', async () => {
       for (let i = 0; i < 3; i++) {
-        await givenAnamnesis();
+        await givenOrder();
       }
-      const toAdvance = await givenAnamnesis();
+      const toAdvance = await givenOrder();
       await advanceTo(toAdvance.serviceOrderId, 'in_diagnosis');
 
       const all = pageBody(await http().get('/service-orders').expect(200));
@@ -203,6 +339,59 @@ describe('ServiceOrders (e2e)', () => {
       expect(filtered.items[0].id).toBe(toAdvance.serviceOrderId);
     });
 
+    it('lists the open queue by status priority, oldest first, without closed orders', async () => {
+      // Created in this order, so within a status the first one is the oldest.
+      const statuses = [
+        'received',
+        'delivered',
+        'in_diagnosis',
+        'in_execution',
+        'finished',
+        'awaiting_approval',
+        'awaiting_execution',
+        'received',
+        'in_execution',
+      ];
+      const ids: Record<string, string[]> = {};
+      for (const status of statuses) {
+        const { serviceOrderId } = await givenOrder();
+        await advanceTo(serviceOrderId, status);
+        (ids[status] ??= []).push(serviceOrderId);
+      }
+
+      const all = pageBody(await http().get('/service-orders').expect(200));
+      const expected = [
+        ...ids.in_execution,
+        ...ids.awaiting_execution,
+        ...ids.awaiting_approval,
+        ...ids.in_diagnosis,
+        ...ids.received,
+      ];
+      expect(all.items.map((o) => o.id)).toEqual(expected);
+      expect(all.total).toBe(expected.length);
+
+      // Paging through the same queue never repeats or skips an order.
+      const paged: string[] = [];
+      for (let page = 1; page <= 3; page++) {
+        const res = pageBody(
+          await http().get(`/service-orders?page=${page}&limit=3`).expect(200),
+        );
+        expect(res.total).toBe(expected.length);
+        paged.push(...res.items.map((o) => o.id));
+      }
+      expect(paged).toEqual(expected);
+
+      // Closed orders are out of the queue, not gone.
+      for (const status of ['finished', 'delivered']) {
+        const filtered = pageBody(
+          await http().get(`/service-orders?status=${status}`).expect(200),
+        );
+        expect(filtered.items.map((o) => o.id)).toEqual(ids[status]);
+        expect(filtered.total).toBe(1);
+        await http().get(`/service-orders/${ids[status][0]}`).expect(200);
+      }
+    });
+
     it('rejects invalid params', async () => {
       await http().get('/service-orders?page=0').expect(400);
       await http().get('/service-orders?status=unknown').expect(400);
@@ -211,7 +400,7 @@ describe('ServiceOrders (e2e)', () => {
 
   describe('GET /service-orders/:id', () => {
     it('returns the order or 404', async () => {
-      const created = await givenAnamnesis();
+      const created = await givenOrder();
       const body = orderBody(
         await http()
           .get(`/service-orders/${created.serviceOrderId}`)
@@ -228,7 +417,7 @@ describe('ServiceOrders (e2e)', () => {
 
   describe('PATCH /service-orders/:id', () => {
     it('updates editable fields', async () => {
-      const created = await givenAnamnesis();
+      const created = await givenOrder();
 
       const body = orderBody(
         await http()
@@ -242,7 +431,7 @@ describe('ServiceOrders (e2e)', () => {
     });
 
     it('blocks mileage/scheduledAt edit once in_execution', async () => {
-      const created = await givenAnamnesis();
+      const created = await givenOrder();
       await advanceTo(created.serviceOrderId, 'in_execution');
 
       await http()
@@ -269,7 +458,7 @@ describe('ServiceOrders (e2e)', () => {
       httpAs(app, tokenFor(app, UserRole.CUSTOMER, userId));
 
     it('lets the owner read the status of their own order', async () => {
-      const created = await givenAnamnesis();
+      const created = await givenOrder();
 
       const res = await asCustomer(ownerUserId).get(
         `/service-orders/${created.serviceOrderId}/status`,
@@ -282,7 +471,7 @@ describe('ServiceOrders (e2e)', () => {
     // 404, not 403: a customer must not be able to learn which ids exist by
     // probing the endpoint.
     it('hides an order that belongs to another customer', async () => {
-      const created = await givenAnamnesis();
+      const created = await givenOrder();
       const stranger = await givenOwnedVehicle(app.getHttpServer(), token);
 
       const res = await asCustomer(stranger.userId).get(
@@ -293,7 +482,7 @@ describe('ServiceOrders (e2e)', () => {
     });
 
     it('hides the order from a customer account with no profile linked', async () => {
-      const created = await givenAnamnesis();
+      const created = await givenOrder();
 
       const res = await httpAs(app, tokenFor(app, UserRole.CUSTOMER)).get(
         `/service-orders/${created.serviceOrderId}/status`,
@@ -303,7 +492,7 @@ describe('ServiceOrders (e2e)', () => {
     });
 
     it('still lets an admin read any order', async () => {
-      const created = await givenAnamnesis();
+      const created = await givenOrder();
 
       const res = await http().get(
         `/service-orders/${created.serviceOrderId}/status`,
@@ -315,7 +504,7 @@ describe('ServiceOrders (e2e)', () => {
 
   describe('GET /service-orders/:id/status', () => {
     it('returns received for a freshly created order', async () => {
-      const created = await givenAnamnesis();
+      const created = await givenOrder();
 
       const status = statusBody(
         await http()
@@ -326,7 +515,7 @@ describe('ServiceOrders (e2e)', () => {
     });
 
     it('walks the whole lifecycle, stamping timestamps + approval', async () => {
-      const created = await givenAnamnesis();
+      const created = await givenOrder();
 
       await http()
         .post(`/service-orders/${created.serviceOrderId}/diagnosis/start`)
@@ -386,7 +575,7 @@ describe('ServiceOrders (e2e)', () => {
     });
 
     it('ignores events describing an invalid transition and keeps the current status', async () => {
-      const created = await givenAnamnesis();
+      const created = await givenOrder();
 
       await emit(new ExecutionCompleted(created.serviceOrderId));
 
@@ -421,7 +610,7 @@ describe('ServiceOrders (e2e)', () => {
       startedAt: string,
       completedAt: string,
     ): Promise<string> {
-      const created = await givenAnamnesis();
+      const created = await givenOrder();
       await pool.query(
         `UPDATE service_orders
             SET status = 'finished', started_at = $1, completed_at = $2
@@ -452,7 +641,7 @@ describe('ServiceOrders (e2e)', () => {
     });
 
     it('returns null with a zero sample when no order has finished', async () => {
-      const created = await givenAnamnesis();
+      const created = await givenOrder();
       await advanceTo(created.serviceOrderId, 'in_execution');
 
       const body = averageBody(await average().expect(200));
@@ -538,7 +727,7 @@ describe('ServiceOrders (e2e)', () => {
 
   describe('DELETE /service-orders/:id', () => {
     it('soft deletes an order in received', async () => {
-      const created = await givenAnamnesis();
+      const created = await givenOrder();
       const id = created.serviceOrderId;
 
       await http().delete(`/service-orders/${id}`).expect(204);
@@ -556,7 +745,7 @@ describe('ServiceOrders (e2e)', () => {
     });
 
     it('refuses to delete once past received with 409', async () => {
-      const created = await givenAnamnesis();
+      const created = await givenOrder();
       await advanceTo(created.serviceOrderId, 'in_diagnosis');
 
       await http()

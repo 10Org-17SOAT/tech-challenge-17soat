@@ -57,6 +57,14 @@ export const serviceOrders = pgTable(
     // The average-execution-time report scans a `completed_at` range; the
     // status and soft-delete filters ride along as cheap residuals.
     index('service_orders_completed_at_idx').on(table.completedAt),
+    // The listing filters live orders by status and orders each status oldest
+    // first. Closed orders pile up forever while the open queue stays small,
+    // so the status lookup is what keeps the default listing from scanning
+    // the whole history; `created_at, id` let a single-status filter read
+    // rows already in page order.
+    index('service_orders_listing_idx')
+      .on(table.status, table.createdAt, table.id)
+      .where(sql`${table.deletedAt} is null`),
   ],
 );
 
@@ -82,5 +90,59 @@ export const serviceItems = pgTable(
       name: 'service_items_service_order_id_fk',
     }),
     check('service_items_quantity_positive', sql`${table.quantity} > 0`),
+  ],
+);
+
+// What the customer asked for when the order was opened — services from the
+// catalogue and parts from stock. A request, not the scope of work: the
+// diagnosis turns it into `service_items`, and only the quotation reserves
+// stock. Parts carry no FK to `supplies`: that table belongs to the stock
+// module, and quotation lines keep the same distance.
+export const requestedServices = pgTable(
+  'service_order_requested_services',
+  {
+    serviceOrderId: uuid('service_order_id').notNull(),
+    serviceId: uuid('service_id').notNull(),
+    quantity: integer('quantity').notNull(),
+  },
+  // Every constraint is named: the generated names would run past Postgres'
+  // 63-character identifier limit on these table names.
+  (table) => [
+    primaryKey({
+      name: 'requested_services_pk',
+      columns: [table.serviceOrderId, table.serviceId],
+    }),
+    foreignKey({
+      columns: [table.serviceOrderId],
+      foreignColumns: [serviceOrders.id],
+      name: 'requested_services_service_order_id_fk',
+    }),
+    foreignKey({
+      columns: [table.serviceId],
+      foreignColumns: [services.id],
+      name: 'requested_services_service_id_fk',
+    }),
+    check('requested_services_quantity_positive', sql`${table.quantity} > 0`),
+  ],
+);
+
+export const requestedParts = pgTable(
+  'service_order_requested_parts',
+  {
+    serviceOrderId: uuid('service_order_id').notNull(),
+    supplyId: uuid('supply_id').notNull(),
+    quantity: integer('quantity').notNull(),
+  },
+  (table) => [
+    primaryKey({
+      name: 'requested_parts_pk',
+      columns: [table.serviceOrderId, table.supplyId],
+    }),
+    foreignKey({
+      columns: [table.serviceOrderId],
+      foreignColumns: [serviceOrders.id],
+      name: 'requested_parts_service_order_id_fk',
+    }),
+    check('requested_parts_quantity_positive', sql`${table.quantity} > 0`),
   ],
 );

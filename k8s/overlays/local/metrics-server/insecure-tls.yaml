@@ -1,0 +1,7 @@
+# Local kubelets serve a self-signed certificate that the metrics-server cannot
+# verify, so it would scrape nothing and the HPA would show <unknown>. Skipping
+# the check is acceptable on a single-machine dev cluster and never reaches the
+# aws overlay.
+- op: add
+  path: /spec/template/spec/containers/0/args/-
+  value: --kubelet-insecure-tls

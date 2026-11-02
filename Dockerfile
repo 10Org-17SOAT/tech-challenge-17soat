@@ -29,6 +29,10 @@ COPY --from=build /app/node_modules/dotenv ./node_modules/dotenv
 
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
+# The official image ships an unprivileged `node` user; the app never writes to
+# disk, so root-owned files under /app are fine to read from.
+USER node
+
 EXPOSE 3000
 
 ENTRYPOINT ["docker-entrypoint.sh"]

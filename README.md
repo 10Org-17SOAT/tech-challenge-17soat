@@ -14,12 +14,16 @@
 
 API de gestão de ordens de serviço para uma oficina mecânica de veículos, desenvolvida como parte do curso de Arquitetura de Software da FIAP (Tech Challenge — SOAT 17).
 
+> 📌 O código entregue na **Fase 1** está congelado na [release v1.0.0](../../releases/tag/v1.0.0). A branch `main` segue para a Fase 2.
+
 <div align="center">
   <a href="#visao-geral">Visão Geral</a> •
   <a href="#arquitetura">Arquitetura</a> •
   <a href="#tecnologias">Tecnologias</a> •
   <a href="#diagramas">Diagramas</a> •
-  <a href="#instalacao-e-uso">Instalação e Uso</a> • <br/>
+  <a href="#instalacao-e-uso">Instalação e Uso</a> •
+  <a href="#kubernetes-local">Kubernetes local</a> • <br/>
+  <a href="#notificacoes">Notificações por e-mail</a> •
   <a href="#fluxo-de-teste">Testando o ciclo de vida da OS</a> •
   <a href="#estrutura-do-projeto">Estrutura do Projeto</a> •
   <a href="#apis">APIs</a> •
@@ -38,14 +42,15 @@ Hoje a oficina trabalha com controles manuais e planilhas, o que gera perda de h
 ### Principais recursos
 
 - **Cadastro de clientes e veículos**: pessoa física ou jurídica, com placa, modelo, quilometragem e histórico
-- **Ordem de serviço com ciclo de vida explícito**: `received → in_diagnosis → awaiting_approval → awaiting_execution → in_execution → finished → delivered`
+- **Ordem de serviço com ciclo de vida explícito**: `received → in_diagnosis → awaiting_approval → awaiting_execution → in_execution → finished → delivered` (um orçamento recusado devolve a ordem de `awaiting_approval` para `in_diagnosis`)
 - **Anamnese**: registro estruturado do relato do cliente no momento da recepção
 - **Diagnóstico**: laudo do mecânico que dá origem ao orçamento
-- **Orçamento com aprovação do cliente**: enviado por e-mail com link de aprovação de uso único e prazo de expiração
+- **Orçamento com aprovação ou recusa do cliente**: enviado por e-mail com link de prazo limitado; o cliente aprova ou recusa (com motivo) numa página que só registra a resposta por POST, e a mesma decisão pode chegar por um endpoint JSON autenticado pelo token do link
+- **Notificação por e-mail a cada mudança de status**: o cliente recebe um e-mail em cada um dos sete estados da OS
 - **Alocação de mecânicos em FIFO**: o mecânico disponível há mais tempo assume a próxima ordem
 - **Controle de estoque por livro-razão**: entrada, reserva e baixa de insumos — a quantidade nunca é uma coluna, é sempre derivada dos movimentos
 - **Pagamento**: registra o pagamento da ordem e, por evento de domínio, marca o veículo como entregue
-- **Autenticação JWT com papéis**: `ADMIN`, `STOCK_KEEPER`, `MECHANIC` e `CUSTOMER`
+- **Autenticação JWT com papéis**: `ADMIN`, `STOCK_KEEPER`, `MECHANIC`, `CUSTOMER` e `CONSULTANT`
 - **Relatório de tempo médio de execução** das ordens concluídas
 
 <h2 id="arquitetura">🏗️ Arquitetura</h2>
@@ -79,7 +84,7 @@ graph TD
     subgraph "Monolito Modular"
         AUTH["auth<br/>usuários, JWT, roles"]
         ONB["onboarding<br/>customers · vehicles · consultants"]
-        SM["service-management<br/>service-orders · anamnesis<br/>diagnostics · quotations · services"]
+        SM["service-management<br/>service-orders · anamnesis<br/>diagnostics · quotations · services<br/>notifications"]
         MECH["mechanic<br/>mecânicos e alocação"]
         STOCK["stock<br/>supplies · movimentos · stock keepers"]
         PAY["payment<br/>pagamentos"]
@@ -93,13 +98,13 @@ graph TD
         STOCK -->|SupplyCatalogQuery| SM
         MECH -.eventos.-> SM
         PAY -.evento PaymentReceived.-> SM
-        SM -.reserva/baixa.-> STOCK
+        SM -.eventos QuotationApproved / ServiceOrderFinished.-> STOCK
     end
 ```
 
 Regras de fronteira que valem para todos os módulos:
 
-- **Sem FK entre contextos**: uma referência a linha de outro módulo (`service_order_reference`, `supply_id` em `service_supplies`, `user_id` nos perfis) é validada no domínio, não pelo banco
+- **Fronteiras entre contextos**: referências históricas como `service_order_reference` são snapshots; identidades de perfil usam a FK comum para `users`
 - **Snapshots em vez de FK** quando o histórico precisa continuar verdadeiro: `opened_by_name` na ordem, `performed_by_name` no livro-razão, `name_snapshot`/`unit_price_in_cents` nos itens do orçamento
 - Cada módulo tem **um único `ExceptionFilter`** traduzindo erros de domínio para HTTP
 
@@ -114,6 +119,10 @@ Publicados via `@nestjs/event-emitter` sobre a porta `DomainEventPublisher`:
 | `execution.started` | mechanic | ordem vai para `in_execution` |
 | `execution.completed` | mechanic | ordem vai para `finished` |
 | `payment.received` | payment | ordem vai para `delivered` e carimba `delivered_at` |
+| `quotation.approved` | service-management | estoque reserva as peças do orçamento aprovado |
+| `quotation.rejected` | service-management | registra a recusa do cliente; ainda sem consumidor (a volta da ordem para `in_diagnosis` é chamada direta, e nada foi reservado) |
+| `service-order.finished` | service-management | estoque dá baixa no que está reservado para a ordem |
+| `service-order.status-changed` | service-management | o cliente recebe um e-mail com o novo status |
 | `part.reserved.for-service-order` | stock | reserva de insumo para a ordem |
 | `part.written-off-from-stock` | stock | baixa definitiva do insumo |
 | `purchase.request.needed` | stock | sinaliza necessidade de reposição |
@@ -142,6 +151,7 @@ Publicados via `@nestjs/event-emitter` sobre a porta `DomainEventPublisher`:
 ### Infraestrutura & Qualidade
 
 - **Docker / Docker Compose**: banco de dados local
+- **Kubernetes + Kustomize**: manifests em `k8s/`, com overlay local (kind) e AWS (K3s) — ver [Kubernetes local](#kubernetes-local)
 - **Jest + Supertest**: testes unitários e end-to-end
 - **ESLint + Prettier**: padronização de código
 - **SonarCloud**: análise estática e cobertura (GitHub Actions)
@@ -149,7 +159,7 @@ Publicados via `@nestjs/event-emitter` sobre a porta `DomainEventPublisher`:
 
 ### Integração
 
-- **Brevo**: envio dos e-mails de aprovação de orçamento (driver `log` em desenvolvimento)
+- **Brevo**: envio dos e-mails de orçamento e de mudança de status (drivers `log` e `file` em desenvolvimento — ver [Notificações por e-mail](#notificacoes))
 
 </details>
 
@@ -239,11 +249,15 @@ classDiagram
         -QuotationStatus status
         -DateTime issuedAt
         -DateTime approvedAt
+        -DateTime rejectedAt
+        -String rejectionReason
         -String approvalTokenHash
         -DateTime approvalTokenExpiresAt
         -List~QuotationItem~ items
         +issue()
         +approve()
+        +reject()
+        +verifyApprovalToken()
         +totalInCents()
     }
 
@@ -344,6 +358,7 @@ classDiagram
         STOCK_KEEPER
         MECHANIC
         CUSTOMER
+        CONSULTANT
     }
 
     class ServiceOrderStatus {
@@ -361,6 +376,7 @@ classDiagram
         <<enumeration>>
         issued
         approved
+        rejected
     }
 
     class MovementType {
@@ -404,7 +420,7 @@ classDiagram
     Mechanic -- MechanicAvailability
 ```
 
-> As associações que cruzam contextos (`User → Customer/Mechanic/Consultant/StockKeeper`, `Mechanic → ServiceOrder`, `Payment → ServiceOrder`, `ServiceSupply → Supply`) existem no modelo conceitual, mas **não** viram foreign key no banco — são validadas no domínio.
+> Customer, Mechanic, Consultant e StockKeeper são especializações de domínio persistidas na mesma linha de `users`, discriminadas por `role_id`; `MechanicAvailability` guarda separadamente o estado de alocação FIFO.
 
 ### Event Storming
 
@@ -434,7 +450,7 @@ cd tech-challenge-17soat
 docker compose up -d --build
 ```
 
-Crie um `.env` na root do projeto. Na primeira subida a API
+Nenhum `.env` é necessário: o compose traz padrões para tudo. Na primeira subida a API
 espera o PostgreSQL ficar saudável, aplica as 25 migrações e roda o seed —
 acompanhe por `docker compose logs -f api`.
 
@@ -448,7 +464,7 @@ Quando aparecer `Nest application successfully started`, a aplicação está em:
 | Conta | Papel |
 | --- | --- |
 | `admin@oficina.dev` | ADMIN |
-| `consultor@oficina.dev` | ADMIN |
+| `consultor@oficina.dev` | CONSULTANT |
 | `bruno@oficina.dev` | MECHANIC |
 | `diego@oficina.dev` | MECHANIC |
 | `estoquista@oficina.dev` | STOCK_KEEPER |
@@ -466,7 +482,9 @@ Para parar, `docker compose down`. Para recomeçar do zero (apagando o banco),
 > `NODE_ENV=production` do `Dockerfile` prevalece e nenhum dado de exemplo é
 > criado. O envio de e-mail vem como `MAIL_DRIVER=log`, que apenas escreve a
 > mensagem no log — nada é enviado de fato. Se existir um `.env` na raiz, o
-> Docker Compose usa os valores dele no lugar dos padrões acima.
+> Docker Compose usa os valores dele no lugar dos padrões (credenciais do
+> banco, `PORT`, `JWT_SECRET` e `JWT_EXPIRES_IN`) — o `JWT_SECRET` precisa ter
+> ao menos 32 caracteres.
 
 ### Desenvolvimento local
 
@@ -523,7 +541,7 @@ npm run start:dev
 
 ### Autenticando
 
-Todas as rotas exigem JWT, exceto `POST /auth/login` e o link público de aprovação de orçamento.
+Todas as rotas exigem JWT, exceto `POST /auth/login` e as rotas de decisão do orçamento pelo cliente (`/quotations/decision`, `/quotations/decision/confirm` e o antigo `/quotations/approve`), autenticadas pelo token do link do e-mail.
 
 ```bash
 # 1. Faça login com o admin do seed (ou com o criado no bootstrap)
@@ -544,10 +562,227 @@ curl http://localhost:3000/service-orders \
 | `JWT_SECRET` | Segredo de assinatura do JWT (mín. 32 caracteres) | — (obrigatório) |
 | `JWT_EXPIRES_IN` | Validade do token | `1h` |
 | `BOOTSTRAP_ADMIN_EMAIL` / `BOOTSTRAP_ADMIN_PASSWORD` | Cria o primeiro administrador no boot (obrigatórios em conjunto) | vazio |
-| `APP_BASE_URL` | Base pública usada no link de aprovação do orçamento | `http://localhost:3000` |
-| `MAIL_DRIVER` | `log` (apenas registra no logger) ou `brevo` | `log` |
-| `MAIL_FROM` / `MAIL_FROM_NAME` | Remetente dos e-mails | — |
+| `APP_BASE_URL` | Base pública usada nos links de aprovação/recusa do orçamento | `http://localhost:3000` |
+| `MAIL_DRIVER` | `log` (apenas registra no logger), `file` (grava em disco) ou `brevo` | `log` |
+| `MAIL_DIRECTORY` | Pasta onde o driver `file` grava os e-mails | `var/mail` |
+| `MAIL_FROM` / `MAIL_FROM_NAME` | Remetente dos e-mails | `oficina@example.com` / `Oficina` |
 | `BREVO_API_KEY` | Chave da Brevo, obrigatória quando `MAIL_DRIVER=brevo` | — |
+
+</details>
+
+<h2 id="kubernetes-local">☸️ Kubernetes local</h2>
+
+<details>
+<summary>Expandir para mais detalhes</summary>
+
+Os manifests em [`k8s/`](./k8s/) sobem a API num cluster Kubernetes com
+Kustomize: uma **base** comum (`k8s/base`) e um **overlay** por ambiente. O
+overlay `local` valida os manifests na sua máquina; o `aws` é o que a pipeline
+implanta (ver [`infra/README.md`](./infra/README.md), seção 13).
+
+### Cluster: kind
+
+O cluster local é o [kind](https://kind.sigs.k8s.io) (*Kubernetes in Docker*):
+cada nó é um container, então o único requisito é o Docker que o projeto já usa
+no Compose, em macOS, Linux ou Windows. A configuração do cluster está
+versionada em [`k8s/kind-cluster.yaml`](./k8s/kind-cluster.yaml) e publica o
+NodePort da API (`30080`) em `localhost`.
+
+### Requisitos
+
+- Docker em execução
+- [`kubectl`](https://kubernetes.io/docs/tasks/tools/)
+- [`kind`](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
+  (`brew install kind`, `choco install kind` ou o binário da página de releases)
+
+### Subindo a aplicação
+
+```bash
+# 1. Cluster de um nó, com o NodePort 30080 publicado em localhost
+kind create cluster --config k8s/kind-cluster.yaml
+kubectl get nodes                       # tech-challenge-control-plane, Ready
+
+# 2. Imagem da API, com o nome e a tag que a base espera, carregada no cluster
+#    (a base usa imagePullPolicy: Never: a imagem não vem de registry)
+docker build -t tech-challenge-api:local .
+kind load docker-image tech-challenge-api:local --name tech-challenge
+
+# 3. Todos os recursos do overlay local
+kubectl apply -k k8s/overlays/local
+
+# 4. Espere o banco e a API ficarem prontos
+kubectl rollout status statefulset/postgres
+kubectl rollout status deployment/api
+```
+
+Na primeira subida, cada pod da API espera o PostgreSQL, aplica as migrações
+(com advisory lock, então as réplicas não disputam) e roda o seed. As contas de
+demonstração são as mesmas do Docker Compose (senha `Oficina@2026`), e a
+aplicação fica em:
+
+- **Scalar:** <http://localhost:30080/reference>
+- **Swagger:** <http://localhost:30080/docs>
+
+### O que o overlay `local` cria
+
+| Recurso | Nome | Para quê |
+| --- | --- | --- |
+| Deployment | `api` | A API, com requests de CPU/memória e readiness probe em `/` |
+| Service (NodePort) | `api` | Expõe a API na porta `30080` do nó |
+| ConfigMap | `app-config` | Configuração não sensível (porta, banco, e-mail, `RUN_SEED=true`) |
+| Secret | `app-secrets` | `DB_USER`, `DB_PASSWORD` e `JWT_SECRET` de **demonstração**, versionados de propósito |
+| StatefulSet + Service | `postgres` | PostgreSQL 16 dentro do cluster, com volume persistente (`data-postgres-0`) |
+| HPA | `api` | De 2 a 5 réplicas, alvo de 70% de CPU e 80% de memória |
+| metrics-server | `kube-system` | Fornece as métricas do HPA; o kind não traz um |
+
+> Os valores do Secret local são públicos e só servem para este cluster. No
+> overlay `aws` não há Secret versionado: a pipeline cria o `app-secrets` a
+> partir do state do Terraform e dos secrets do GitHub.
+
+### Verificando
+
+```bash
+kubectl get pods                  # 2 pods api-* e postgres-0, todos Running
+kubectl get svc api               # TYPE NodePort, PORT(S) 3000:30080/TCP
+kubectl get configmap app-config  # DATA 11
+kubectl get secret app-secrets    # DATA 3
+kubectl get hpa api               # TARGETS com porcentagens, não <unknown>
+kubectl top pods                  # métricas vindas do metrics-server
+curl -s -o /dev/null -w '%{http_code}\n' http://localhost:30080/   # 200
+```
+
+Validação feita assim, num cluster kind novo:
+
+```text
+$ kubectl get pods
+NAME                   READY   STATUS    RESTARTS   AGE
+api-6859885f77-9gcwn   1/1     Running   0          21s
+api-6859885f77-hsrzx   1/1     Running   0          21s
+postgres-0             1/1     Running   0          21s
+
+$ kubectl get svc api
+NAME   TYPE       CLUSTER-IP     EXTERNAL-IP   PORT(S)          AGE
+api    NodePort   10.96.64.189   <none>        3000:30080/TCP   21s
+
+$ kubectl get hpa api
+NAME   REFERENCE        TARGETS                        MINPODS   MAXPODS   REPLICAS   AGE
+api    Deployment/api   cpu: 0%/70%, memory: 24%/80%   2         5         2          66s
+```
+
+O HPA mostra `<unknown>` no primeiro minuto, enquanto o metrics-server coleta
+as primeiras amostras. Para vê-lo escalar, gere carga com o
+[k6](https://k6.io) (o roteiro usa o admin do seed):
+
+```bash
+kubectl get hpa api --watch               # em outro terminal
+k6 run scripts/load/hpa-login.k6.js       # ~5 min; sobe para até 5 réplicas
+```
+
+Na validação, o HPA saiu de 2 para 5 réplicas cerca de 30 s depois de a CPU
+passar do alvo, e o k6 terminou sem nenhuma requisição com erro
+(`http_req_failed: 0.00%`, 25.433 requisições):
+
+```text
+TARGETS                          REPLICAS
+cpu: 1%/70%,   memory: 24%/80%   2
+cpu: 132%/70%, memory: 25%/80%   2
+cpu: 393%/70%, memory: 28%/80%   4
+cpu: 400%/70%, memory: 28%/80%   5
+```
+
+### Atualizando depois de mudar o código
+
+A tag `local` não muda, então o Kubernetes não percebe a imagem nova sozinho:
+
+```bash
+docker build -t tech-challenge-api:local .
+kind load docker-image tech-challenge-api:local --name tech-challenge
+kubectl rollout restart deployment/api
+kubectl rollout status deployment/api
+```
+
+Mudanças só nos manifests: `kubectl apply -k k8s/overlays/local` de novo.
+
+### Removendo
+
+```bash
+kind delete cluster --name tech-challenge
+```
+
+Apaga o cluster inteiro, inclusive o volume do banco. Para limpar só a
+aplicação e manter o cluster: `kubectl delete -k k8s/overlays/local` e
+`kubectl delete pvc data-postgres-0`.
+
+### Problemas comuns
+
+| Sintoma | Causa e solução |
+| --- | --- |
+| Pod `api` em `ErrImageNeverPull` | A imagem não foi carregada no cluster. Rode o `kind load docker-image` do passo 2 (de novo a cada `docker build`). |
+| `kind create cluster` falha com `port is already allocated` | A porta `30080` está em uso no host, ou já existe um cluster `tech-challenge` (`kind get clusters`). |
+| Pod `api` reiniciando, log `Database did not become reachable in 60s` | O `postgres-0` ainda não estava pronto. Ele se recupera sozinho no próximo restart; confira com `kubectl get pods`. |
+| HPA com `<unknown>` por mais de 2 minutos | `kubectl get pods -n kube-system -l k8s-app=metrics-server` e `kubectl logs` desse pod. |
+| `kubectl` falando com outro cluster | `kubectl config use-context kind-tech-challenge` |
+
+</details>
+
+<h2 id="notificacoes">📧 Notificações por e-mail</h2>
+
+<details>
+<summary>Expandir para mais detalhes</summary>
+
+Toda vez que uma OS muda de status, o cliente dono do veículo recebe um e-mail
+com o veículo, o número da OS, o novo status em português e uma frase sobre o
+próximo passo. São sete e-mails do balcão à entrega:
+
+| Status | E-mail |
+|--------|--------|
+| `received` | **Recebida** |
+| `in_diagnosis` | **Em diagnóstico** |
+| `awaiting_approval` | o próprio **e-mail do orçamento**, com os botões de aprovar e recusar |
+| `awaiting_execution` | **Aguardando execução** |
+| `in_execution` | **Em execução** |
+| `finished` | **Finalizada** |
+| `delivered` | **Entregue** |
+
+Em `awaiting_approval` não sai um segundo e-mail: o do orçamento já diz que a
+OS está esperando o cliente e traz os botões para aprovar ou recusar.
+
+**Como funciona.** A entidade `ServiceOrder` registra um
+`ServiceOrderStatusChanged` na abertura e em cada `transitionTo()`, e o
+repositório publica esses eventos logo depois de gravar a ordem. Nenhum dos
+caminhos que mudam o status (anamnese, diagnóstico, aprovação, recusa,
+execução, pagamento) precisa lembrar de publicar. O módulo `notifications` escuta o
+evento e envia o e-mail.
+
+**Falha no envio não desfaz nada.** O status já está gravado quando o e-mail
+sai. Se o provedor recusar, a requisição responde normalmente e o erro vai para
+o log com `orderId`, `status` e o motivo. Um cliente sem e-mail cadastrado é
+pulado com um `warn`.
+
+**Drivers** — escolhidos por `MAIL_DRIVER` no boot. Um valor desconhecido
+impede a aplicação de subir:
+
+| Driver | O que faz | Quando usar |
+|--------|-----------|-------------|
+| `log` (padrão) | escreve destinatário, assunto e HTML no log; nada é enviado | testes, CI, cluster |
+| `file` | grava cada e-mail em `MAIL_DIRECTORY` como `.html` e loga o caminho | demo e ajuste de templates, sem conta na Brevo |
+| `brevo` | envia de verdade pela API da Brevo (exige `BREVO_API_KEY` e remetente verificado) | mostrar a caixa de entrada real |
+
+Com `file`, cada arquivo se chama `<data-hora>--<orderId>--<status>.html` e abre
+direto no navegador, com De / Para / Assunto / Data acima do corpo. A pasta
+`var/mail/` está no `.gitignore`.
+
+```bash
+MAIL_DRIVER=file npm run start:dev
+# ... percorra o roteiro abaixo ...
+ls var/mail
+# 2026-10-24T13-05-12-345Z--<OS>--received.html
+# 2026-10-24T13-05-40-118Z--<OS>--in_diagnosis.html
+# ...
+open var/mail/*--received.html   # macOS; no Linux, xdg-open
+```
+
+No k8s o driver fica `log`: o disco do pod é efêmero e ninguém o abriria.
 
 </details>
 
@@ -576,7 +811,7 @@ recomeçar do zero, veja [Recomeçar o banco](#resolucao-de-problemas).
 | E-mail | Papel | Usada para |
 |--------|-------|------------|
 | `admin@oficina.dev` | `ADMIN` | quase tudo neste roteiro |
-| `consultor@oficina.dev` | `ADMIN` | recepção (o perfil é que a marca como consultora) |
+| `consultor@oficina.dev` | `CONSULTANT` | recepção |
 | `bruno@oficina.dev` | `MECHANIC` | diagnóstico e execução |
 | `diego@oficina.dev` | `MECHANIC` | segundo da fila FIFO |
 | `estoquista@oficina.dev` | `STOCK_KEEPER` | entradas de estoque |
@@ -587,7 +822,7 @@ recomeçar do zero, veja [Recomeçar o banco](#resolucao-de-problemas).
 | O quê | Id |
 |-------|-----|
 | Veículo — Fiat Uno `ABC-1234` (da Ana) | `33333333-3333-4333-8333-000000000001` |
-| Consultora Carla Menezes | `44444444-4444-4444-8444-000000000001` |
+| Consultora Carla Menezes | `11111111-1111-4111-8111-000000000002` |
 | Serviço — Troca de pastilhas (R$ 150,00) | `88888888-8888-4888-8888-000000000002` |
 | Insumo — Pastilha de freio (R$ 120,00, 20 em estoque) | `77777777-7777-4777-8777-000000000001` |
 
@@ -612,26 +847,51 @@ BRUNO=$(login bruno@oficina.dev)
 Prefere clicar? O mesmo roteiro funciona pelo <http://localhost:3000/docs>:
 autentique com o token do `POST /auth/login` no botão **Authorize**.
 
+Quer ver o e-mail chegando a cada passo? Suba a API com `MAIL_DRIVER=file` e
+acompanhe a pasta `var/mail/`: cada passo abaixo marcado com 📧 grava um arquivo
+novo para a Ana (`ana@example.com`). Detalhes em
+[Notificações por e-mail](#notificacoes).
+
 ### 3. Recepção — abre a OS em `received`
 
-A anamnese é o ponto de entrada: registrar o relato do cliente é o que abre a
-ordem de serviço.
+A recepção abre a OS para o veículo, com o que o cliente pediu. Cliente e
+veículo são cadastrados antes (`POST /customers` e `POST /vehicles`) e entram
+aqui pelo id do veículo — o cliente da OS é o dono dele. Serviços e peças ficam
+como **itens solicitados**: o diagnóstico confirma ou ajusta o escopo, e só o
+orçamento aprovado reserva estoque. Se qualquer validação falhar, nada é
+gravado.
 
 ```bash
-OS=$(curl -s -X POST $API/service-order/anamnesis \
+OS=$(curl -s -X POST $API/service-orders \
   -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
   -d '{
     "vehicleId": "33333333-3333-4333-8333-000000000001",
-    "consultantId": "44444444-4444-4444-8444-000000000001",
-    "mainComplaint": "Barulho ao frear",
-    "problemDescription": "Chiado agudo nas rodas dianteiras",
-    "severity": "moderate",
-    "frequency": "constant"
-  }' | field serviceOrderId)
+    "openedById": "11111111-1111-4111-8111-000000000002",
+    "services": [{ "serviceId": "88888888-8888-4888-8888-000000000002", "quantity": 1 }],
+    "parts":    [{ "supplyId": "77777777-7777-4777-8777-000000000001", "quantity": 2 }],
+    "notes": "Cliente relata barulho ao frear"
+  }' | field id)
 
 curl -s $API/service-orders/$OS/status -H "Authorization: Bearer $ADMIN"
 # {"status":"received"}
 ```
+
+Com a OS aberta, registre a anamnese — o relato do cliente. Ela é obrigatória
+para iniciar o diagnóstico:
+
+```bash
+curl -s -X POST $API/service-orders/$OS/anamnesis \
+  -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
+  -d '{
+    "consultantId": "11111111-1111-4111-8111-000000000002",
+    "mainComplaint": "Barulho ao frear",
+    "problemDescription": "Chiado agudo nas rodas dianteiras",
+    "severity": "moderate",
+    "frequency": "constant"
+  }' > /dev/null
+```
+
+📧 **Recebida**
 
 ### 4. Diagnóstico — `in_diagnosis` e depois `awaiting_approval`
 
@@ -648,6 +908,9 @@ QUOTE=$(curl -s -X POST $API/service-orders/$OS/diagnosis \
   }' | field quotation.id)
 ```
 
+📧 **Em diagnóstico** no `start`; depois, o e-mail do orçamento vale como o de
+**Aguardando aprovação**.
+
 Registrar o laudo emite o orçamento e dispara o e-mail de aprovação na mesma
 tacada. O orçamento sai com **duas linhas**, embora só um serviço tenha sido
 pedido:
@@ -660,27 +923,68 @@ pedido:
 A peça entrou pela ficha técnica do serviço — não existe linha de peça avulsa. O
 total é R$ 270,00.
 
-### 5. Aprovação do cliente — `awaiting_execution`
+### 5. Resposta do cliente — `awaiting_execution`
 
-Com `MAIL_DRIVER=log` (o padrão), o e-mail não sai: a mensagem com o link de
-aprovação é escrita no log da aplicação. Você pode abrir aquele link ou aprovar
-direto:
+Com `MAIL_DRIVER=log` (o padrão), o e-mail não sai: a mensagem é escrita no log
+da aplicação, com os botões **Aprovar orçamento** e **Recusar**. Com
+`MAIL_DRIVER=file`, os botões do arquivo em `var/mail/` funcionam. Os dois abrem
+`/quotations/decision?token=...`, uma página que mostra o orçamento e **não
+altera nada** — scanners de e-mail seguem links, mas não enviam formulários. A
+resposta só é registrada quando o cliente confirma o formulário da página.
+
+A mesma decisão pode chegar de fora da oficina em JSON, sem login: o token do
+link é a credencial. Copie o token do log (ou do arquivo) e aprove:
 
 ```bash
-curl -s -X POST $API/quotations/$QUOTE/approve -H "Authorization: Bearer $ADMIN" > /dev/null
+TOKEN=<token do link no log>
+curl -s -X POST $API/quotations/decision -H 'Content-Type: application/json' \
+  -d "{\"token\":\"$TOKEN\",\"decision\":\"approved\"}" > /dev/null
 # status: awaiting_execution
 ```
 
-### 6. Estoque — reserva a peça
+📧 **Aguardando execução**
 
-A reserva é um passo explícito, não uma consequência automática da aprovação:
+Repetir a mesma decisão responde `200` com o estado atual; a decisão contrária
+responde `409`. A oficina também pode aprovar manualmente, com JWT:
+`POST $API/quotations/$QUOTE/approve`.
+
+<details>
+<summary>Desvio: e se o cliente recusar?</summary>
 
 ```bash
-curl -s -X POST $API/supplies/77777777-7777-4777-8777-000000000001/reservations \
-  -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
-  -d "{\"quantity\":1,\"serviceOrderReference\":\"$OS\"}"
-# availableBalance cai de 20 para 19; reservedQuantity: 1
+curl -s -X POST $API/quotations/decision -H 'Content-Type: application/json' \
+  -d "{\"token\":\"$TOKEN\",\"decision\":\"rejected\",\"reason\":\"Muito caro\"}"
+# status: rejected, rejectedAt e rejectionReason preenchidos
+# a OS volta para in_diagnosis
 ```
+
+📧 **Em diagnóstico**
+
+O orçamento recusado fica guardado como registro, e nenhuma peça é reservada:
+só a aprovação publica `quotation.approved`. Registrar o laudo de novo
+(passo 4) emite e envia um orçamento novo, e é ele que
+`GET /service-orders/$OS/quotation` passa a devolver. O link antigo continua
+recusado.
+
+</details>
+
+### 6. Estoque — a peça já está reservada
+
+Não há nada a chamar: a aprovação publica `quotation.approved` e o módulo de
+estoque reserva, contra a OS, cada linha `part` do orçamento aprovado. Basta
+conferir o saldo:
+
+```bash
+curl -s $API/supplies/77777777-7777-4777-8777-000000000001/stock \
+  -H "Authorization: Bearer $ADMIN"
+# availableBalance caiu de 20 para 19 — 1 unidade reservada para $OS
+```
+
+> Se faltar peça, a aprovação **não** é barrada: a OS segue para
+> `awaiting_execution`, a linha fica sem reserva e o estoque publica
+> `stock.purchase-request-needed`. Os endpoints manuais
+> (`POST /supplies/{id}/reservations` e `/write-offs`) continuam disponíveis
+> para ajustes — não use-os neste roteiro, ou a peça fica reservada em dobro.
 
 ### 7. Execução — `in_execution`
 
@@ -695,19 +999,21 @@ echo $MECANICO   # quem a fila entregou
 # status: in_execution
 ```
 
+📧 **Em execução**
+
 > A alocação é FIFO: quem está disponível há mais tempo assume, **não**
 > necessariamente quem chamou. Na primeira rodada sai o Bruno; na segunda, como
 > ele voltou para o fim da fila ao ser liberado, sai o Diego. Por isso o id vem
 > da resposta (`$MECANICO`) em vez de ser fixo — é ele que o passo 9 exige.
 
-### 8. Estoque — dá baixa na peça
+### 8. Estoque — a baixa vem com a conclusão
 
-```bash
-curl -s -X POST $API/supplies/77777777-7777-4777-8777-000000000001/write-offs \
-  -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
-  -d "{\"quantity\":1,\"serviceOrderReference\":\"$OS\"}"
-# reservedQuantity volta a 0; o saldo disponível segue 19
-```
+Também automática, mas só no próximo passo: quando a OS chega a `finished`, o
+estoque recebe `service-order.finished`, lê no livro-razão o que ainda está
+reservado para aquela OS e dá baixa em tudo. O que dá baixa é o que foi de fato
+reservado, não o orçamento — uma linha que ficou sem reserva por falta de peça
+não gera baixa. O saldo disponível segue 19: a baixa consome a reserva, não
+devolve nada à prateleira.
 
 ### 9. Conclusão — `finished`
 
@@ -717,6 +1023,8 @@ curl -s -X POST $API/mechanics/$MECANICO/complete-execution \
   -d "{\"serviceOrderId\":\"$OS\"}" > /dev/null
 # status: finished — e o mecânico volta para a fila como AVAILABLE
 ```
+
+📧 **Finalizada**
 
 Este é o momento de olhar o relatório: ele conta apenas as ordens **em
 `finished`**, então uma OS já paga não entra na média.
@@ -747,6 +1055,8 @@ curl -s $API/service-orders/$OS -H "Authorization: Bearer $ADMIN"
 # status: delivered, deliveredAt preenchido, openedByName: "Carla Menezes"
 ```
 
+📧 **Entregue**
+
 ### 11. A visão do cliente
 
 O único endpoint que um `CUSTOMER` alcança, e apenas para as ordens dos próprios
@@ -771,6 +1081,8 @@ ids existem e deixaria mapear as ordens da oficina por tentativa.
   existe coluna de quantidade para conferir
 - **Fora de ordem dá 409**: tente pagar uma OS que não está em `finished`, ou
   iniciar o diagnóstico de uma que já saiu de `received`
+- **Abrir o link não decide nada**: `GET /quotations/decision` só mostra o
+  orçamento; recarregue à vontade e a OS segue em `awaiting_approval`
 
 </details>
 
@@ -796,7 +1108,8 @@ tech-challenge-17soat/
 │   │   │   ├── service-orders/                # Ordem de serviço (agregado central)
 │   │   │   ├── anamnesis/                     # Anamnese
 │   │   │   ├── diagnostics/                   # Diagnóstico
-│   │   │   ├── quotations/                    # Orçamento e aprovação
+│   │   │   ├── quotations/                    # Orçamento, aprovação e recusa
+│   │   │   ├── notifications/                 # E-mails ao cliente (drivers log/file/brevo)
 │   │   │   └── services/                      # Catálogo de serviços
 │   │   ├── mechanic/                          # Mecânicos e alocação FIFO
 │   │   ├── stock/                             # Insumos, livro-razão e estoquistas
@@ -910,6 +1223,7 @@ PUT    /services/{id}/supplies                       # Substituir a ficha técni
 #### Ordens de serviço — `ADMIN`
 
 ```
+POST   /service-orders                               # Abrir ordem (veículo, serviços e peças)
 GET    /service-orders                               # Listar ordens
 GET    /service-orders/average-execution-time        # Tempo médio de execução
 GET    /service-orders/{id}                          # Obter ordem
@@ -918,10 +1232,12 @@ PATCH  /service-orders/{id}                          # Atualizar / avançar a or
 DELETE /service-orders/{id}                          # Remover ordem (soft delete)
 ```
 
+A listagem (`GET /service-orders`) devolve a fila de trabalho da oficina, ordenada por prioridade de status — `in_execution` > `awaiting_execution` > `awaiting_approval` > `in_diagnosis` > `received` — e, dentro do mesmo status, das mais antigas para as mais novas. `awaiting_execution` (orçamento aprovado, aguardando um mecânico) fica logo abaixo de `in_execution` por ser a próxima a entrar na bancada. OSs `finished` e `delivered` ficam fora da listagem padrão (exclusão lógica): continuam acessíveis por `GET /service-orders/{id}` e pelo filtro explícito `?status=finished` ou `?status=delivered`.
+
 #### Anamnese — `ADMIN`
 
 ```
-POST   /service-order/anamnesis                      # Registrar anamnese
+POST   /service-orders/{serviceOrderId}/anamnesis    # Registrar anamnese
 GET    /service-orders/{serviceOrderId}/anamnesis    # Obter anamnese
 PATCH  /service-orders/{serviceOrderId}/anamnesis    # Atualizar anamnese
 DELETE /service-orders/{serviceOrderId}/anamnesis    # Remover anamnese
@@ -941,7 +1257,10 @@ GET    /service-orders/{serviceOrderId}/quotation    # ADMIN — orçamento da o
 GET    /quotations/{id}                              # ADMIN — obter orçamento
 POST   /quotations/{id}/send-approval-email          # ADMIN — (re)enviar e-mail de aprovação
 POST   /quotations/{id}/approve                      # ADMIN — aprovar manualmente
-GET    /quotations/approve?token=...                 # Público — aprovação pelo link do e-mail
+POST   /quotations/decision                          # Público (token) — aprovação ou recusa em JSON
+GET    /quotations/decision?token=...                # Público (token) — página do link do e-mail, só leitura
+POST   /quotations/decision/confirm                  # Público (token) — formulário da página (HTML)
+GET    /quotations/approve?token=...                 # Público — links antigos; redireciona para a página
 ```
 
 #### Mecânicos — `ADMIN`, `MECHANIC`
@@ -967,8 +1286,8 @@ GET    /supplies/{id}/stock                          # Quantidade disponível (d
 PATCH  /supplies/{id}                                # Atualizar insumo
 DELETE /supplies/{id}                                # Remover insumo (soft delete)
 POST   /supplies/{id}/stock-entries                  # Registrar entrada (IN)
-POST   /supplies/{id}/reservations                   # Reservar para uma ordem (RESERVE)
-POST   /supplies/{id}/write-offs                     # Dar baixa (CONSUME)
+POST   /supplies/{id}/reservations                   # Reserva manual (ajuste; a aprovação já reserva)
+POST   /supplies/{id}/write-offs                     # Baixa manual (ajuste; `finished` já dá baixa)
 
 GET    /stock-keepers                                # Listar estoquistas
 POST   /stock-keepers                                # Cadastrar estoquista
@@ -997,10 +1316,15 @@ Documentação completa e interativa em <http://localhost:3000/docs> (Swagger) o
 
 ```mermaid
 erDiagram
-    CUSTOMERS ||--o{ VEHICLES : owns
+    ROLES ||--o{ USERS : assigns
+    USERS ||--o{ VEHICLES : owns
+    USERS ||--o| MECHANIC_AVAILABILITY : allocates
     VEHICLES  ||--o{ SERVICE_ORDERS : "is serviced in"
     SERVICE_ORDERS ||--o{ SERVICE_ITEMS : contains
     SERVICES ||--o{ SERVICE_ITEMS : "is scoped by"
+    SERVICE_ORDERS ||--o{ SERVICE_ORDER_REQUESTED_SERVICES : "was asked for"
+    SERVICES ||--o{ SERVICE_ORDER_REQUESTED_SERVICES : "is requested in"
+    SERVICE_ORDERS ||--o{ SERVICE_ORDER_REQUESTED_PARTS : "was asked for"
     SERVICES ||--o{ SERVICE_SUPPLIES : "consumes"
     SERVICE_ORDERS ||--o| ANAMNESES : has
     SERVICE_ORDERS ||--o{ DIAGNOSTICS : has
@@ -1013,28 +1337,23 @@ erDiagram
         varchar name "Nome do usuário"
         varchar email "E-mail de login"
         varchar password_hash "Hash bcrypt da senha"
-        integer role_id "1=ADMIN 2=STOCK_KEEPER 3=MECHANIC 4=CUSTOMER"
-    }
-
-    CUSTOMERS {
-        uuid customer_id PK "ID único do cliente"
-        uuid user_id "Conta de acesso do cliente (sem FK, validado no domínio)"
-        varchar person_type "NATURAL ou LEGAL"
-        varchar document "CPF ou CNPJ, único entre os ativos"
-        varchar name "Nome (PF)"
-        varchar corporate_name "Razão social (PJ)"
-        varchar trade_name "Nome fantasia (PJ)"
-        varchar email "E-mail de contato"
-        jsonb phone "Telefone (value object)"
-        jsonb address "Endereço (value object)"
+        varchar document "CPF ou CNPJ, único entre usuários ativos"
+        jsonb phone "Telefone"
+        integer role_id FK "Papel do usuário"
+        jsonb attributes "Endereço/nome empresarial, especialidades, hire_date etc."
         timestamp created_at "Auditoria"
         timestamp updated_at "Auditoria"
         timestamp deleted_at "Soft delete"
     }
 
+    ROLES {
+        integer role_id PK "ID do papel"
+        varchar name UK "admin, stock_keeper, mechanic, customer ou consultant"
+    }
+
     VEHICLES {
         uuid vehicle_id PK "ID único do veículo"
-        uuid customer_id FK "Dono do veículo"
+        uuid customer_id FK "users.user_id do cliente proprietário"
         varchar license_plate "Placa, única"
         varchar manufacturer "Fabricante"
         varchar model "Modelo"
@@ -1048,43 +1367,11 @@ erDiagram
         timestamp deleted_at "Soft delete"
     }
 
-    CONSULTANTS {
-        uuid consultant_id PK "ID único do consultor"
-        uuid user_id "Conta de acesso (sem FK)"
-        varchar name "Nome"
-        varchar cpf "CPF, único entre os ativos"
-        varchar phone "Telefone"
-        timestamp created_at "Auditoria"
-        timestamp updated_at "Auditoria"
-        timestamp deleted_at "Soft delete"
-    }
-
-    MECHANICS {
-        uuid mechanic_id PK "ID único do mecânico"
-        uuid user_id "Conta de acesso (sem FK)"
-        varchar name "Nome"
-        varchar cpf "CPF, único entre os ativos"
-        varchar email "E-mail"
-        jsonb phone "Telefone (value object)"
-        jsonb specialties "Lista de especialidades"
-        timestamp hire_date "Data de contratação"
+    MECHANIC_AVAILABILITY {
+        uuid user_id PK, FK "Identidade do mecânico"
         varchar availability "AVAILABLE, ALLOCATED, OFF_DUTY, INACTIVE"
         timestamp available_since "Base da fila FIFO de alocação"
         varchar current_service_order_id "Ordem que o mecânico está executando"
-        timestamp created_at "Auditoria"
-        timestamp updated_at "Auditoria"
-        timestamp deleted_at "Soft delete"
-    }
-
-    STOCK_KEEPERS {
-        uuid stock_keeper_id PK "ID único do estoquista"
-        uuid user_id "Conta de acesso (sem FK)"
-        varchar name "Nome"
-        varchar cpf "CPF, único entre os ativos"
-        varchar phone "Telefone"
-        timestamp created_at "Auditoria"
-        timestamp updated_at "Auditoria"
-        timestamp deleted_at "Soft delete"
     }
 
     SERVICE_ORDERS {
@@ -1109,6 +1396,18 @@ erDiagram
         uuid service_order_id PK "FK e parte da PK composta"
         uuid service_id PK "FK e parte da PK composta"
         integer quantity "Quantidade, sempre positiva"
+    }
+
+    SERVICE_ORDER_REQUESTED_SERVICES {
+        uuid service_order_id PK "FK e parte da PK composta"
+        uuid service_id PK "FK e parte da PK composta"
+        integer quantity "Quantidade pedida na abertura, sempre positiva"
+    }
+
+    SERVICE_ORDER_REQUESTED_PARTS {
+        uuid service_order_id PK "FK e parte da PK composta"
+        uuid supply_id PK "Insumo do outro contexto, sem FK"
+        integer quantity "Quantidade pedida na abertura, sempre positiva"
     }
 
     SERVICES {
@@ -1211,16 +1510,17 @@ erDiagram
     }
 ```
 
-> As tabelas `USERS`, `CONSULTANTS`, `MECHANICS`, `STOCK_KEEPERS`, `PAYMENTS` e as colunas `service_supplies.supply_id` / `quotation_items.reference_id` aparecem sem relacionamento desenhado de propósito: **não existe foreign key entre contextos** neste banco. Essas referências são validadas na camada de domínio — a fronteira do monolito modular vale também para o schema.
+> `roles`, veículos e `mechanic_availability` possuem FKs explícitas para `users`. A validação de role continua na aplicação, pois a FK de `vehicles.customer_id` garante a identidade, não o papel do usuário. `service_order_requested_parts.supply_id` aponta para o insumo do contexto de estoque sem FK: a existência é validada na abertura da OS.
 
 ### Invariantes garantidas pelo banco
 
 - `stock_movements.quantity > 0`, `type ∈ {IN, RESERVE, CONSUME}` e todo movimento `IN` exige um estoquista
 - `payments.service_order_reference` é único: uma ordem nunca é cobrada duas vezes
 - `quotations.service_order_id` é único: um orçamento por ordem
-- Unicidade "entre os ativos" (índices parciais com `deleted_at IS NULL`) para nome de insumo/serviço, CPF de mecânico/consultor/estoquista e documento do cliente — o soft delete libera o valor
-- `service_items.quantity > 0`, `service_supplies.quantity > 0`, `quotation_items.unit_price_in_cents >= 0`
-- `mechanics.availability` restrito aos quatro estados válidos
+- Unicidade global de documento entre usuários ativos (índice parcial em `users`); `users.attributes` tem índice GIN
+- Unicidade de nome de insumo/serviço — o soft delete libera o valor
+- `service_items.quantity > 0`, `service_order_requested_services.quantity > 0`, `service_order_requested_parts.quantity > 0`, `service_supplies.quantity > 0`, `quotation_items.unit_price_in_cents >= 0`
+- `mechanic_availability.availability` restrito aos quatro estados válidos, com índice B-tree em `(availability, available_since)` para a fila FIFO
 
 ### Migrações
 
@@ -1257,6 +1557,7 @@ As decisões arquiteturais estão registradas em [`docs/adr/`](./docs/adr/):
 | [0003](./docs/adr/0003-clean-architecture.md) | Escolha de arquitetura |
 | [0004](./docs/adr/0004-persistencia-com-postgresql-e-drizzle.md) | Escolha de banco de dados |
 | [0005](./docs/adr/0005-validacao-com-zod-e-dtos.md) | Validação com Zod e DTOs |
+| [0006](./docs/adr/0006-migrations-compativeis-com-a-versao-anterior.md) | Migrations compatíveis com a versão anterior (expand/contract) |
 
 </details>
 

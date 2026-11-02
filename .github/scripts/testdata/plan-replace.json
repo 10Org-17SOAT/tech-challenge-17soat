@@ -1,0 +1,8 @@
+{
+  "format_version": "1.2",
+  "resource_changes": [
+    {"address": "aws_vpc.main", "change": {"actions": ["no-op"]}},
+    {"address": "aws_instance.k3s", "change": {"actions": ["delete", "create"]}},
+    {"address": "aws_eip.k3s", "change": {"actions": ["create", "delete"]}}
+  ]
+}

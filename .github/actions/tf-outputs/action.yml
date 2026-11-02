@@ -1,0 +1,65 @@
+name: Terraform outputs
+description: >-
+  Initializes infra/ against the remote state and exposes what the cluster
+  steps need: writes k8s/components/aws-runtime/db.env and returns the VM's
+  public IP. Expects AWS credentials already configured in the job.
+
+# The remote state is the single source of truth: nothing is copied by hand
+# into GitHub variables, so a recreated RDS or EIP is picked up on the next run.
+# The RDS password is NOT an output of this action: job outputs are stored in
+# plain text, so whoever needs it reads it with `terraform output` in its own
+# step (db-migrate job in deploy.yml).
+
+inputs:
+  state-bucket:
+    description: S3 bucket of the main stack's state (TF_STATE_BUCKET).
+    required: true
+  aws-region:
+    description: Region of the bucket (AWS_REGION).
+    required: true
+  terraform-version:
+    description: Same as the operator's, so the state is never upgraded by surprise.
+    required: false
+    default: "1.16.4"
+
+outputs:
+  k3s-public-ip:
+    description: Static IP (EIP) of the K3s VM.
+    value: ${{ steps.read.outputs.k3s-public-ip }}
+
+runs:
+  using: composite
+  steps:
+    # The wrapper prints and captures stdout, which breaks `output -raw` in
+    # command substitution.
+    - uses: hashicorp/setup-terraform@v4
+      with:
+        terraform_version: ${{ inputs.terraform-version }}
+        terraform_wrapper: false
+
+    - name: terraform init
+      shell: bash
+      working-directory: infra
+      env:
+        STATE_BUCKET: ${{ inputs.state-bucket }}
+        AWS_REGION: ${{ inputs.aws-region }}
+      run: |
+        terraform init -input=false \
+          -backend-config="bucket=$STATE_BUCKET" \
+          -backend-config="region=$AWS_REGION"
+
+    - name: Read outputs
+      id: read
+      shell: bash
+      working-directory: infra
+      run: |
+        ip=$(terraform output -raw k3s_public_ip)
+        echo "k3s-public-ip=$ip" >> "$GITHUB_OUTPUT"
+
+        # Same content local_file.db_env writes on the operator's machine.
+        {
+          echo "DB_HOST=$(terraform output -raw db_host)"
+          echo "DB_PORT=$(terraform output -raw db_port)"
+          echo "DB_NAME=$(terraform output -raw db_name)"
+        } > ../k8s/components/aws-runtime/db.env
+        cat ../k8s/components/aws-runtime/db.env

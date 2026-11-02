@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { defineConfig } from 'drizzle-kit';
+import { dbSslSchema } from './src/shared/config/database/db-ssl';
 
 export default defineConfig({
   schema: './src/shared/config/database/schema.ts',
@@ -14,6 +15,6 @@ export default defineConfig({
     user: process.env.DB_USER ?? 'postgres',
     password: process.env.DB_PASSWORD ?? 'postgres',
     database: process.env.DB_NAME ?? 'tech_challenge',
-    ssl: false,
+    ssl: dbSslSchema.parse(process.env.DB_SSL),
   },
 });

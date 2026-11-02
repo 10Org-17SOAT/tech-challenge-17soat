@@ -1,0 +1,48 @@
+import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { CustomerModule } from '../../onboarding/customer/customer.module';
+import { VehicleManagementModule } from '../../onboarding/vehicles/vehicle-management.module';
+import { ServiceOrdersModule } from '../service-orders/service-orders.module';
+import { NotifyCustomerOfStatusChangeHandler } from './application/notify-customer-of-status-change.handler';
+import { EMAIL_SENDER } from './domain/email-sender.port';
+import type { EmailSender } from './domain/email-sender.port';
+import { ORDER_RECIPIENT_QUERY } from './domain/order-recipient.port';
+import { STATUS_CHANGE_EMAIL_COMPOSER } from './domain/status-change-email.port';
+import { createEmailSender } from './infrastructure/email-sender.factory';
+import { OnboardingOrderRecipientQuery } from './infrastructure/onboarding-order-recipient.query';
+import { HtmlStatusChangeEmailComposer } from './presentation/status-change-email.template';
+
+/**
+ * Everything that talks to the customer outside the HTTP API: the email
+ * driver, the lookup of who the customer of an order is, and the email sent
+ * on every status change.
+ *
+ * Quotations imports this module for the approval email, so the arrow only
+ * points one way — nothing here may import from quotations.
+ */
+@Module({
+  // Both onboarding modules export only their published query. The recipient
+  // adapter is the only thing here that touches either.
+  imports: [ServiceOrdersModule, VehicleManagementModule, CustomerModule],
+  providers: [
+    {
+      provide: ORDER_RECIPIENT_QUERY,
+      useClass: OnboardingOrderRecipientQuery,
+    },
+    // Chosen at boot from MAIL_DRIVER. `log` is the default so a fresh clone
+    // and the e2e suite never reach a provider or need an API key.
+    {
+      provide: EMAIL_SENDER,
+      inject: [ConfigService],
+      useFactory: (config: ConfigService): EmailSender =>
+        createEmailSender(config),
+    },
+    {
+      provide: STATUS_CHANGE_EMAIL_COMPOSER,
+      useClass: HtmlStatusChangeEmailComposer,
+    },
+    NotifyCustomerOfStatusChangeHandler,
+  ],
+  exports: [EMAIL_SENDER, ORDER_RECIPIENT_QUERY],
+})
+export class NotificationsModule {}

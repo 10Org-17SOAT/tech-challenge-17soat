@@ -1,5 +1,6 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
+import type { CreateServiceOrderOutput } from '../../application/create-service-order.usecase';
 import { ServiceOrder } from '../../domain/service-order.entity';
 import { serviceOrderStatusEnum } from '../../infrastructure/persistence/schema';
 
@@ -7,17 +8,56 @@ const serviceOrderStatusValues = serviceOrderStatusEnum.enumValues;
 
 const isoDateTime = z.iso.datetime({ offset: true });
 
-export const createServiceOrderSchema = z.object({
-  vehicleId: z.uuid(),
-  openedById: z.uuid(),
-  notes: z.string().trim().max(2000).optional(),
-  vehicleMileageAtEntry: z.number().int().nonnegative().optional(),
-  scheduledAt: isoDateTime.optional(),
-});
+// A repeated id is a typo, not two lines: the quantity is where "two" goes.
+const uniqueBy =
+  <T>(key: (item: T) => string, message: string) =>
+  (items: T[], ctx: z.RefinementCtx) => {
+    const seen = new Set<string>();
+    for (const item of items) {
+      if (seen.has(key(item))) {
+        ctx.addIssue({ code: 'custom', message });
+        return;
+      }
+      seen.add(key(item));
+    }
+  };
+
+export const createServiceOrderSchema = z
+  .object({
+    vehicleId: z.uuid(),
+    openedById: z.uuid(),
+    services: z
+      .array(
+        z.object({
+          serviceId: z.uuid(),
+          quantity: z.number().int().positive(),
+        }),
+      )
+      .superRefine(
+        uniqueBy((item) => item.serviceId, 'Each service may appear only once'),
+      )
+      .default([]),
+    parts: z
+      .array(
+        z.object({
+          supplyId: z.uuid(),
+          quantity: z.number().int().positive(),
+        }),
+      )
+      .superRefine(
+        uniqueBy((part) => part.supplyId, 'Each part may appear only once'),
+      )
+      .default([]),
+    notes: z.string().trim().max(2000).optional(),
+    vehicleMileageAtEntry: z.number().int().nonnegative().optional(),
+    scheduledAt: isoDateTime.optional(),
+  })
+  .strict();
 
 export class CreateServiceOrderDto extends createZodDto(
   createServiceOrderSchema,
 ) {}
+
 export const updateServiceOrderSchema = z
   .object({
     notes: z.string().trim().max(2000).nullable(),
@@ -57,6 +97,26 @@ export const serviceOrderResponseSchema = z.object({
 
 export class ServiceOrderResponseDto extends createZodDto(
   serviceOrderResponseSchema,
+) {}
+
+const requestedServiceResponseSchema = z.object({
+  serviceId: z.uuid(),
+  quantity: z.number().int(),
+});
+
+const requestedPartResponseSchema = z.object({
+  supplyId: z.uuid(),
+  quantity: z.number().int(),
+});
+
+export const createdServiceOrderResponseSchema =
+  serviceOrderResponseSchema.extend({
+    requestedServices: z.array(requestedServiceResponseSchema),
+    requestedParts: z.array(requestedPartResponseSchema),
+  });
+
+export class CreatedServiceOrderResponseDto extends createZodDto(
+  createdServiceOrderResponseSchema,
 ) {}
 
 export const serviceOrderStatusResponseSchema = z.object({
@@ -136,5 +196,22 @@ export function toServiceOrderResponse(
     deliveredAt: order.deliveredAt ? order.deliveredAt.toISOString() : null,
     createdAt: order.createdAt.toISOString(),
     updatedAt: order.updatedAt.toISOString(),
+  };
+}
+
+export function toCreatedServiceOrderResponse({
+  order,
+  requestedItems,
+}: CreateServiceOrderOutput): CreatedServiceOrderResponseDto {
+  return {
+    ...toServiceOrderResponse(order),
+    requestedServices: requestedItems.services.map((item) => ({
+      serviceId: item.serviceId,
+      quantity: item.quantity,
+    })),
+    requestedParts: requestedItems.parts.map((part) => ({
+      supplyId: part.supplyId,
+      quantity: part.quantity,
+    })),
   };
 }

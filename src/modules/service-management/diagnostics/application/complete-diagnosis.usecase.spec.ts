@@ -5,10 +5,10 @@ import { PartUnavailableForQuotationError } from '../../quotations/domain/errors
 import { InMemoryPartCatalog } from '../../quotations/__test__/in-memory-part-catalog';
 import { InMemoryQuotationRepository } from '../../quotations/__test__/in-memory-quotation.repository';
 import {
-  aRecipient,
-  InMemoryQuotationRecipientQuery,
-} from '../../quotations/__test__/in-memory-quotation-recipient.query';
-import { RecordingEmailSender } from '../../quotations/__test__/recording-email.sender';
+  makeRecipient,
+  InMemoryOrderRecipientQuery,
+} from '../../notifications/__test__/in-memory-order-recipient.query';
+import { RecordingEmailSender } from '../../notifications/__test__/recording-email.sender';
 import { InvalidServiceOrderTransitionError } from '../../service-orders/domain/errors/invalid-service-order-transition.error';
 import { ServiceOrderNotFoundError } from '../../service-orders/domain/errors/service-order-not-found.error';
 import { ServiceOrder } from '../../service-orders/domain/service-order.entity';
@@ -32,7 +32,7 @@ describe('CompleteDiagnosisUseCase', () => {
   let services: InMemoryServiceRepository;
   let quotations: InMemoryQuotationRepository;
   let parts: InMemoryPartCatalog;
-  let recipients: InMemoryQuotationRecipientQuery;
+  let recipients: InMemoryOrderRecipientQuery;
   let emails: RecordingEmailSender;
   let useCase: CompleteDiagnosisUseCase;
   let service: Service;
@@ -45,7 +45,7 @@ describe('CompleteDiagnosisUseCase', () => {
     parts = new InMemoryPartCatalog();
     parts.add({ id: oilId, name: 'Oleo 5W30', priceInCents: 4500 });
 
-    recipients = new InMemoryQuotationRecipientQuery();
+    recipients = new InMemoryOrderRecipientQuery();
     emails = new RecordingEmailSender();
 
     useCase = new CompleteDiagnosisUseCase(
@@ -79,7 +79,7 @@ describe('CompleteDiagnosisUseCase', () => {
     });
     order.transitionTo('in_diagnosis');
     await orders.save(order);
-    recipients.set(order.id, aRecipient());
+    recipients.set(order.id, makeRecipient());
     return order;
   };
 
@@ -171,7 +171,7 @@ describe('CompleteDiagnosisUseCase', () => {
     expect(saveDiagnosis).not.toHaveBeenCalled();
   });
 
-  it('emails the quotation to the customer with a working approval link', async () => {
+  it('emails the quotation to the customer with a working decision link', async () => {
     const order = await givenOrderInDiagnosis();
 
     const { quotation } = await useCase.execute({
@@ -184,7 +184,7 @@ describe('CompleteDiagnosisUseCase', () => {
     expect(emails.lastMessage!.to).toBe('ana@example.com');
     expect(emails.lastMessage!.html).toContain('ABC-1234');
     expect(emails.lastMessage!.html).toContain(
-      'https://oficina.example.com/quotations/approve?token=',
+      'https://oficina.example.com/quotations/decision?token=',
     );
     // The raw token exists only in the message; the quotation keeps its hash.
     expect(quotation.approvalTokenHash).not.toBeNull();

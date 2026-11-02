@@ -10,9 +10,11 @@ class InMemoryUserRepository implements UserRepository {
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    return Array.from(this.users.values()).find(
-      (user) => user.email === email.toLowerCase(),
-    ) ?? null;
+    return (
+      Array.from(this.users.values()).find(
+        (user) => user.email === email.toLowerCase(),
+      ) ?? null
+    );
   }
 
   async findMany({ page, limit }: { page: number; limit: number }) {
@@ -62,7 +64,7 @@ describe('ListUsersUseCase', () => {
     const result = await useCase.execute({ page: 1, limit: 1 });
 
     expect(result.total).toBe(2);
-    expect(result.page).toBeUndefined();
+    expect('page' in result).toBe(false);
     expect(result.items).toHaveLength(1);
     expect(result.items[0].email).toBe('ana@email.com');
   });

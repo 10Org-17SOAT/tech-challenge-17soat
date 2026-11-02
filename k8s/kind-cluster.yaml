@@ -1,0 +1,18 @@
+# Local cluster for validating the manifests, with kind (Kubernetes in Docker):
+# the only requirement is Docker, which the project already needs for Compose.
+#
+#   kind create cluster --config k8s/kind-cluster.yaml
+#
+# The API Service is a NodePort on 30080 (k8s/base/api/service.yaml). Mapping it
+# to the host keeps http://localhost:30080 working, which is also APP_BASE_URL
+# in the base ConfigMap and the default target of scripts/load/hpa-login.k6.js.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: tech-challenge
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 30080
+        hostPort: 30080
+        listenAddress: "127.0.0.1"
+        protocol: TCP

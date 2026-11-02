@@ -1,0 +1,21 @@
+# AWS: the API from the base, pointed at the RDS instance provisioned by
+# infra/database.tf through the aws-runtime component.
+#
+#   kubectl apply -k k8s/overlays/aws
+#
+# The pipeline (.github/workflows/deploy.yml) applies this same overlay, with
+# the image swapped for the one pushed to the registry, after the db-migrate
+# job has applied the schema (overlays/aws-migrate).
+#
+# Fails until db.env exists in components/aws-runtime, on purpose: there is
+# nothing to connect to before the database exists.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+
+components:
+  - ../../components/aws-runtime
+
+patches:
+  - path: deployment-registry.yaml

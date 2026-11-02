@@ -5,12 +5,13 @@ import {
   ConflictException,
   ExceptionFilter,
   NotFoundException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { ServiceOrderNotFoundError } from '../../service-orders/domain/errors/service-order-not-found.error';
-import { VehicleNotFoundForServiceOrderError } from '../../service-orders/domain/errors/vehicle-not-found-for-service-order.error';
 import {
   AnamnesisAlreadyExistsException,
+  AnamnesisConsultantNotFoundException,
   AnamnesisLockedException,
   AnamnesisNotFoundException,
   InvalidAnamnesisException,
@@ -22,7 +23,7 @@ import {
   AnamnesisAlreadyExistsException,
   InvalidAnamnesisException,
   ServiceOrderNotFoundError,
-  VehicleNotFoundForServiceOrderError,
+  AnamnesisConsultantNotFoundException,
 )
 export class AnamnesisErrorsFilter implements ExceptionFilter {
   catch(error: Error, host: ArgumentsHost) {
@@ -34,10 +35,12 @@ export class AnamnesisErrorsFilter implements ExceptionFilter {
   private toHttpException(error: Error) {
     if (
       error instanceof AnamnesisNotFoundException ||
-      error instanceof ServiceOrderNotFoundError ||
-      error instanceof VehicleNotFoundForServiceOrderError
+      error instanceof ServiceOrderNotFoundError
     ) {
       return new NotFoundException(error.message);
+    }
+    if (error instanceof AnamnesisConsultantNotFoundException) {
+      return new UnprocessableEntityException(error.message);
     }
     if (
       error instanceof AnamnesisLockedException ||

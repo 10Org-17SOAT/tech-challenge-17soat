@@ -51,3 +51,13 @@ export class DuplicateDocumentException extends CustomerException {
     }
   }
 }
+
+export class DuplicateEmailException extends CustomerException {
+  constructor(email: string, options?: { cause?: unknown }) {
+    super(`Customer email "${email}" is already in use.`);
+    this.name = 'DuplicateEmailException';
+    if (options?.cause !== undefined) {
+      this.cause = options.cause;
+    }
+  }
+}

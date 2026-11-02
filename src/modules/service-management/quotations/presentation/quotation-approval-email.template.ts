@@ -1,6 +1,11 @@
 import type { Quotation } from '../domain/quotation.entity';
-import type { QuotationRecipient } from '../domain/quotation-recipient.port';
-import { escapeHtml, formatBRL, formatDateBR } from './html';
+import type { OrderRecipient } from '../../notifications/domain/order-recipient.port';
+import {
+  escapeHtml,
+  formatBRL,
+  formatDateBR,
+} from '../../../../shared/formatting/html';
+import { STATUS_COPY } from '../../notifications/presentation/status-change-email.template';
 
 /**
  * The email the customer receives. A plain string — no template engine and no
@@ -8,13 +13,18 @@ import { escapeHtml, formatBRL, formatDateBR } from './html';
  *
  * Table-based layout on purpose: email clients are not browsers, and flexbox
  * and grid are unreliable across Outlook and Gmail.
+ *
+ * It doubles as the `awaiting_approval` status email — notifications skips
+ * that status — so it carries the same status badge the others do.
  */
 export function renderQuotationApprovalEmail(input: {
   quotation: Quotation;
-  recipient: QuotationRecipient;
-  approvalUrl: string;
+  recipient: OrderRecipient;
+  // The decision page, token included. Each button adds the answer it
+  // stands for; the page still asks the customer to confirm it.
+  decisionUrl: string;
 }): string {
-  const { quotation, recipient, approvalUrl } = input;
+  const { quotation, recipient, decisionUrl } = input;
   const vehicle = recipient.vehicle;
 
   const rows = quotation.items
@@ -50,6 +60,12 @@ export function renderQuotationApprovalEmail(input: {
           placa <strong>${escapeHtml(vehicle.licensePlate)}</strong>.
         </p>
 
+        <p style="margin:0 0 16px;">
+          <span style="display:inline-block;background:#e90;color:#fff;padding:8px 16px;border-radius:6px;font-weight:bold;">
+            ${STATUS_COPY.awaiting_approval.label}
+          </span>
+        </p>
+
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;">
           <tr style="text-align:left;color:#666;font-size:12px;text-transform:uppercase;">
             <th style="padding:8px 0;">Item</th>
@@ -66,10 +82,13 @@ export function renderQuotationApprovalEmail(input: {
           </tr>
         </table>
 
-        <p style="margin:24px 0 8px;">Se estiver de acordo, aprove pelo botão abaixo:</p>
+        <p style="margin:24px 0 8px;">Responda pelos botões abaixo. Você confirma a resposta na página seguinte.</p>
         <p style="margin:0 0 16px;">
-          <a href="${approvalUrl}" style="display:inline-block;background:#0b7;color:#fff;text-decoration:none;padding:12px 24px;border-radius:6px;font-weight:bold;">
+          <a href="${decisionUrl}&amp;decision=approved" style="display:inline-block;background:#0b7;color:#fff;text-decoration:none;padding:12px 24px;border-radius:6px;font-weight:bold;margin:0 8px 8px 0;">
             Aprovar orçamento
+          </a>
+          <a href="${decisionUrl}&amp;decision=rejected" style="display:inline-block;background:#fff;color:#c33;border:1px solid #c33;text-decoration:none;padding:11px 23px;border-radius:6px;font-weight:bold;margin:0 0 8px;">
+            Recusar
           </a>
         </p>
         ${

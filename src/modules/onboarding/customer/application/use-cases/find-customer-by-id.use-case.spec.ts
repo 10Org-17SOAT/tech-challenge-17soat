@@ -41,6 +41,7 @@ describe('FindCustomerByIdUseCase', () => {
   it('returns customer when found', async () => {
     const customer = Customer.restore({
       id: '123e4567-e89b-12d3-a456-426614174000',
+      userId: '123e4567-e89b-12d3-a456-426614174000',
       personType: PersonType.CPF,
       document: new Document('52998224725'),
       name: 'João Silva',

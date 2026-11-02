@@ -9,6 +9,7 @@ import {
 import { Response } from 'express';
 import {
   DuplicateDocumentException,
+  DuplicateEmailException,
   InvalidAddressException,
   InvalidCustomerException,
   InvalidDocumentException,
@@ -20,6 +21,7 @@ import { CustomerNotFoundException } from '../../application/exceptions/customer
 @Catch(
   CustomerNotFoundException,
   DuplicateDocumentException,
+  DuplicateEmailException,
   InvalidCustomerException,
   InvalidDocumentException,
   InvalidEmailException,
@@ -39,7 +41,10 @@ export class CustomerErrorsFilter implements ExceptionFilter {
     if (exception instanceof CustomerNotFoundException) {
       return new NotFoundException(exception.message);
     }
-    if (exception instanceof DuplicateDocumentException) {
+    if (
+      exception instanceof DuplicateDocumentException ||
+      exception instanceof DuplicateEmailException
+    ) {
       return new ConflictException(exception.message);
     }
 

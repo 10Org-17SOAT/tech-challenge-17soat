@@ -1,0 +1,22 @@
+# Local cluster: the base plus an in-cluster Postgres and the demo Secret, the
+# same zero-setup environment docker-compose gives.
+#
+#   kubectl apply -k k8s/overlays/local
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+  - secret.yaml
+  - postgres/service.yaml
+  - postgres/statefulset.yaml
+  # The HPA in the base needs the metrics-server, which K3s ships but local
+  # clusters such as kind do not. Pinned to a release so the overlay renders
+  # the same thing every time. The aws overlay must not include it: K3s already
+  # runs one.
+  - https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.9.0/components.yaml
+patches:
+  - path: metrics-server/insecure-tls.yaml
+    target:
+      kind: Deployment
+      name: metrics-server
+      namespace: kube-system

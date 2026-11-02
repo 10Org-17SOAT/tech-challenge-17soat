@@ -1,79 +1,101 @@
-import { CreateServiceOrderUseCase } from '../../service-orders/application/create-service-order.usecase';
+import { InMemoryConsultantDirectoryQuery } from '../../../onboarding/consultant/__test__/in-memory-consultant-directory.query';
+import { InMemoryServiceOrderRepository } from '../../service-orders/__test__/in-memory-service-order.repository';
+import { ServiceOrderNotFoundError } from '../../service-orders/domain/errors/service-order-not-found.error';
 import { ServiceOrder } from '../../service-orders/domain/service-order.entity';
-import { VehicleNotFoundForServiceOrderError } from '../../service-orders/domain/errors/vehicle-not-found-for-service-order.error';
+import { Anamnesis } from '../domain/anamnesis.entity';
 import type { AnamnesisRepository } from '../domain/anamnesis.repository';
+import {
+  AnamnesisAlreadyExistsException,
+  AnamnesisConsultantNotFoundException,
+  AnamnesisLockedException,
+} from '../domain/exceptions/anamnesis.exceptions';
 import { CreateAnamnesisUseCase } from './create-anamnesis.usecase';
 
 const vehicleId = '11111111-1111-1111-1111-111111111111';
 const consultantId = '22222222-2222-4222-8222-222222222222';
+const unknownId = 'f0000000-0000-4000-8000-000000000000';
 
 describe('CreateAnamnesisUseCase', () => {
   let anamnesisRepository: AnamnesisRepository;
-  let createOrder: CreateServiceOrderUseCase;
+  let orders: InMemoryServiceOrderRepository;
+  let consultants: InMemoryConsultantDirectoryQuery;
   let useCase: CreateAnamnesisUseCase;
+  let order: ServiceOrder;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     anamnesisRepository = {
-      findByServiceOrderId: jest.fn(),
+      findByServiceOrderId: jest.fn().mockResolvedValue(null),
       save: jest.fn(),
     };
-    createOrder = { execute: jest.fn() } as unknown as CreateServiceOrderUseCase;
-    useCase = new CreateAnamnesisUseCase(anamnesisRepository, createOrder);
-  });
-
-  it('creates the service order and attaches the anamnesis to it', async () => {
-    const order = ServiceOrder.create({
-      vehicleId,
-      openedById: '3a6e9f2b-1c4d-4e5a-8f6b-2d9c0e1f3a5b',
-      openedByName: 'Consultant Fixture',
-    });
-    (createOrder.execute as jest.Mock).mockResolvedValue(order);
-
-    const { anamnesis, vehicleId: resultVehicleId } = await useCase.execute({
-      vehicleId,
-      consultantId,
-      mainComplaint: 'Barulho na suspensão',
-      problemDescription: 'Estalo ao passar em lombadas',
-    });
-
-    expect(createOrder.execute).toHaveBeenCalledWith({
+    orders = new InMemoryServiceOrderRepository();
+    consultants = new InMemoryConsultantDirectoryQuery();
+    consultants.add({ id: consultantId, name: 'Carlos' });
+    order = ServiceOrder.create({
       vehicleId,
       openedById: consultantId,
+      openedByName: 'Carlos',
     });
+    await orders.save(order);
+    useCase = new CreateAnamnesisUseCase(
+      anamnesisRepository,
+      orders,
+      consultants,
+    );
+  });
+
+  const input = (serviceOrderId: string, overrides = {}) => ({
+    serviceOrderId,
+    consultantId,
+    mainComplaint: 'Barulho na suspensão',
+    problemDescription: 'Estalo ao passar em lombadas',
+    ...overrides,
+  });
+
+  it('attaches the anamnesis to an existing order in received', async () => {
+    const { anamnesis, vehicleId: resultVehicleId } = await useCase.execute(
+      input(order.id),
+    );
+
     expect(resultVehicleId).toBe(vehicleId);
     expect(anamnesis.serviceOrderId).toBe(order.id);
     expect(anamnesis.consultantId).toBe(consultantId);
     expect(anamnesis.mainComplaint).toBe('Barulho na suspensão');
     expect(anamnesisRepository.save).toHaveBeenCalledWith(anamnesis);
+    // It no longer opens orders of its own.
+    expect(orders.orders.size).toBe(1);
   });
 
-  it('propagates VehicleNotFoundForServiceOrderError when the vehicle does not exist', async () => {
-    (createOrder.execute as jest.Mock).mockRejectedValue(
-      new VehicleNotFoundForServiceOrderError(vehicleId),
+  it('rejects an order that does not exist', async () => {
+    await expect(useCase.execute(input(unknownId))).rejects.toThrow(
+      ServiceOrderNotFoundError,
     );
-
-    await expect(
-      useCase.execute({
-        vehicleId,
-        consultantId,
-        mainComplaint: 'Barulho',
-        problemDescription: 'Estalo',
-      }),
-    ).rejects.toThrow(VehicleNotFoundForServiceOrderError);
     expect(anamnesisRepository.save).not.toHaveBeenCalled();
   });
 
-  it('does not save the anamnesis when the order creation fails', async () => {
-    (createOrder.execute as jest.Mock).mockRejectedValue(new Error('boom'));
+  it('rejects an order that already left received', async () => {
+    order.transitionTo('in_diagnosis');
 
+    await expect(useCase.execute(input(order.id))).rejects.toThrow(
+      AnamnesisLockedException,
+    );
+    expect(anamnesisRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('rejects a second anamnesis for the same order', async () => {
+    (anamnesisRepository.findByServiceOrderId as jest.Mock).mockResolvedValue(
+      Anamnesis.create(input(order.id)),
+    );
+
+    await expect(useCase.execute(input(order.id))).rejects.toThrow(
+      AnamnesisAlreadyExistsException,
+    );
+    expect(anamnesisRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('rejects a consultant that is not registered', async () => {
     await expect(
-      useCase.execute({
-        vehicleId,
-        consultantId,
-        mainComplaint: 'Barulho',
-        problemDescription: 'Estalo',
-      }),
-    ).rejects.toThrow('boom');
+      useCase.execute(input(order.id, { consultantId: unknownId })),
+    ).rejects.toThrow(AnamnesisConsultantNotFoundException);
     expect(anamnesisRepository.save).not.toHaveBeenCalled();
   });
 });

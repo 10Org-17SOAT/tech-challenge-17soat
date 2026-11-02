@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import { Cpf } from '../../../../shared/domain/value-objects/cpf.vo';
 import { requireUserId } from '../../../../shared/domain/guards/require-user-id';
 import { InvalidConsultantError } from './errors/invalid-consultant.error';
@@ -9,7 +8,7 @@ const invalidCpf = (raw: string) =>
 
 export interface ConsultantProps {
   id: string;
-  userId?: string | null;
+  userId: string;
   name: string;
   cpf: string;
   phone: string;
@@ -27,7 +26,7 @@ export interface CreateConsultantProps {
 
 interface InternalProps {
   id: string;
-  userId: string | null;
+  userId: string;
   name: string;
   cpf: Cpf;
   phone: Phone;
@@ -50,7 +49,7 @@ export class Consultant {
 
     const now = new Date();
     return new Consultant({
-      id: randomUUID(),
+      id: userId,
       userId,
       name: props.name,
       cpf: Cpf.create(props.cpf, invalidCpf),
@@ -64,7 +63,7 @@ export class Consultant {
   static restore(props: ConsultantProps): Consultant {
     return new Consultant({
       id: props.id,
-      userId: props.userId ?? null,
+      userId: props.userId,
       name: props.name,
       cpf: Cpf.create(props.cpf, invalidCpf),
       phone: Phone.create(props.phone),
@@ -75,9 +74,7 @@ export class Consultant {
   }
 
   update(changes: { name?: string; phone?: string }): void {
-    if (changes.name !== undefined) {
-      this.props.name = changes.name;
-    }
+    if (changes.name !== undefined) this.props.name = changes.name.trim();
     if (changes.phone !== undefined) {
       this.props.phone = Phone.create(changes.phone);
     }
@@ -93,7 +90,7 @@ export class Consultant {
     return this.props.id;
   }
 
-  get userId(): string | null {
+  get userId(): string {
     return this.props.userId;
   }
 
