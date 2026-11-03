@@ -3,6 +3,8 @@
 # never drift apart:
 #
 #   - app-config points at RDS (db.env), with TLS on and NODE_ENV=production;
+#   - customer emails go out through Brevo, with the approval link built on
+#     the public address of the VM (app.env);
 #   - the demo seed flag is dropped;
 #   - the Amazon RDS CA is mounted and trusted.
 #
@@ -10,6 +12,10 @@
 # `terraform apply` (infra/database.tf) locally, and by the tf-outputs action
 # (.github/actions/tf-outputs) in the pipeline. Rendering fails without it, on
 # purpose: there is nothing to connect to before the database exists.
+#
+# app.env (APP_BASE_URL, MAIL_FROM) is written by the same action, from the
+# api_url output and the MAIL_FROM environment variable. BREVO_API_KEY is in
+# `app-secrets`.
 #
 # There is no Secret here: `app-secrets` is created with kubectl from the
 # Terraform outputs and the environment secrets, so real credentials never sit
@@ -22,6 +28,7 @@ configMapGenerator:
     behavior: merge
     envs:
       - db.env
+      - app.env
     literals:
       # RDS refuses plain connections (rds.force_ssl=1 in the parameter group).
       - DB_SSL=true
@@ -29,6 +36,10 @@ configMapGenerator:
       # its users have passwords committed to the repository. The first admin
       # comes from BOOTSTRAP_ADMIN_* in the Secret instead.
       - NODE_ENV=production
+      # Brevo delivers to any recipient once the sender is verified; `log`
+      # from the base would send nothing (README, section 13).
+      - MAIL_DRIVER=brevo
+      - MAIL_FROM_NAME=Oficina
     options:
       # Keep the name `app-config` that the workloads reference.
       disableNameSuffixHash: true

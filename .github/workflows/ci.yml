@@ -99,12 +99,14 @@ jobs:
             fi
           done
 
-      # Both AWS overlays must render; db.env is a stand-in for what Terraform
-      # writes, since there is no database here.
+      # Both AWS overlays must render; db.env and app.env are stand-ins for
+      # what the tf-outputs action writes, since there is no infrastructure here.
       - name: Render kustomize overlays
         run: |
           printf 'DB_HOST=db.example\nDB_PORT=5432\nDB_NAME=tech_challenge\n' \
             > k8s/components/aws-runtime/db.env
+          printf 'APP_BASE_URL=http://api.example:30080\nMAIL_FROM=oficina@example.com\n' \
+            > k8s/components/aws-runtime/app.env
           for overlay in aws aws-migrate; do
             .github/scripts/render-overlay.sh "k8s/overlays/$overlay" \
               registry.example/tech-challenge-api:ci "$RUNNER_TEMP/$overlay.yaml"
