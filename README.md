@@ -14,17 +14,26 @@
 
 API de gestão de ordens de serviço para uma oficina mecânica de veículos, desenvolvida como parte do curso de Arquitetura de Software da FIAP (Tech Challenge — SOAT 17).
 
-> 📌 O código entregue na **Fase 1** está congelado na [release v1.0.0](../../releases/tag/v1.0.0). A branch `main` segue para a Fase 2.
+> 📌 Este README descreve a entrega da **Fase 2**. O código da **Fase 1** está congelado na [release v1.0.0](../../releases/tag/v1.0.0).
+
+| | |
+|---|---|
+| 🌐 **API na AWS (Scalar)** | <http://ec2-3-138-152-147.us-east-2.compute.amazonaws.com:30080/reference> |
+| 📘 **Swagger / OpenAPI** | [`/docs`](http://ec2-3-138-152-147.us-east-2.compute.amazonaws.com:30080/docs) · [`/docs-json`](http://ec2-3-138-152-147.us-east-2.compute.amazonaws.com:30080/docs-json) |
+| 🗺️ **Diagramas de deploy e de ciclo de vida da OS** | [Eraser](https://app.eraser.io/workspace/NC87Fa0539cSoTsxYuXC?origin=share) |
+| 🎬 **Vídeo de demonstração** | _a publicar_ |
 
 <div align="center">
+  <a href="#fase-2">Fase 2</a> •
   <a href="#visao-geral">Visão Geral</a> •
   <a href="#arquitetura">Arquitetura</a> •
   <a href="#tecnologias">Tecnologias</a> •
   <a href="#diagramas">Diagramas</a> •
   <a href="#instalacao-e-uso">Instalação e Uso</a> •
   <a href="#kubernetes-local">Kubernetes local</a> • <br/>
+  <a href="#aws">Infraestrutura na AWS</a> •
+  <a href="#cicd">CI/CD</a> •
   <a href="#notificacoes">Notificações por e-mail</a> •
-  <a href="#fluxo-de-teste">Testando o ciclo de vida da OS</a> •
   <a href="#estrutura-do-projeto">Estrutura do Projeto</a> •
   <a href="#apis">APIs</a> •
   <a href="#banco-de-dados">Banco de Dados</a> •
@@ -32,6 +41,77 @@ API de gestão de ordens de serviço para uma oficina mecânica de veículos, de
   <a href="#resolucao-de-problemas">Resolução de Problemas</a> •
   <a href="#licenca">Licença</a>
 </div>
+
+<h2 id="fase-2">🎯 Fase 2</h2>
+
+Com o sistema da Fase 1 em uso, a oficina passou a precisar de alta
+disponibilidade e de capacidade para picos de ordens de serviço. A Fase 2 evolui
+a mesma aplicação em quatro frentes:
+
+- **Infraestrutura escalável**: a API roda em Kubernetes (K3s numa EC2) com
+  Horizontal Pod Autoscaler, e o banco é um RDS gerenciado, fora do cluster
+- **Provisionamento e deploy automatizados**: Terraform cria a rede, a VM, o
+  cluster e o banco; a pipeline aplica a infraestrutura, migra o banco e
+  implanta a API a cada merge na `main`
+- **Qualidade de código**: monolito modular com Clean Architecture, testes
+  unitários e end-to-end no CI e análise contínua no SonarCloud
+- **Novos fluxos de negócio**: abertura de OS com serviços e peças, consulta de
+  status, aprovação do orçamento por notificação externa, fila de trabalho
+  priorizada e aviso ao cliente por e-mail a cada mudança de status
+
+### Onde cada requisito está
+
+| Requisito | Implementação |
+|---|---|
+| Clean Code e Clean Architecture | [Arquitetura](#arquitetura): camadas `domain` → `application` → `infrastructure`/`presentation` por módulo, fronteiras via `public/` e eventos ([ADR 0001](./docs/adr/0001-monolito-modular.md), [ADR 0003](./docs/adr/0003-clean-architecture.md)) |
+| Testes automatizados | Jest (unitários) e Jest + Supertest (end-to-end contra PostgreSQL real), executados no CI com cobertura enviada ao SonarCloud |
+| Abertura de OS | `POST /service-orders`: veículo (o cliente é o dono dele), serviços e peças; devolve o `id` (UUID) da OS em `received` |
+| Consulta de status | `GET /service-orders/{id}/status` |
+| Aprovação de orçamento | `POST /quotations/decision`: notificação externa de aprovação ou recusa, sem login, autenticada pelo token do link enviado ao cliente |
+| Listagem de OS | `GET /service-orders`: `in_execution` > `awaiting_execution` > `awaiting_approval` > `in_diagnosis` > `received`, mais antigas primeiro, sem `finished`/`delivered` (exclusão lógica) |
+| Atualização de status por e-mail | [Notificações por e-mail](#notificacoes): um e-mail via Brevo a cada transição |
+| Docker | [`Dockerfile`](./Dockerfile) multi-stage e [`docker-compose.yml`](./docker-compose.yml) (API + PostgreSQL) |
+| Kubernetes | [`k8s/`](./k8s/): Deployment, Service, ConfigMap, Secret e HPA (CPU e memória), com overlays `local` e `aws` |
+| Terraform | [`infra/`](./infra/): rede, EC2 com K3s e RDS; [`infra/bootstrap/`](./infra/bootstrap/): bucket do state e usuário do CI |
+| CI/CD | [`.github/workflows/`](./.github/workflows/): build, testes, imagem, Terraform, migração do banco e aplicação dos manifests ([CI/CD](#cicd)) |
+
+### Status da OS
+
+A API usa os nomes em inglês. `awaiting_execution` é um estado a mais que o
+enunciado: o orçamento já foi aprovado e a OS espera um mecânico livre.
+
+| Enunciado | API |
+|---|---|
+| Recebida | `received` |
+| Diagnóstico | `in_diagnosis` |
+| Aguardando Aprovação | `awaiting_approval` |
+| — | `awaiting_execution` |
+| Execução | `in_execution` |
+| Finalizada | `finished` |
+| Entregue | `delivered` |
+
+Um orçamento recusado devolve a OS de `awaiting_approval` para `in_diagnosis`,
+para que um novo orçamento seja emitido. O diagrama completo do ciclo de vida
+está no [Eraser](https://app.eraser.io/workspace/NC87Fa0539cSoTsxYuXC?origin=share).
+
+### Usando o ambiente na AWS
+
+A API publicada não roda o seed: o único usuário inicial é o administrador
+criado no boot a partir de `BOOTSTRAP_ADMIN_*`, cujas credenciais não ficam no
+repositório.
+
+```bash
+API=http://ec2-3-138-152-147.us-east-2.compute.amazonaws.com:30080
+
+curl -s -X POST $API/auth/login -H 'Content-Type: application/json' \
+  -d '{"email":"<admin>","password":"<senha>"}'
+```
+
+Com o token, as chamadas da API funcionam com `API` apontando para a AWS.
+A diferença é que os cadastros (cliente, veículo,
+consultor, serviço e peça) precisam ser criados antes, porque não há seed.
+Cadastre o cliente com um e-mail real: na AWS os e-mails saem de verdade, e o
+link de aprovação do orçamento abre direto no navegador.
 
 <h2 id="visao-geral">📋 Visão Geral</h2>
 
@@ -150,8 +230,10 @@ Publicados via `@nestjs/event-emitter` sobre a porta `DomainEventPublisher`:
 
 ### Infraestrutura & Qualidade
 
-- **Docker / Docker Compose**: banco de dados local
+- **Docker / Docker Compose**: imagem da API e ambiente local (API + PostgreSQL)
 - **Kubernetes + Kustomize**: manifests em `k8s/`, com overlay local (kind) e AWS (K3s) — ver [Kubernetes local](#kubernetes-local)
+- **Terraform**: VPC, EC2 com K3s e RDS PostgreSQL na AWS — ver [Infraestrutura na AWS](#aws)
+- **GitHub Actions + Docker Hub**: CI, imagem multi-arquitetura e deploy — ver [CI/CD](#cicd)
 - **Jest + Supertest**: testes unitários e end-to-end
 - **ESLint + Prettier**: padronização de código
 - **SonarCloud**: análise estática e cobertura (GitHub Actions)
@@ -725,6 +807,146 @@ aplicação e manter o cluster: `kubectl delete -k k8s/overlays/local` e
 
 </details>
 
+<h2 id="aws">☁️ Infraestrutura na AWS</h2>
+
+<details>
+<summary>Expandir para mais detalhes</summary>
+
+Toda a infraestrutura é criada pelo Terraform em [`infra/`](./infra/), na
+região `us-east-2`. O diagrama de deploy está no
+[Eraser](https://app.eraser.io/workspace/NC87Fa0539cSoTsxYuXC?origin=share); a
+visão resumida:
+
+```mermaid
+flowchart LR
+    CLI["Cliente / oficina"] -->|"HTTP :30080"| EC2
+    subgraph AWS["AWS · us-east-2 · VPC própria"]
+        subgraph PUB["Subnet pública"]
+            EC2["EC2 t4g.small · ARM64<br/>K3s<br/>Deployment api (HPA 2–5)<br/>Service NodePort 30080"]
+        end
+        subgraph PRIV["Subnets privadas · sem rota para a internet"]
+            RDS[("RDS PostgreSQL 16<br/>db.t4g.micro · TLS obrigatório")]
+        end
+        EC2 -->|"5432 · só a partir do SG do K3s"| RDS
+        S3[("S3<br/>state do Terraform")]
+    end
+    DH[("Docker Hub<br/>imagem da API")] -->|pull| EC2
+    EC2 -->|"API HTTPS"| BREVO["Brevo"]
+    BREVO -->|e-mail| CLI
+```
+
+### Recursos criados
+
+| Arquivo | Recursos | Para quê |
+|---|---|---|
+| `infra/network.tf` | VPC, subnet pública, internet gateway, route table | Rede onde a VM recebe IP público |
+| `infra/security.tf` | Security group do K3s | Abre 22 (SSH), 6443 (API do K3s, usada pela pipeline) e 30080 (NodePort da API) |
+| `infra/ec2.tf` | EC2 (Ubuntu 24.04 ARM64), Elastic IP, ENI, key pair | A VM que instala o K3s no primeiro boot (`user-data.sh`), com IP fixo |
+| `infra/database.tf` | RDS PostgreSQL, subnets privadas, DB subnet group, security group, parameter group, senha gerada | Banco gerenciado, privado, com backup automático, storage cifrado e TLS obrigatório (`rds.force_ssl=1`) |
+| `infra/bootstrap/` | Bucket S3 (versionado e cifrado) e usuário IAM do CI | Criados uma vez, antes do resto: o state remoto e a credencial da pipeline |
+
+Os outputs (`api_url`, `db_host`, `kubeconfig_command`, `ssh_command`...) são
+lidos pela pipeline. Decisões, contratos e o porquê de cada escolha estão em
+[`infra/README.md`](./infra/README.md).
+
+### Provisionando
+
+**Uma vez, por um admin da conta** — bucket do state e usuário do CI
+([`infra/README.md`, seção 14](./infra/README.md#14-bootstrap-backend-s3-e-usuário-iam-do-ci)):
+
+```bash
+cd infra/bootstrap
+cp terraform.tfvars.example terraform.tfvars    # preencha account_id
+terraform init && terraform apply
+terraform output                                # valores para o GitHub e o backend.hcl
+```
+
+**No GitHub**, environment `production` (restrito à `main`):
+
+| Tipo | Nome |
+|---|---|
+| Secret | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `SSH_PRIVATE_KEY`, `JWT_SECRET`, `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD`, `BREVO_API_KEY` |
+| Variable | `TF_STATE_BUCKET`, `AWS_REGION`, `MAIL_FROM` |
+
+E, no repositório, as variables `DOCKERHUB_IMAGE` e `DOCKERHUB_USERNAME` e o
+secret `DOCKERHUB_TOKEN`.
+
+**Depois disso, um merge na `main` provisiona e implanta tudo** (ver
+[CI/CD](#cicd)). Para subir o ambiente à mão, sem a pipeline, os mesmos passos
+estão em [`infra/README.md`, seção 13](./infra/README.md#13-banco-de-dados-rds):
+
+```bash
+terraform -chdir=infra init -backend-config=backend.hcl
+terraform -chdir=infra apply -var-file=production.tfvars
+eval "$(terraform -chdir=infra output -raw kubeconfig_command)"
+# ... rds-ca, app-secrets, app.env, Job de migração e kubectl apply (seção 13)
+```
+
+### Deploy em Kubernetes
+
+O overlay [`k8s/overlays/aws`](./k8s/overlays/aws/) reaproveita a base do kind e
+acrescenta o componente [`aws-runtime`](./k8s/components/aws-runtime/):
+
+| Diferença em relação ao `local` | Por quê |
+|---|---|
+| Sem StatefulSet do PostgreSQL; `DB_HOST` vem do Terraform (`db.env`) | O banco é o RDS, fora do cluster |
+| `DB_SSL=true` e a CA da AWS montada em `NODE_EXTRA_CA_CERTS` | O RDS recusa conexão sem TLS |
+| `NODE_ENV=production`, sem `RUN_SEED` | Nenhum usuário com senha versionada em produção |
+| `MAIL_DRIVER=brevo`, `APP_BASE_URL` e `MAIL_FROM` vindos de `app.env` | E-mail real com link de aprovação público |
+| Imagem do Docker Hub com a tag do commit | Trocada pela pipeline (`.github/scripts/render-overlay.sh`) |
+| Secret `app-secrets` criado pela pipeline, não versionado | Credenciais do banco, JWT, admin inicial e chave do Brevo |
+| Migração num Job separado (`overlays/aws-migrate`) antes do rollout | Uma migração com falha não chega a trocar a API |
+
+</details>
+
+<h2 id="cicd">🔄 CI/CD</h2>
+
+<details>
+<summary>Expandir para mais detalhes</summary>
+
+Três workflows em [`.github/workflows/`](./.github/workflows/), encadeados:
+
+```mermaid
+flowchart LR
+    PUSH["push / PR<br/>develop ou main"] --> CI
+    subgraph CI["ci.yml · CI - Quality Gate"]
+        B["Build & types"]
+        I["Infra checks<br/>terraform fmt + validate<br/>plan guard · render dos overlays"]
+        T["Unit + E2E + Sonar"]
+    end
+    CI -->|"workflow_run"| CD["cd.yml · CD - Docker Image<br/>build & push no Docker Hub<br/>tag = SHA do commit"]
+    CD -->|"só na main"| DEP
+    subgraph DEP["deploy.yml · CD - Deploy K8s"]
+        direction LR
+        TF["Terraform apply<br/>guard: nada de delete/replace"] --> MIG["Database migration<br/>rds-ca + app-secrets<br/>Job db-migrate"] --> APP["Apply manifests<br/>kubectl apply + rollout"]
+    end
+```
+
+| Etapa pedida | Onde |
+|---|---|
+| Build da aplicação | `ci.yml` → *Build & types* (`tsc` e `nest build`) |
+| Testes automatizados | `ci.yml` → *Unit + E2E + Sonar* (Jest com PostgreSQL de serviço, cobertura no SonarCloud) |
+| Build da imagem Docker | `cd.yml` → *Build & push image* (multi-arquitetura; a EC2 é ARM64) |
+| Deploy da infraestrutura e do cluster | `deploy.yml` → *Terraform apply* |
+| Deploy do banco de dados | `deploy.yml` → *Terraform apply* (RDS) e *Database migration* (Job com as migrações da imagem nova) |
+| Aplicação dos manifestos YAML | `deploy.yml` → *Apply manifests* (`kubectl apply` do overlay `aws` e `rollout status`) |
+
+Detalhes que valem saber:
+
+- **Cada job barra o seguinte**: se o Terraform falhar, nada é migrado; se a
+  migração falhar, a API em produção continua na versão anterior
+- **Plan guard**: o `terraform apply` só roda se o plano não destruir nem
+  recriar nada (`.github/scripts/terraform-plan-guard.sh`), o que protege o RDS
+  e a EC2 de um `replace` acidental
+- **Segredos**: nenhuma credencial em arquivo versionado. A senha do RDS sai do
+  state do Terraform dentro do próprio step; o resto vem dos secrets do
+  environment `production`
+- **`develop` também gera imagem**, mas só a `main` implanta. O `deploy.yml`
+  também pode ser disparado à mão (Actions → *CD - Deploy K8s*) para
+  reimplantar ou voltar a uma imagem anterior
+
+</details>
+
 <h2 id="notificacoes">📧 Notificações por e-mail</h2>
 
 <details>
@@ -774,7 +996,7 @@ direto no navegador, com De / Para / Assunto / Data acima do corpo. A pasta
 
 ```bash
 MAIL_DRIVER=file npm run start:dev
-# ... percorra o roteiro abaixo ...
+# ... leve uma OS pelos status ...
 ls var/mail
 # 2026-10-24T13-05-12-345Z--<OS>--received.html
 # 2026-10-24T13-05-40-118Z--<OS>--in_diagnosis.html
@@ -782,307 +1004,11 @@ ls var/mail
 open var/mail/*--received.html   # macOS; no Linux, xdg-open
 ```
 
-No k8s o driver fica `log`: o disco do pod é efêmero e ninguém o abriria.
-
-</details>
-
-<h2 id="fluxo-de-teste">🧪 Testando o ciclo de vida da OS</h2>
-
-<details>
-<summary>Expandir para mais detalhes</summary>
-
-Um roteiro do balcão à entrega, levando uma ordem de serviço pelos sete estados
-com os dados que o seed já deixou no banco.
-
-### 1. Popule o banco
-
-```bash
-npm run db:seed
-```
-
-O seed cadastra as contas, os perfis, o catálogo de serviços e o estoque — mas
-**não** abre nenhuma OS: abrir, diagnosticar, orçar, executar e pagar é
-justamente o que este guia percorre. Os ids são fixos, então os comandos abaixo
-podem ser colados como estão. Rodar de novo não duplica nem apaga nada; para
-recomeçar do zero, veja [Recomeçar o banco](#resolucao-de-problemas).
-
-**Contas** — senha `Oficina@2026` para todas:
-
-| E-mail | Papel | Usada para |
-|--------|-------|------------|
-| `admin@oficina.dev` | `ADMIN` | quase tudo neste roteiro |
-| `consultor@oficina.dev` | `CONSULTANT` | recepção |
-| `bruno@oficina.dev` | `MECHANIC` | diagnóstico e execução |
-| `diego@oficina.dev` | `MECHANIC` | segundo da fila FIFO |
-| `estoquista@oficina.dev` | `STOCK_KEEPER` | entradas de estoque |
-| `ana@example.com` | `CUSTOMER` | consultar o status da própria OS |
-
-**Ids usados no roteiro:**
-
-| O quê | Id |
-|-------|-----|
-| Veículo — Fiat Uno `ABC-1234` (da Ana) | `33333333-3333-4333-8333-000000000001` |
-| Consultora Carla Menezes | `11111111-1111-4111-8111-000000000002` |
-| Serviço — Troca de pastilhas (R$ 150,00) | `88888888-8888-4888-8888-000000000002` |
-| Insumo — Pastilha de freio (R$ 120,00, 20 em estoque) | `77777777-7777-4777-8777-000000000001` |
-
-O seed imprime a lista completa — inclusive o segundo carro da Ana, o cliente PJ
-e os demais serviços — ao terminar.
-
-### 2. Prepare o terminal
-
-```bash
-API=http://localhost:3000
-
-# Extrai um campo do JSON da resposta sem depender do jq
-field() { node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log(process.argv[1].split('.').reduce((a,k)=>a?.[k],JSON.parse(s))))" "$1"; }
-
-login() { curl -s -X POST $API/auth/login -H 'Content-Type: application/json' \
-  -d "{\"email\":\"$1\",\"password\":\"Oficina@2026\"}" | field access_token; }
-
-ADMIN=$(login admin@oficina.dev)
-BRUNO=$(login bruno@oficina.dev)
-```
-
-Prefere clicar? O mesmo roteiro funciona pelo <http://localhost:3000/docs>:
-autentique com o token do `POST /auth/login` no botão **Authorize**.
-
-Quer ver o e-mail chegando a cada passo? Suba a API com `MAIL_DRIVER=file` e
-acompanhe a pasta `var/mail/`: cada passo abaixo marcado com 📧 grava um arquivo
-novo para a Ana (`ana@example.com`). Detalhes em
-[Notificações por e-mail](#notificacoes).
-
-### 3. Recepção — abre a OS em `received`
-
-A recepção abre a OS para o veículo, com o que o cliente pediu. Cliente e
-veículo são cadastrados antes (`POST /customers` e `POST /vehicles`) e entram
-aqui pelo id do veículo — o cliente da OS é o dono dele. Serviços e peças ficam
-como **itens solicitados**: o diagnóstico confirma ou ajusta o escopo, e só o
-orçamento aprovado reserva estoque. Se qualquer validação falhar, nada é
-gravado.
-
-```bash
-OS=$(curl -s -X POST $API/service-orders \
-  -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
-  -d '{
-    "vehicleId": "33333333-3333-4333-8333-000000000001",
-    "openedById": "11111111-1111-4111-8111-000000000002",
-    "services": [{ "serviceId": "88888888-8888-4888-8888-000000000002", "quantity": 1 }],
-    "parts":    [{ "supplyId": "77777777-7777-4777-8777-000000000001", "quantity": 2 }],
-    "notes": "Cliente relata barulho ao frear"
-  }' | field id)
-
-curl -s $API/service-orders/$OS/status -H "Authorization: Bearer $ADMIN"
-# {"status":"received"}
-```
-
-Com a OS aberta, registre a anamnese — o relato do cliente. Ela é obrigatória
-para iniciar o diagnóstico:
-
-```bash
-curl -s -X POST $API/service-orders/$OS/anamnesis \
-  -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
-  -d '{
-    "consultantId": "11111111-1111-4111-8111-000000000002",
-    "mainComplaint": "Barulho ao frear",
-    "problemDescription": "Chiado agudo nas rodas dianteiras",
-    "severity": "moderate",
-    "frequency": "constant"
-  }' > /dev/null
-```
-
-📧 **Recebida**
-
-### 4. Diagnóstico — `in_diagnosis` e depois `awaiting_approval`
-
-```bash
-curl -s -X POST $API/service-orders/$OS/diagnosis/start \
-  -H "Authorization: Bearer $BRUNO" > /dev/null
-# status: in_diagnosis
-
-QUOTE=$(curl -s -X POST $API/service-orders/$OS/diagnosis \
-  -H "Authorization: Bearer $BRUNO" -H 'Content-Type: application/json' \
-  -d '{
-    "findings": "Pastilhas dianteiras no limite",
-    "serviceItems": [{ "serviceId": "88888888-8888-4888-8888-000000000002", "quantity": 1 }]
-  }' | field quotation.id)
-```
-
-📧 **Em diagnóstico** no `start`; depois, o e-mail do orçamento vale como o de
-**Aguardando aprovação**.
-
-Registrar o laudo emite o orçamento e dispara o e-mail de aprovação na mesma
-tacada. O orçamento sai com **duas linhas**, embora só um serviço tenha sido
-pedido:
-
-```json
-{ "kind": "labor", "name": "Troca de pastilhas de freio", "quantity": 1, "unitPriceInCents": 15000 }
-{ "kind": "part",  "name": "Pastilha de freio dianteira", "quantity": 1, "unitPriceInCents": 12000 }
-```
-
-A peça entrou pela ficha técnica do serviço — não existe linha de peça avulsa. O
-total é R$ 270,00.
-
-### 5. Resposta do cliente — `awaiting_execution`
-
-Com `MAIL_DRIVER=log` (o padrão), o e-mail não sai: a mensagem é escrita no log
-da aplicação, com os botões **Aprovar orçamento** e **Recusar**. Com
-`MAIL_DRIVER=file`, os botões do arquivo em `var/mail/` funcionam. Os dois abrem
-`/quotations/decision?token=...`, uma página que mostra o orçamento e **não
-altera nada** — scanners de e-mail seguem links, mas não enviam formulários. A
-resposta só é registrada quando o cliente confirma o formulário da página.
-
-A mesma decisão pode chegar de fora da oficina em JSON, sem login: o token do
-link é a credencial. Copie o token do log (ou do arquivo) e aprove:
-
-```bash
-TOKEN=<token do link no log>
-curl -s -X POST $API/quotations/decision -H 'Content-Type: application/json' \
-  -d "{\"token\":\"$TOKEN\",\"decision\":\"approved\"}" > /dev/null
-# status: awaiting_execution
-```
-
-📧 **Aguardando execução**
-
-Repetir a mesma decisão responde `200` com o estado atual; a decisão contrária
-responde `409`. A oficina também pode aprovar manualmente, com JWT:
-`POST $API/quotations/$QUOTE/approve`.
-
-<details>
-<summary>Desvio: e se o cliente recusar?</summary>
-
-```bash
-curl -s -X POST $API/quotations/decision -H 'Content-Type: application/json' \
-  -d "{\"token\":\"$TOKEN\",\"decision\":\"rejected\",\"reason\":\"Muito caro\"}"
-# status: rejected, rejectedAt e rejectionReason preenchidos
-# a OS volta para in_diagnosis
-```
-
-📧 **Em diagnóstico**
-
-O orçamento recusado fica guardado como registro, e nenhuma peça é reservada:
-só a aprovação publica `quotation.approved`. Registrar o laudo de novo
-(passo 4) emite e envia um orçamento novo, e é ele que
-`GET /service-orders/$OS/quotation` passa a devolver. O link antigo continua
-recusado.
-
-</details>
-
-### 6. Estoque — a peça já está reservada
-
-Não há nada a chamar: a aprovação publica `quotation.approved` e o módulo de
-estoque reserva, contra a OS, cada linha `part` do orçamento aprovado. Basta
-conferir o saldo:
-
-```bash
-curl -s $API/supplies/77777777-7777-4777-8777-000000000001/stock \
-  -H "Authorization: Bearer $ADMIN"
-# availableBalance caiu de 20 para 19 — 1 unidade reservada para $OS
-```
-
-> Se faltar peça, a aprovação **não** é barrada: a OS segue para
-> `awaiting_execution`, a linha fica sem reserva e o estoque publica
-> `stock.purchase-request-needed`. Os endpoints manuais
-> (`POST /supplies/{id}/reservations` e `/write-offs`) continuam disponíveis
-> para ajustes — não use-os neste roteiro, ou a peça fica reservada em dobro.
-
-### 7. Execução — `in_execution`
-
-Não existe "iniciar trabalho": assumir a ordem **é** o começo da execução.
-
-```bash
-MECANICO=$(curl -s -X POST $API/mechanics/claim \
-  -H "Authorization: Bearer $BRUNO" -H 'Content-Type: application/json' \
-  -d "{\"serviceOrderId\":\"$OS\"}" | field id)
-
-echo $MECANICO   # quem a fila entregou
-# status: in_execution
-```
-
-📧 **Em execução**
-
-> A alocação é FIFO: quem está disponível há mais tempo assume, **não**
-> necessariamente quem chamou. Na primeira rodada sai o Bruno; na segunda, como
-> ele voltou para o fim da fila ao ser liberado, sai o Diego. Por isso o id vem
-> da resposta (`$MECANICO`) em vez de ser fixo — é ele que o passo 9 exige.
-
-### 8. Estoque — a baixa vem com a conclusão
-
-Também automática, mas só no próximo passo: quando a OS chega a `finished`, o
-estoque recebe `service-order.finished`, lê no livro-razão o que ainda está
-reservado para aquela OS e dá baixa em tudo. O que dá baixa é o que foi de fato
-reservado, não o orçamento — uma linha que ficou sem reserva por falta de peça
-não gera baixa. O saldo disponível segue 19: a baixa consome a reserva, não
-devolve nada à prateleira.
-
-### 9. Conclusão — `finished`
-
-```bash
-curl -s -X POST $API/mechanics/$MECANICO/complete-execution \
-  -H "Authorization: Bearer $BRUNO" -H 'Content-Type: application/json' \
-  -d "{\"serviceOrderId\":\"$OS\"}" > /dev/null
-# status: finished — e o mecânico volta para a fila como AVAILABLE
-```
-
-📧 **Finalizada**
-
-Este é o momento de olhar o relatório: ele conta apenas as ordens **em
-`finished`**, então uma OS já paga não entra na média.
-
-```bash
-curl -s "$API/service-orders/average-execution-time" -H "Authorization: Bearer $ADMIN"
-# {"averageExecutionTimeMinutes":0,"sampleSize":1}
-```
-
-A média sai em minutos inteiros, então um roteiro percorrido em segundos
-arredonda para `0` — o que importa aqui é o `sampleSize` subir para 1 e voltar a
-zero no passo seguinte.
-
-### 10. Pagamento — `delivered`
-
-```bash
-curl -s -X POST $API/payments \
-  -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' \
-  -d "{\"serviceOrderId\":\"$OS\"}"
-# {"amountInCents":27000, ...}
-```
-
-O pagamento é mockado — não há gateway, ele nasce confirmado — e publica
-`payment.received`, que carimba a entrega:
-
-```bash
-curl -s $API/service-orders/$OS -H "Authorization: Bearer $ADMIN"
-# status: delivered, deliveredAt preenchido, openedByName: "Carla Menezes"
-```
-
-📧 **Entregue**
-
-### 11. A visão do cliente
-
-O único endpoint que um `CUSTOMER` alcança, e apenas para as ordens dos próprios
-veículos:
-
-```bash
-ANA=$(login ana@example.com)
-curl -s $API/service-orders/$OS/status -H "Authorization: Bearer $ANA"
-# {"status":"delivered"}
-```
-
-Uma ordem de outro cliente responde **404**, não 403: um 403 confirmaria quais
-ids existem e deixaria mapear as ordens da oficina por tentativa.
-
-### O que vale observar no caminho
-
-- **O snapshot é imutável**: renomeie a consultora Carla e o `openedByName` da OS
-  continua o nome antigo — o histórico não muda quando a origem muda
-- **O preço congela na emissão**: altere o `laborPriceInCents` do serviço depois
-  do orçamento emitido e o `unitPriceInCents` do item não acompanha
-- **O saldo é derivado**: `GET /supplies/{id}/stock` soma o livro-razão; não
-  existe coluna de quantidade para conferir
-- **Fora de ordem dá 409**: tente pagar uma OS que não está em `finished`, ou
-  iniciar o diagnóstico de uma que já saiu de `received`
-- **Abrir o link não decide nada**: `GET /quotations/decision` só mostra o
-  orçamento; recarregue à vontade e a OS segue em `awaiting_approval`
+No kind (overlay `local`) o driver fica `log`: o disco do pod é efêmero e
+ninguém o abriria. Na AWS (overlay `aws`) o driver é `brevo`: a chave fica no
+Secret `app-secrets`, o remetente vem da variable `MAIL_FROM` do environment
+`production` e o `APP_BASE_URL` é o endereço público da EC2, então o link do
+orçamento funciona fora do cluster.
 
 </details>
 
@@ -1125,14 +1051,26 @@ tech-challenge-17soat/
 │
 ├── test/                                      # Testes end-to-end
 ├── scripts/
-│   └── seed.ts                                # Dados de demonstração (npm run db:seed)
+│   ├── seed.ts                                # Dados de demonstração (npm run db:seed)
+│   └── load/                                  # Roteiros k6 para o HPA
+├── k8s/
+│   ├── base/                                  # Deployment, Service, ConfigMap e HPA da API
+│   ├── components/aws-runtime/                # RDS (TLS + CA), e-mail Brevo, sem seed
+│   ├── overlays/local/                        # kind: PostgreSQL in-cluster, Secret de demo
+│   ├── overlays/aws/                          # API na AWS (imagem do Docker Hub)
+│   └── overlays/aws-migrate/                  # Job de migração do banco
+├── infra/                                     # Terraform: VPC, EC2 + K3s, RDS
+│   └── bootstrap/                             # Bucket do state e usuário IAM do CI
+├── .github/
+│   ├── workflows/                             # ci.yml, cd.yml, deploy.yml
+│   ├── actions/                               # tf-outputs e kubeconfig
+│   └── scripts/                               # Render dos overlays e plan guard
 ├── docs/
 │   ├── adr/                                   # Architecture Decision Records
-│   ├── security/                              # Relatório SonarCloud
-│   └── product/                               # Documentação de produto
-├── docker-compose.yml                         # PostgreSQL local
+│   └── security/                               # Relatório SonarCloud
+├── Dockerfile                                 # Imagem da API (multi-stage)
+├── docker-compose.yml                         # API + PostgreSQL local
 ├── drizzle.config.ts                          # Configuração do drizzle-kit
-├── GUIDELINES.md                              # Convenções do projeto
 └── README.md                                  # Este arquivo
 ```
 
@@ -1303,7 +1241,10 @@ POST   /payments                                     # Registrar pagamento de um
 GET    /payments/{id}                                # Obter pagamento
 ```
 
-Documentação completa e interativa em <http://localhost:3000/docs> (Swagger) ou <http://localhost:3000/reference> (Scalar).
+Documentação completa e interativa:
+
+- **AWS:** <http://ec2-3-138-152-147.us-east-2.compute.amazonaws.com:30080/reference> (Scalar) e <http://ec2-3-138-152-147.us-east-2.compute.amazonaws.com:30080/docs> (Swagger)
+- **Local:** <http://localhost:3000/reference> (Scalar) e <http://localhost:3000/docs> (Swagger)
 
 </details>
 
