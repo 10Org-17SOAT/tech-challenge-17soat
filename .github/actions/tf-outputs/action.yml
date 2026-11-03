@@ -1,8 +1,8 @@
 name: Terraform outputs
 description: >-
   Initializes infra/ against the remote state and exposes what the cluster
-  steps need: writes k8s/components/aws-runtime/db.env and returns the VM's
-  public IP. Expects AWS credentials already configured in the job.
+  steps need: writes k8s/components/aws-runtime/db.env and app.env, and returns
+  the VM's public IP. Expects AWS credentials already configured in the job.
 
 # The remote state is the single source of truth: nothing is copied by hand
 # into GitHub variables, so a recreated RDS or EIP is picked up on the next run.
@@ -16,6 +16,11 @@ inputs:
     required: true
   aws-region:
     description: Region of the bucket (AWS_REGION).
+    required: true
+  mail-from:
+    description: >-
+      Verified Brevo sender (MAIL_FROM environment variable). Kept out of the
+      repository, which is public: it is a personal address.
     required: true
   terraform-version:
     description: Same as the operator's, so the state is never upgraded by surprise.
@@ -52,7 +57,14 @@ runs:
       id: read
       shell: bash
       working-directory: infra
+      env:
+        MAIL_FROM: ${{ inputs.mail-from }}
       run: |
+        if [ -z "$MAIL_FROM" ]; then
+          echo "::error::Variable MAIL_FROM is not set in the production environment (infra/README.md, section 13)."
+          exit 1
+        fi
+
         ip=$(terraform output -raw k3s_public_ip)
         echo "k3s-public-ip=$ip" >> "$GITHUB_OUTPUT"
 
@@ -63,3 +75,11 @@ runs:
           echo "DB_NAME=$(terraform output -raw db_name)"
         } > ../k8s/components/aws-runtime/db.env
         cat ../k8s/components/aws-runtime/db.env
+
+        # APP_BASE_URL builds the quotation approval link in the email, so it
+        # must be the address the customer can reach, not localhost.
+        {
+          echo "APP_BASE_URL=$(terraform output -raw api_url)"
+          echo "MAIL_FROM=$MAIL_FROM"
+        } > ../k8s/components/aws-runtime/app.env
+        cat ../k8s/components/aws-runtime/app.env

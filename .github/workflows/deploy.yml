@@ -159,6 +159,7 @@ jobs:
         with:
           state-bucket: ${{ vars.TF_STATE_BUCKET }}
           aws-region: ${{ vars.AWS_REGION }}
+          mail-from: ${{ vars.MAIL_FROM }}
 
       - name: Kubeconfig
         uses: ./.github/actions/kubeconfig
@@ -185,8 +186,9 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           BOOTSTRAP_ADMIN_EMAIL: ${{ secrets.BOOTSTRAP_ADMIN_EMAIL }}
           BOOTSTRAP_ADMIN_PASSWORD: ${{ secrets.BOOTSTRAP_ADMIN_PASSWORD }}
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
         run: |
-          for name in JWT_SECRET BOOTSTRAP_ADMIN_EMAIL BOOTSTRAP_ADMIN_PASSWORD; do
+          for name in JWT_SECRET BOOTSTRAP_ADMIN_EMAIL BOOTSTRAP_ADMIN_PASSWORD BREVO_API_KEY; do
             if [ -z "${!name}" ]; then
               echo "::error::Secret $name is not set in the production environment (infra/README.md, section 13)."
               exit 1
@@ -203,6 +205,7 @@ jobs:
             --from-literal=JWT_SECRET="$JWT_SECRET" \
             --from-literal=BOOTSTRAP_ADMIN_EMAIL="$BOOTSTRAP_ADMIN_EMAIL" \
             --from-literal=BOOTSTRAP_ADMIN_PASSWORD="$BOOTSTRAP_ADMIN_PASSWORD" \
+            --from-literal=BREVO_API_KEY="$BREVO_API_KEY" \
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Render migration Job
@@ -270,6 +273,7 @@ jobs:
         with:
           state-bucket: ${{ vars.TF_STATE_BUCKET }}
           aws-region: ${{ vars.AWS_REGION }}
+          mail-from: ${{ vars.MAIL_FROM }}
 
       - name: Kubeconfig
         uses: ./.github/actions/kubeconfig
