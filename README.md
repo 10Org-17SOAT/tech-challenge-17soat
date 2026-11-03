@@ -1368,12 +1368,10 @@ tech-challenge-17soat/
 │   └── scripts/                               # Render dos overlays e plan guard
 ├── docs/
 │   ├── adr/                                   # Architecture Decision Records
-│   ├── security/                              # Relatório SonarCloud
-│   └── product/                               # Documentação de produto
+│   └── security/                               # Relatório SonarCloud
 ├── Dockerfile                                 # Imagem da API (multi-stage)
 ├── docker-compose.yml                         # API + PostgreSQL local
 ├── drizzle.config.ts                          # Configuração do drizzle-kit
-├── GUIDELINES.md                              # Convenções do projeto
 └── README.md                                  # Este arquivo
 ```
 
