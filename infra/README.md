@@ -217,7 +217,7 @@ Regras e o motivo de cada uma:
 | Next.js | **NestJS** (`src/main.ts`, `nest-cli.json`) | Nenhum — Terraform é agnóstico. O provisionamento da aplicação segue o NestJS. |
 | API em porta `6443` | `k8s/base/api/service.yaml` é **NodePort 30080** | Ver C-01 na seção 9. |
 | Banco gerenciado (RDS) | AWS: RDS em `database.tf`; local: `k8s/overlays/local/postgres/statefulset.yaml` | D-02 revisado: RDS na AWS, StatefulSet só no overlay local. |
-| `APP_BASE_URL` derivado do host | `k8s/base/config/configmap.yaml` fixa `http://localhost:30080` | Reescrito via k8s ConfigMap. |
+| `APP_BASE_URL` derivado do host | `k8s/base/config/configmap.yaml` fixa `http://localhost:30080` | Na AWS, `app.env` (gerado pelo `tf-outputs` a partir do output `api_url`) sobrescreve no ConfigMap. |
 | `MONGO_URI` | **Inexistente.** `docs/adr/0004` escolheu PostgreSQL + Drizzle | Nenhuma variável `mongo_*`. |
 | Build x86_64 | `ami_name_filter` padrão é ARM64 (`gp3`) | D-10: build precisa ser ARM64 para não emular. Ver C-05. |
 | Compose como "infraestrutura" | Compose é **ambiente de desenvolvimento**, não deploy | Deploy provisionado via manifests versionados. |
@@ -258,7 +258,7 @@ do primeiro `apply` que provisione recursos.
 | **C-07** | Sem `domain` (D-03 não traz ACME aqui), a API fica em `IP:porta`. | Sem TLS nem hostname estável. | `domain = null` é o default; a estratégia de exposição é decisão da camada de cluster. |
 | ~~**C-08**~~ | ~~Backup do Postgres in-cluster não está definido.~~ | **Resolvido (#120):** o banco é RDS, fora da VM, com 1 dia de backup automático (máximo do free plan) (`db_backup_retention_days`) e snapshot final no destroy. | — |
 | ~~**C-09**~~ | ~~Versão do K3s não fixada (`k3s_version = null`).~~ | **Resolvido (#129):** `production.tfvars` fixa `v1.36.5+k3s1`, a mesma minor do `kubectl` da pipeline. | — |
-| **C-10** | `MAIL_FROM` (`oficina@example.com`) é placeholder no ConfigMap e no compose. | E-mail real sairia de endereço inexistente. | Ajustar via Secret/ConfigMap. |
+| ~~**C-10**~~ | ~~`MAIL_FROM` (`oficina@example.com`) é placeholder no ConfigMap e no compose.~~ | **Resolvido:** na AWS o driver é `brevo` e `MAIL_FROM` vem da variable do environment, via `app.env`. | — |
 
 ### Hygiene do repositório
 
@@ -419,6 +419,8 @@ código ([ADR-0006](../docs/adr/0006-migrations-compativeis-com-a-versao-anterio
 | Secret | `SSH_PRIVATE_KEY` | Metade privada da chave em `ssh_public_key` do `production.tfvars`, dedicada ao ambiente |
 | Secret | `JWT_SECRET` | Fixo, gerado uma vez (`openssl rand -base64 48`). Trocar desloga todo mundo. |
 | Secret | `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD` | Primeiro admin (senha com 12+ caracteres) |
+| Secret | `BREVO_API_KEY` | Chave de API do Brevo (envio dos e-mails ao cliente) |
+| Variable | `MAIL_FROM` | Remetente verificado no Brevo. Fora do repositório, que é público |
 | Variable | `TF_STATE_BUCKET`, `AWS_REGION` | `terraform -chdir=infra/bootstrap output` |
 
 O `deploy.yml` também pode ser disparado à mão (Actions → *CD - Deploy K8s*, a
@@ -453,9 +455,15 @@ kubectl create secret generic app-secrets \
   --from-literal=JWT_SECRET='<mesmo valor do secret JWT_SECRET>' \
   --from-literal=BOOTSTRAP_ADMIN_EMAIL='<email do admin>' \
   --from-literal=BOOTSTRAP_ADMIN_PASSWORD='<senha do admin, 12+ caracteres>' \
+  --from-literal=BREVO_API_KEY='<mesmo valor do secret BREVO_API_KEY>' \
   --dry-run=client -o yaml | kubectl apply -f -
 
-# 5. Migration e aplicação, com a imagem do commit.
+# 5. app.env: link de aprovação no e-mail e remetente do Brevo (não versionado).
+printf 'APP_BASE_URL=%s\nMAIL_FROM=%s\n' \
+  "$(terraform -chdir=infra output -raw api_url)" '<mesmo valor da variable MAIL_FROM>' \
+  > k8s/components/aws-runtime/app.env
+
+# 6. Migration e aplicação, com a imagem do commit.
 IMAGE=<DOCKERHUB_IMAGE>:<sha>
 .github/scripts/render-overlay.sh k8s/overlays/aws-migrate "$IMAGE" migrate.yaml
 kubectl delete job db-migrate --ignore-not-found && kubectl apply -f migrate.yaml
@@ -479,7 +487,7 @@ então `destroy`. Um snapshot final (`<prefixo>-db-final-<sufixo>`) é mantido.
 
 | Item | Hoje | Dono |
 |---|---|---|
-| `APP_BASE_URL` | O base fixa `http://localhost:30080` | Camada de cluster (#119): depende do IP/domínio da EC2 |
+| ~~`APP_BASE_URL`~~ | **Resolvido:** o `tf-outputs` grava o output `api_url` em `app.env` | — |
 | ~~Imagem da API~~ | **Resolvido (#145/#146):** imagem do Docker Hub, trocada pela pipeline (`render-overlay.sh`) | — |
 
 ---

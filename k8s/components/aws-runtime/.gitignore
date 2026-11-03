@@ -2,3 +2,6 @@
 # in the pipeline. Never committed: it is derived from the provisioned RDS
 # instance, not configuration.
 db.env
+# Written by the tf-outputs action (APP_BASE_URL, MAIL_FROM). MAIL_FROM is a
+# personal address and the repository is public.
+app.env
