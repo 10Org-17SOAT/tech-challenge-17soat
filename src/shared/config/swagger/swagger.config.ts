@@ -7,7 +7,7 @@ export function setupSwagger(app: INestApplication): void {
   const config = new DocumentBuilder()
     .setTitle('Tech Challenge API')
     .setDescription('Documentação da API do Tech Challenge')
-    .setVersion('1.0')
+    .setVersion('2.0')
     .addBearerAuth(
       { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
       'bearer',
